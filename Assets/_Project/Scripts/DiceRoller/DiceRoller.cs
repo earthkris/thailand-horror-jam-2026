@@ -1,4 +1,4 @@
-﻿
+
 using UnityEngine;
 using Utilities;
 using Random = UnityEngine.Random;
@@ -15,6 +15,8 @@ public class DiceRoller : MonoBehaviour {
     [SerializeField] float minAngularVelocity = 0.1f;
     [SerializeField] float smoothTime = 0.1f;
     [SerializeField] float maxSpeed = 15f;
+    [Tooltip("Roll when the dice is clicked. Combat turns this off and rolls it from code.")]
+    [SerializeField] bool clickToRoll = true;
     
     [Header("UI References")]
     [SerializeField] TMPro.TextMeshProUGUI resultText;
@@ -26,6 +28,13 @@ public class DiceRoller : MonoBehaviour {
     //[SerializeField] AudioClip finalResultClip;
     //[SerializeField] GameObject impactEffect;
     //[SerializeField] GameObject finalResultEffect;
+
+    // Fired with the number on top when a roll finishes
+    public event System.Action<int> OnRolled;
+
+    public bool IsRolling => rollTimer != null && (rollTimer.IsRunning || finalize);
+    public bool ClickToRoll { get => clickToRoll; set => clickToRoll = value; }
+    public TMPro.TextMeshProUGUI ResultText => resultText;
 
     DiceSides diceSides;
     //AudioSource audioSource;
@@ -51,8 +60,13 @@ public class DiceRoller : MonoBehaviour {
     }
 
     void OnMouseUp() {
-        //start roll
-        if (rollTimer.IsRunning) return;
+        if (!clickToRoll) return;
+        Roll();
+    }
+
+    // Start a roll from code (e.g. an attack). Listen to OnRolled for the result.
+    public void Roll() {
+        if (rollTimer == null || rollTimer.IsRunning) return;
         rollTimer.Start();
     }
 
@@ -78,6 +92,10 @@ public class DiceRoller : MonoBehaviour {
     void PerformInitialRoll() {
         ResetDiceState();
         resultText.text = "";
+
+        // Throw from the middle of the tray with a random spin, so every roll looks different
+        transform.position = originPosition;
+        transform.rotation = Random.rotation;
         
         Vector3 targetPosition = new Vector3(Random.Range(-1f, 1f), 0, Random.Range(-1f, 1f));
         rb.AddForce(targetPosition * rollForce, ForceMode.Impulse);
@@ -111,6 +129,7 @@ public class DiceRoller : MonoBehaviour {
         int result = diceSides.GetMatch();
         Debug.Log($"Dice landed on {result}");
         resultText.text = result.ToString();
+        OnRolled?.Invoke(result);
     }
 
     void ResetDiceState() {

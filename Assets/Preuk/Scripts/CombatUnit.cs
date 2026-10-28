@@ -37,6 +37,10 @@ public class CombatUnit : MonoBehaviour
     [Tooltip("Speed in feet. Every 5 ft = 1 tile, so 30 ft = 6 tiles.")]
     public int speedFeet = 30;
 
+    [Header("Actions (ACTION menu)")]
+    [Tooltip("What this character can do with their action. Drag Combat Action assets here.")]
+    public List<CombatAction> actions = new List<CombatAction>();
+
     public int CurrentHP { get; private set; }
     public bool IsAlive => CurrentHP > 0;
     public int MoveTiles => speedFeet / 5;

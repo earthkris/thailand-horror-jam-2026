@@ -173,8 +173,14 @@ public class EnemyAI : MonoBehaviour
     {
         // D&D: shooting with an enemy right next to you = disadvantage (roll twice, keep the lower)
         bool disadvantage = style == AttackStyle.Ranged && NearestPartyGap(MyTile()) <= 1;
-        int r1 = DiceSimulator.Roll(20);
-        int r2 = disadvantage ? DiceSimulator.Roll(20) : r1;
+        string verb = style == AttackStyle.Melee ? "attacks" : "shoots at";
+
+        // Rolled on the real dice (DiceTray), or DiceSimulator if there's no dice in the scene
+        int r1 = 0, r2 = 0;
+        yield return DiceTray.RollD20($"{Name()} {verb} {target.unitName}" + (disadvantage ? "   (disadvantage)" : ""), v => r1 = v);
+        r2 = r1;
+        if (disadvantage)
+            yield return DiceTray.RollD20("Disadvantage  —  second roll", v => r2 = v);
         int roll = Mathf.Min(r1, r2);
 
         // Show it
@@ -191,6 +197,7 @@ public class EnemyAI : MonoBehaviour
         if (!hit)
         {
             Debug.Log($"{attack} — miss{(roll == 1 ? " (natural 1)" : "")}");
+            yield return DiceTray.ShowOutcome(roll == 1 ? "NATURAL 1  —  MISS" : "MISS", true);   // good for you
             yield break;
         }
 
@@ -199,6 +206,8 @@ public class EnemyAI : MonoBehaviour
         int damage = Mathf.Max(dice + unit.damageBonus, 1);
         Debug.Log($"{attack} — {(crit ? "CRITICAL HIT" : "hit")}! {damage} damage");
         target.TakeDamage(damage);
+        string down = target.IsAlive ? "" : $"  —  {target.unitName.ToUpper()} IS DOWN";
+        yield return DiceTray.ShowOutcome((crit ? $"CRITICAL!  {damage} damage" : $"HIT  —  {damage} damage") + down, false);
     }
 
     // Quick jab toward the target and back

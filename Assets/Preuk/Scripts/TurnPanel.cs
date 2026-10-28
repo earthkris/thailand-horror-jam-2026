@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 // Connects the battle UI you designed in the Canvas to TurnManager.
@@ -27,10 +28,17 @@ public class TurnPanel : MonoBehaviour
 
     [Header("Buttons")]
     public Button moveButton;
-    public Button attackButton;
+    [FormerlySerializedAs("attackButton")]
+    public Button actionButton;
     [Tooltip("Optional. Leave empty if you don't have a Use Item button yet.")]
     public Button itemButton;
     public Button endTurnButton;
+
+    [Header("Menus")]
+    [Tooltip("The pop-up list ACTION and USE ITEM open.")]
+    public ChoiceMenu menu;
+    [Tooltip("The party's bag. Leave empty to find it automatically.")]
+    public PartyInventory inventory;
 
     [Header("Colors")]
     public Color partyColor = new Color32(217, 203, 176, 255);    // bone
@@ -62,9 +70,12 @@ public class TurnPanel : MonoBehaviour
         rowStyle = rowTemplate.fontStyle;
         rowTemplate.gameObject.SetActive(false);
 
+        if (inventory == null) inventory = FindAnyObjectByType<PartyInventory>();
+        if (menu != null) menu.Close();
+
         moveButton.onClick.AddListener(turns.ChooseMove);
-        attackButton.onClick.AddListener(turns.ChooseAttack);
-        if (itemButton != null) itemButton.onClick.AddListener(turns.ChooseItem);
+        actionButton.onClick.AddListener(OpenActions);
+        if (itemButton != null) itemButton.onClick.AddListener(OpenItems);
         endTurnButton.onClick.AddListener(turns.EndTurnButton);
     }
 
@@ -90,6 +101,9 @@ public class TurnPanel : MonoBehaviour
         bool show = turns.InBattle && turns.Current != null;
         initiativePanel.SetActive(show);
         actionPanel.SetActive(show);
+
+        // Close the menu when it's no longer our turn, or our action is used up
+        if (menu != null && menu.IsOpen && (!show || !turns.IsPartyTurn || turns.HasActed)) menu.Close();
         if (!show) return;
 
         // One copy of the row template per unit
@@ -146,9 +160,58 @@ public class TurnPanel : MonoBehaviour
         // Buttons only work on your own turn, and only once each
         bool mine = turns.IsPartyTurn;
         SetButton(moveButton, mine && !turns.HasMoved);
-        SetButton(attackButton, mine && !turns.HasActed);
+        SetButton(actionButton, mine && !turns.HasActed);
         if (itemButton != null) SetButton(itemButton, mine && !turns.HasActed);   // items use your action too
         SetButton(endTurnButton, mine);
+    }
+
+    // ---------- Menus ----------
+
+    void OpenActions()
+    {
+        if (menu == null || !turns.IsPartyTurn || turns.HasActed) return;
+        CombatUnit u = turns.Current;
+
+        var options = new List<ChoiceMenu.Option>();
+        foreach (CombatAction a in u.actions)
+        {
+            if (a == null) continue;
+            int left = turns.UsesLeft(u, a);
+            string uses = left < 0 ? "" : $"   {left}/{a.usesPerBattle}";
+            string range = a.range <= 1 ? "melee" : $"{a.range} tiles";
+            CombatAction picked = a;
+            options.Add(new ChoiceMenu.Option
+            {
+                label = a.displayName,
+                detail = $"{a.DiceText}   {range}{uses}",
+                description = a.description,
+                enabled = left != 0,
+                onPick = () => { menu.Close(); turns.ChooseAction(picked); }
+            });
+        }
+        menu.Open($"{u.unitName}  —  ACTIONS", options);
+    }
+
+    void OpenItems()
+    {
+        if (menu == null || !turns.IsPartyTurn || turns.HasActed) return;
+
+        var options = new List<ChoiceMenu.Option>();
+        if (inventory != null)
+            foreach (PartyInventory.ItemStack s in inventory.items)
+            {
+                if (s.item == null || s.count <= 0) continue;
+                ItemData picked = s.item;
+                options.Add(new ChoiceMenu.Option
+                {
+                    label = s.item.displayName,
+                    detail = $"x{s.count}",
+                    description = s.item.description,
+                    enabled = true,
+                    onPick = () => { menu.Close(); turns.ChooseItem(picked); }
+                });
+            }
+        menu.Open("ITEMS", options);
     }
 
     void SetButton(Button b, bool on)
@@ -168,7 +231,7 @@ public class TurnPanel : MonoBehaviour
         if (rowTemplate == null) missing.Add("Row Template");
         if (turnTitle == null) missing.Add("Turn Title");
         if (moveButton == null) missing.Add("Move Button");
-        if (attackButton == null) missing.Add("Attack Button");
+        if (actionButton == null) missing.Add("Action Button");
         if (endTurnButton == null) missing.Add("End Turn Button");
 
         if (missing.Count == 0) return true;

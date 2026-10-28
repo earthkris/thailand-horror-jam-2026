@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fc5af25f61fdb1d47b63db2c9bb8cd29, type: 3}
+  m_Name: Healing Potion
+  m_EditorClassIdentifier: Assembly-CSharp::ItemData
+  displayName: Healing Potion
+  description: Drink it, or pour it into the mouth of a friend beside you.
+  target: 1
+  range: 1
+  effect: 0
+  diceCount: 2
+  diceSides: 4
+  bonus: 2

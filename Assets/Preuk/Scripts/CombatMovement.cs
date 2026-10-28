@@ -18,6 +18,7 @@ public class CombatMovement : MonoBehaviour
 
     TurnManager turns;
     CombatManager combat;
+    CombatTargeting targeting;
     GridManager Grid => combat.grid;
 
     bool stepping;
@@ -29,7 +30,11 @@ public class CombatMovement : MonoBehaviour
     {
         turns = GetComponent<TurnManager>();
         combat = GetComponent<CombatManager>();
+        targeting = GetComponent<CombatTargeting>();
     }
+
+    // CombatTargeting calls this when aiming starts/stops
+    public void Refresh() => RefreshRange();
 
     void OnEnable()
     {
@@ -59,6 +64,7 @@ public class CombatMovement : MonoBehaviour
         // 2. Only on our own turn, with movement left
         if (!turns.InBattle || !turns.IsPartyTurn || turns.HasMoved) return;
         if (Grid == null || !Grid.IsBuilt) return;
+        if (targeting != null && targeting.IsActive) return;   // aiming or rolling: stand still
 
         // 3. Which way? (holding the key keeps walking, like exploring)
         Vector2Int dir = ReadDirection();
@@ -115,7 +121,8 @@ public class CombatMovement : MonoBehaviour
     {
         if (Grid == null || !Grid.IsBuilt) return;
 
-        bool show = turns.InBattle && turns.IsPartyTurn && !turns.HasMoved && turns.ShowMoveRange;
+        bool show = turns.InBattle && turns.IsPartyTurn && !turns.HasMoved && turns.ShowMoveRange
+                    && (targeting == null || !targeting.IsActive);
         if (!show)
         {
             Grid.ClearRange();

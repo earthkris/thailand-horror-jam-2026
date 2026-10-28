@@ -63,6 +63,10 @@ public class CombatManager : MonoBehaviour
         foreach (CombatUnit u in Party) SetExplorationMovement(u, false);
         foreach (CombatUnit u in Enemies) SetExplorationMovement(u, false);
 
+        // Know when someone drops
+        foreach (CombatUnit u in Party) u.OnDied += HandleDeath;
+        foreach (CombatUnit u in Enemies) u.OnDied += HandleDeath;
+
         // 5. Everyone snaps to the nearest free tile from where they stand
         var taken = new HashSet<Vector2Int>();
         foreach (CombatUnit u in Party) Place(u, taken);
@@ -72,6 +76,46 @@ public class CombatManager : MonoBehaviour
 
         // 6. Hand over to TurnManager (initiative, turns, camera)
         OnBattleReady?.Invoke();
+    }
+
+    // ---------- End of battle ----------
+
+    // Called by TurnManager when every monster is dead: back to exploring
+    public void EndCombat()
+    {
+        if (!InCombat) return;
+        InCombat = false;
+
+        foreach (CombatUnit u in Party) u.OnDied -= HandleDeath;
+        foreach (CombatUnit u in Enemies) u.OnDied -= HandleDeath;
+
+        grid.ClearGrid();
+        foreach (CombatUnit u in Party)
+            if (u.IsAlive) SetExplorationMovement(u, true);
+
+        GameState.Current = GameMode.Exploring;
+        if (cameraController != null && Party.Count > 0)
+        {
+            CombatUnit leader = Party.Find(p => p.GetComponent<PlayerMovement>() != null) ?? Party[0];
+            cameraController.FocusOn(leader.transform);
+        }
+        Debug.Log("Back to exploring.");
+    }
+
+    // Monsters vanish when they die; party members go grey (they're down, not gone)
+    void HandleDeath(CombatUnit u)
+    {
+        if (u.team == Team.Enemy)
+        {
+            foreach (Renderer rend in u.GetComponentsInChildren<Renderer>(true)) rend.enabled = false;
+            if (u.TryGetComponent(out EnemyChase chase)) chase.enabled = false;
+            if (u.TryGetComponent(out EnemyEncounter encounter)) encounter.enabled = false;
+        }
+        else
+        {
+            foreach (SpriteRenderer sr in u.GetComponentsInChildren<SpriteRenderer>(true))
+                sr.color = new Color(0.35f, 0.32f, 0.3f, 1f);
+        }
     }
 
     // Is this unit standing inside the battle grid?

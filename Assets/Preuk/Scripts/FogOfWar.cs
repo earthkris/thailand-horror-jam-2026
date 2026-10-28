@@ -60,6 +60,7 @@ public class FogOfWar : MonoBehaviour
         foreach (CombatUnit u in enemies)
         {
             if (u == null) continue;
+            if (!u.IsAlive) { SetVisible(u, false); continue; }   // dead monsters stay gone
             bool seen = IsLit(u);
             bool wasSeen = !hidden.Contains(u);
             if (seen != wasSeen)

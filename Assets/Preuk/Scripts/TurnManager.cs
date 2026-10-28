@@ -37,9 +37,15 @@ public class TurnManager : MonoBehaviour
     public event System.Action OnChanged;
 
     CombatManager combat;
+    CombatTargeting targeting;
     int index;   // position in Order
+    readonly Dictionary<(CombatUnit, CombatAction), int> usesLeft = new Dictionary<(CombatUnit, CombatAction), int>();
 
-    void Awake() => combat = GetComponent<CombatManager>();
+    void Awake()
+    {
+        combat = GetComponent<CombatManager>();
+        targeting = GetComponent<CombatTargeting>();
+    }
     void OnEnable() => combat.OnBattleReady += BeginBattle;
     void OnDisable() => combat.OnBattleReady -= BeginBattle;
 
@@ -48,6 +54,7 @@ public class TurnManager : MonoBehaviour
     void BeginBattle()
     {
         Order.Clear();
+        usesLeft.Clear();   // every action gets its full uses again each fight
 
         var everyone = new List<CombatUnit>(combat.Party);
         everyone.AddRange(combat.Enemies);
@@ -79,13 +86,17 @@ public class TurnManager : MonoBehaviour
 
     void StartTurn()
     {
-        // Whole party down? The fight is over (proper game over comes later)
+        // Whole party down? (a proper game-over screen comes later)
         if (!AnyAlive(Team.Party))
         {
-            InBattle = false;
-            Current = null;
-            Debug.Log("The party has fallen...");
-            OnChanged?.Invoke();
+            FinishBattle(false);
+            return;
+        }
+
+        // Every monster down? Victory!
+        if (!AnyAlive(Team.Enemy))
+        {
+            FinishBattle(true);
             return;
         }
 
@@ -115,6 +126,17 @@ public class TurnManager : MonoBehaviour
         if (!IsPartyTurn) StartCoroutine(EnemyTurn());
     }
 
+    void FinishBattle(bool won)
+    {
+        StopAllCoroutines();
+        if (targeting != null) targeting.Cancel();
+        InBattle = false;
+        Current = null;
+        Debug.Log(won ? "Victory! The monsters are dead." : "The party has fallen...");
+        OnChanged?.Invoke();
+        if (won) combat.EndCombat();
+    }
+
     bool AnyAlive(Team team)
     {
         foreach (Combatant c in Order)
@@ -136,6 +158,7 @@ public class TurnManager : MonoBehaviour
     public void EndTurn()
     {
         if (!InBattle) return;
+        if (targeting != null) targeting.Cancel();
         Advance();
         StartTurn();
     }
@@ -156,7 +179,6 @@ public class TurnManager : MonoBehaviour
         if (Current == me) EndTurn();
     }
 
-    // Later steps call these after a real move / attack happens
     // CombatMovement calls this after every step (1 tile = 5 ft)
     public void SpendMove(int tiles = 1)
     {
@@ -177,21 +199,48 @@ public class TurnManager : MonoBehaviour
         OnChanged?.Invoke();
     }
 
-    public void ChooseAttack()
+    // ACTION menu -> an option was picked: now choose who it's aimed at (CombatTargeting)
+    public void ChooseAction(CombatAction action)
     {
-        if (!IsPartyTurn || HasActed) return;
-        Debug.Log($"{Current.unitName}: Attack (+{Current.attackBonus}, {Current.DamageText}) — coming in step 3");
+        if (!IsPartyTurn || HasActed || action == null) return;
+        if (UsesLeft(Current, action) == 0) return;
+        if (targeting != null) targeting.BeginAction(Current, action);
+        else Debug.LogWarning("Add a CombatTargeting component to the Combat object.");
     }
 
-    // Using an item takes your action, same as attacking (D&D rule)
-    public void ChooseItem()
+    // USE ITEM menu -> an item was picked. Using an item takes your action (D&D rule).
+    public void ChooseItem(ItemData item)
     {
-        if (!IsPartyTurn || HasActed) return;
-        Debug.Log($"{Current.unitName}: Use Item — coming after the inventory exists");
+        if (!IsPartyTurn || HasActed || item == null) return;
+        if (targeting != null) targeting.BeginItem(Current, item);
+        else Debug.LogWarning("Add a CombatTargeting component to the Combat object.");
+    }
+
+    // How many more times this unit can use this action this battle. -1 = unlimited.
+    public int UsesLeft(CombatUnit unit, CombatAction action)
+    {
+        if (action.usesPerBattle <= 0) return -1;
+        return usesLeft.TryGetValue((unit, action), out int n) ? n : action.usesPerBattle;
+    }
+
+    // CombatTargeting calls this after an action really happens
+    public void SpendUse(CombatUnit unit, CombatAction action)
+    {
+        if (action.usesPerBattle <= 0) return;
+        usesLeft[(unit, action)] = Mathf.Max(UsesLeft(unit, action) - 1, 0);
+        OnChanged?.Invoke();
+    }
+
+    // After an attack kills the last monster, the fight should end right away
+    public void CheckForVictory()
+    {
+        if (InBattle && !AnyAlive(Team.Enemy)) FinishBattle(true);
     }
 
     public void EndTurnButton()
     {
-        if (IsPartyTurn) EndTurn();
+        if (!IsPartyTurn) return;
+        if (targeting != null && targeting.IsBusy) return;   // wait for the dice
+        EndTurn();
     }
 }

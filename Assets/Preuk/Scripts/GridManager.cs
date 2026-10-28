@@ -37,6 +37,10 @@ public class GridManager : MonoBehaviour
     Tile hovered;
     Tile selected;
     readonly HashSet<Tile> range = new HashSet<Tile>();
+    readonly Dictionary<Tile, (Color color, float strength)> marked = new Dictionary<Tile, (Color, float)>();
+
+    // Left-click on a floor tile (grid coordinates). CombatTargeting listens to this.
+    public event System.Action<Vector2Int> OnTileClicked;
     Material glowMaterial;
     float floorY;
 
@@ -76,11 +80,17 @@ public class GridManager : MonoBehaviour
             RefreshColors();
         }
 
-        if (Mouse.current.leftButton.wasPressedThisFrame && hovered != null && hovered.walkable)
+        if (Mouse.current.leftButton.wasPressedThisFrame && hovered != null)
         {
-            selected = hovered;
-            Debug.Log($"Selected tile ({selected.x}, {selected.y})");
-            RefreshColors();
+            if (OnTileClicked != null)
+            {
+                OnTileClicked.Invoke(new Vector2Int(hovered.x, hovered.y));   // someone is choosing a target
+            }
+            else if (hovered.walkable)
+            {
+                selected = hovered;
+                RefreshColors();
+            }
         }
     }
 
@@ -176,6 +186,28 @@ public class GridManager : MonoBehaviour
         hovered = null;
         selected = null;
         range.Clear();
+        marked.Clear();
+    }
+
+    // ---------- Target highlight (attack / heal range) ----------
+
+    // Light these grid tiles in a color (drawn above the movement range)
+    public void MarkTiles(IEnumerable<Vector2Int> gridTiles, Color color, float strength)
+    {
+        if (!IsBuilt) return;
+        foreach (Vector2Int t in gridTiles)
+        {
+            Tile tile = GetTile(t.x, t.y);
+            if (tile != null) marked[tile] = (color, strength);
+        }
+        RefreshColors();
+    }
+
+    public void ClearMarks()
+    {
+        if (!IsBuilt || marked.Count == 0) return;
+        marked.Clear();
+        RefreshColors();
     }
 
     // ---------- Movement range highlight ----------
@@ -283,8 +315,11 @@ public class GridManager : MonoBehaviour
         foreach (Tile t in tiles)
         {
             if (t == null) continue;
-            if (t == selected) t.Show(selectedColor, glowStrength);
+            bool isMarked = marked.TryGetValue(t, out var mark);
+            if (t == hovered && isMarked) t.Show(mark.color, Mathf.Min(mark.strength * 2f, 1f));   // aiming at it
+            else if (t == selected) t.Show(selectedColor, glowStrength);
             else if (t == hovered && t.walkable) t.Show(hoverColor, glowStrength);
+            else if (isMarked) t.Show(mark.color, mark.strength);
             else if (range.Contains(t)) t.Show(rangeColor, rangeStrength);
             else t.Hide();
         }

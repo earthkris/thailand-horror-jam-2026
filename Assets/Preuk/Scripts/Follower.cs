@@ -21,6 +21,7 @@ public class Follower : MonoBehaviour
     void OnEnable()
     {
         if (leader != null) leader.OnStepStarted += FollowTo;   // start listening
+        targetPos = transform.position;   // after combat: stay put until the leader moves
     }
 
     void OnDisable()

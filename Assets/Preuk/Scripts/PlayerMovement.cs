@@ -24,6 +24,10 @@ public class PlayerMovement : MonoBehaviour
     void OnEnable()
     {
         if (moveAction != null) moveAction.action.Enable();
+
+        // Coming back after combat moved us: start from where we stand now
+        targetPos = SnapToGrid(transform.position);
+        isMoving = false;
     }
 
     void Update()
