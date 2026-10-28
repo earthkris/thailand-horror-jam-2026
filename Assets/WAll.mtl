@@ -1,0 +1,12 @@
+# Blender 5.2.3 LTS MTL File: 'None'
+# www.blender.org
+
+newmtl Material.001
+Ka 0.354545 0.354545 0.354545
+Kd 0.121894 0.121508 0.099195
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.400000
+d 1.000000
+illum 3
+map_Ns F:/HORROR GAME/Blender/gray-bricks1-albedo.png
