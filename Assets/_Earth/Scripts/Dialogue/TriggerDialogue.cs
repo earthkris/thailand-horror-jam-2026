@@ -6,7 +6,8 @@ public class TriggerDialogue : MonoBehaviour
 
     public void Start()
     {
-        StartDialogue();
+        // StartDialogue() for testing only
+        //StartDialogue();
     }
     public void StartDialogue()
     {
