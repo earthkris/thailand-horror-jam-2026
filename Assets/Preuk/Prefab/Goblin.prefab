@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 4198032346036167755}
   - component: {fileID: 8397938735720009558}
   - component: {fileID: 2107555954958664361}
+  - component: {fileID: 5531129746062378286}
   m_Layer: 0
   m_Name: Goblin
   m_TagString: Untagged
@@ -114,6 +115,24 @@ MonoBehaviour:
   minLength: 0.5
   maxShadows: 3
   ownLightFill: 0
+--- !u!114 &5531129746062378286
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1628139225934128270}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e4c988571b0654c41b529d787cd72619, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAI
+  style: 0
+  attackRange: 1
+  preferredDistance: 4
+  projectilePrefab: {fileID: 5042943918516177140, guid: d7c9fdca281e8974a984e0f3ee9be43b, type: 3}
+  projectileSpeed: 10
+  stepSpeed: 4
 --- !u!1 &2949980498308836053
 GameObject:
   m_ObjectHideFlags: 0

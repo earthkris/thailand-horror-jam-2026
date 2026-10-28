@@ -1712,7 +1712,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 43e265f7dc66f68418854b91fd0432f1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TurnManager
-  enemyTurnDelay: 1
+  enemyTurnDelay: 0.5
 --- !u!4 &533445605
 Transform:
   m_ObjectHideFlags: 0
@@ -5319,6 +5319,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: Goblin (2)
       objectReference: {fileID: 0}
+    - target: {fileID: 5531129746062378286, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
+      propertyPath: style
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5531129746062378286, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
+      propertyPath: attackRange
+      value: 6
+      objectReference: {fileID: 0}
     - target: {fileID: 5876641636605153724, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
       propertyPath: m_LocalPosition.y
       value: -1
@@ -5373,7 +5381,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7112429994158550825, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
       propertyPath: unitName
-      value: Goblin
+      value: Goblin Archer
       objectReference: {fileID: 0}
     - target: {fileID: 7112429994158550825, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
       propertyPath: armorClass
@@ -6375,7 +6383,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4282072002
+    rgba: 4289776601
   m_fontColor: {r: 0.8509804, g: 0.79607844, b: 0.6901961, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3

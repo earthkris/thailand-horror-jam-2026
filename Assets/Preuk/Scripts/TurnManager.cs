@@ -7,8 +7,8 @@ using UnityEngine;
 [RequireComponent(typeof(CombatManager))]
 public class TurnManager : MonoBehaviour
 {
-    [Tooltip("Seconds an enemy waits before ending its turn (until enemy AI exists in step 5).")]
-    public float enemyTurnDelay = 1f;
+    [Tooltip("Seconds a monster pauses before acting, and after it's done.")]
+    public float enemyTurnDelay = 0.5f;
 
     // One entry in the initiative order
     public class Combatant
@@ -79,6 +79,16 @@ public class TurnManager : MonoBehaviour
 
     void StartTurn()
     {
+        // Whole party down? The fight is over (proper game over comes later)
+        if (!AnyAlive(Team.Party))
+        {
+            InBattle = false;
+            Current = null;
+            Debug.Log("The party has fallen...");
+            OnChanged?.Invoke();
+            return;
+        }
+
         // Skip anyone who is down
         int skipped = 0;
         while (!Order[index].unit.IsAlive)
@@ -105,6 +115,13 @@ public class TurnManager : MonoBehaviour
         if (!IsPartyTurn) StartCoroutine(EnemyTurn());
     }
 
+    bool AnyAlive(Team team)
+    {
+        foreach (Combatant c in Order)
+            if (c.unit != null && c.unit.team == team && c.unit.IsAlive) return true;
+        return false;
+    }
+
     // Next unit in the list; wrapping around starts a new round
     void Advance()
     {
@@ -123,12 +140,19 @@ public class TurnManager : MonoBehaviour
         StartTurn();
     }
 
-    // Placeholder until step 5: the enemy just waits a moment, then passes
+    // Monsters with an EnemyAI walk and attack; anything without one just waits
     IEnumerator EnemyTurn()
     {
         CombatUnit me = Current;
         yield return new WaitForSeconds(enemyTurnDelay);
-        Debug.Log($"{me.unitName} waits. (Enemy AI comes in step 5)");
+
+        if (me.TryGetComponent(out EnemyAI ai))
+            yield return ai.TakeTurn(combat);
+        else
+            Debug.Log($"{me.unitName} waits. (Give it an EnemyAI to make it fight)");
+
+        OnChanged?.Invoke();   // HP may have changed
+        yield return new WaitForSeconds(enemyTurnDelay);
         if (Current == me) EndTurn();
     }
 
