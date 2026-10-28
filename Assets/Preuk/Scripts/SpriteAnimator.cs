@@ -28,6 +28,7 @@ public class SpriteAnimator : MonoBehaviour
     void Awake()
     {
         sr = GetComponent<SpriteRenderer>();
+        sr.flipX = false;   // we mirror with scale instead (works with any material)
         lastPos = transform.position;
     }
 
@@ -72,13 +73,15 @@ public class SpriteAnimator : MonoBehaviour
             sr.sprite = frames[0];
         }
 
-        // 5. Mirror the side frames when walking the other way
-        if (facing == Facing.Left)
-            sr.flipX = sideFramesFaceRight;     // drawn facing right -> flip to face left
-        else if (facing == Facing.Right)
-            sr.flipX = !sideFramesFaceRight;    // drawn facing left -> flip to face right
-        else
-            sr.flipX = false;                   // up/down frames are never flipped
+        // 5. Mirror the side frames when walking the other way.
+        //    Scale X = -1 mirrors the sprite AND its shadow, with any material.
+        bool mirror = false;
+        if (facing == Facing.Left) mirror = sideFramesFaceRight;    // drawn facing right -> mirror to face left
+        if (facing == Facing.Right) mirror = !sideFramesFaceRight;   // drawn facing left -> mirror to face right
+
+        Vector3 scale = transform.localScale;
+        scale.x = Mathf.Abs(scale.x) * (mirror ? -1f : 1f);
+        transform.localScale = scale;
     }
 
     Sprite[] GetFrames()

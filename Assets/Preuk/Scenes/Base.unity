@@ -169,7 +169,7 @@ MonoBehaviour:
   obstacleLayers:
     serializedVersion: 2
     m_Bits: 64
-  sprite: {fileID: 1383221501}
+  sprite: {fileID: 0}
   moveAction: {fileID: 0}
 --- !u!1 &296171978
 GameObject:
@@ -181,8 +181,8 @@ GameObject:
   m_Component:
   - component: {fileID: 296171981}
   - component: {fileID: 296171979}
-  - component: {fileID: 296171980}
   - component: {fileID: 296171982}
+  - component: {fileID: 296171983}
   m_Layer: 0
   m_Name: Capsule
   m_TagString: Untagged
@@ -216,7 +216,7 @@ SpriteRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 9dfc825aed78fcd4ba02077103263b40, type: 2}
+  - {fileID: 2100000, guid: 18cc3a7e1aa9e014ba1fa5d82ffa3ebf, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -249,19 +249,6 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 1
---- !u!114 &296171980
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 296171978}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 736dbafbb4bc14a469d26eb567994153, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Billboard
-  stayUpright: 0
 --- !u!4 &296171981
 Transform:
   m_ObjectHideFlags: 0
@@ -307,6 +294,18 @@ MonoBehaviour:
   sideFramesFaceRight: 1
   framesPerSecond: 10
   stopDelay: 0.1
+--- !u!114 &296171983
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 296171978}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2658ec9a7c796d6468106858bb402a7d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CastShadow
 --- !u!1 &315540794
 GameObject:
   m_ObjectHideFlags: 0
@@ -913,7 +912,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Follower
   leader: {fileID: 67097511}
-  sprite: {fileID: 296171979}
+  placeNextToLeaderOnStart: 1
 --- !u!4 &1124617590
 Transform:
   m_ObjectHideFlags: 0
@@ -940,8 +939,8 @@ GameObject:
   m_Component:
   - component: {fileID: 1383221500}
   - component: {fileID: 1383221501}
-  - component: {fileID: 1383221502}
   - component: {fileID: 1383221503}
+  - component: {fileID: 1383221504}
   m_Layer: 0
   m_Name: Capsule
   m_TagString: Untagged
@@ -990,7 +989,7 @@ SpriteRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 9dfc825aed78fcd4ba02077103263b40, type: 2}
+  - {fileID: 2100000, guid: 18cc3a7e1aa9e014ba1fa5d82ffa3ebf, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -1023,19 +1022,6 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 1
---- !u!114 &1383221502
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1383221499}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 736dbafbb4bc14a469d26eb567994153, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Billboard
-  stayUpright: 0
 --- !u!114 &1383221503
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1066,6 +1052,18 @@ MonoBehaviour:
   sideFramesFaceRight: 1
   framesPerSecond: 10
   stopDelay: 0.1
+--- !u!114 &1383221504
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1383221499}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2658ec9a7c796d6468106858bb402a7d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CastShadow
 --- !u!1 &1466545574
 GameObject:
   m_ObjectHideFlags: 0
