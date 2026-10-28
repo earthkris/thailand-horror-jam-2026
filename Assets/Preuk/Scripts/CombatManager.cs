@@ -1,8 +1,10 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// Takes over when an encounter starts: builds the grid, freezes exploration movement,
-// and lines both sides up on opposite edges of the battle area.
+// Takes over when an encounter starts: fills the room with the battle grid,
+// freezes exploration movement, and snaps everyone onto the nearest free tile
+// right where they are standing.
+// When everyone is in place it fires OnBattleReady, and TurnManager takes it from there.
 public class CombatManager : MonoBehaviour
 {
     [Header("References")]
@@ -10,14 +12,15 @@ public class CombatManager : MonoBehaviour
     public CameraController cameraController;
 
     [Header("Setup")]
-    [Tooltip("Other enemies this many steps from the one that touched you join the fight.")]
-    public int joinRadius = 4;
-    [Tooltip("Empty columns between each side and the edge of the grid.")]
-    public int edgeMargin = 1;
+    [Tooltip("Enemies this many steps from the one that touched you join the fight. 0 = every enemy in the room joins.")]
+    public int joinRange = 0;
 
     public List<CombatUnit> Party { get; } = new List<CombatUnit>();
     public List<CombatUnit> Enemies { get; } = new List<CombatUnit>();
     public bool InCombat { get; private set; }
+
+    // Fired once both sides are placed on the grid
+    public event System.Action OnBattleReady;
 
     void OnEnable() => EnemyEncounter.OnCombatStarted += BeginCombat;
     void OnDisable() => EnemyEncounter.OnCombatStarted -= BeginCombat;
@@ -25,62 +28,62 @@ public class CombatManager : MonoBehaviour
     void BeginCombat(EnemyEncounter starter, CombatUnit touched)
     {
         if (InCombat) return;
+        if (grid == null)
+        {
+            Debug.LogError("CombatManager has no GridManager assigned!");
+            return;
+        }
+
         InCombat = true;
         Party.Clear();
         Enemies.Clear();
 
-        // 1. Party: whoever got touched goes first in the list = front row
+        // 1. Fill the room around the fight with the grid
+        grid.BuildAround(touched.transform.position, Room.At(touched.transform.position));
+
+        // 2. Party: whoever got touched goes first in the list
         Party.Add(touched);
         foreach (CombatUnit u in FindObjectsByType<CombatUnit>(FindObjectsSortMode.None))
             if (u.team == Team.Party && u.IsAlive && u != touched)
                 Party.Add(u);
 
-        // 2. Enemies: the one that touched us, plus any others nearby
+        // 3. Enemies: the one that touched us, plus the others in the same room
         Enemies.Add(starter.Unit);
         foreach (EnemyEncounter e in FindObjectsByType<EnemyEncounter>(FindObjectsSortMode.None))
         {
             if (e == starter || e.InCombat || !e.Unit.IsAlive) continue;
-            if (e.Unit.StepsTo(starter.Unit.AnchorTile) <= joinRadius)
-            {
-                e.MarkInCombat();
-                Enemies.Add(e.Unit);
-            }
+            if (!OnGrid(e.Unit)) continue;   // behind a wall / in another room
+            if (joinRange > 0 && e.Unit.StepsTo(starter.Unit.AnchorTile) > joinRange) continue;
+
+            e.MarkInCombat();
+            Enemies.Add(e.Unit);
         }
 
-        // 3. Freeze exploration movement (it would fight with the teleport)
+        // 4. Freeze exploration movement (it would fight with combat movement)
         foreach (CombatUnit u in Party) SetExplorationMovement(u, false);
         foreach (CombatUnit u in Enemies) SetExplorationMovement(u, false);
 
-        // 4. Build the grid and line everyone up
-        grid.BuildGrid();
+        // 5. Everyone snaps to the nearest free tile from where they stand
         var taken = new HashSet<Vector2Int>();
-        int mid = grid.height / 2;
-
-        // Party on the LEFT: first one in the front column, the rest in the column behind
-        int partyFront = edgeMargin + 1;
-        for (int i = 0; i < Party.Count; i++)
-        {
-            int column = (i == 0) ? partyFront : partyFront - 1;
-            int row = mid + RowOffset(i == 0 ? 0 : i - 1);
-            Place(Party[i], new Vector2Int(column, row), taken);
-        }
-
-        // Enemies on the RIGHT: the left edge of their footprint faces the party
-        int enemyFront = grid.width - 1 - edgeMargin - 1;
-        foreach (CombatUnit e in Enemies)
-            Place(e, new Vector2Int(enemyFront, mid - (e.size - 1) / 2), taken);
-
-        // 5. Camera on whoever is in front
-        if (cameraController != null) cameraController.FocusOn(Party[0].transform);
+        foreach (CombatUnit u in Party) Place(u, taken);
+        foreach (CombatUnit u in Enemies) Place(u, taken);
 
         Debug.Log($"Battle! Party: {Names(Party)}  vs  Enemies: {Names(Enemies)}");
+
+        // 6. Hand over to TurnManager (initiative, turns, camera)
+        OnBattleReady?.Invoke();
     }
 
-    // 0, +1, -1, +2, -2 ... spreads extra units above and below the middle row
-    static int RowOffset(int k) => (k + 1) / 2 * (k % 2 == 1 ? 1 : -1);
-
-    void Place(CombatUnit u, Vector2Int desired, HashSet<Vector2Int> taken)
+    // Is this unit standing inside the battle grid?
+    bool OnGrid(CombatUnit u)
     {
+        Vector2Int t = u.AnchorTile - grid.OriginTile;
+        return grid.GetTile(t.x, t.y) != null;
+    }
+
+    void Place(CombatUnit u, HashSet<Vector2Int> taken)
+    {
+        Vector2Int desired = u.AnchorTile - grid.OriginTile;   // world tile -> grid tile
         if (!FindFreeSpot(desired, u.size, taken, out Vector2Int spot))
         {
             Debug.LogWarning($"No room on the grid for {u.unitName}!");
@@ -95,25 +98,21 @@ public class CombatManager : MonoBehaviour
         u.transform.position = u.WorldPositionFor(grid.OriginTile + spot);
     }
 
-    // Closest spot where the whole footprint fits. Prefers moving up/down over sideways,
-    // so units stay on their own side.
+    // Closest spot (in steps) where the whole footprint fits
     bool FindFreeSpot(Vector2Int desired, int size, HashSet<Vector2Int> taken, out Vector2Int best)
     {
         best = desired;
         int bestCost = int.MaxValue;
 
-        for (int x = 0; x <= grid.width - size; x++)
-            for (int y = 0; y <= grid.height - size; y++)
+        for (int x = 0; x <= grid.Width - size; x++)
+            for (int y = 0; y <= grid.Height - size; y++)
             {
                 Vector2Int a = new Vector2Int(x, y);
-                if (!Fits(a, size, taken)) continue;
+                int cost = Mathf.Abs(x - desired.x) + Mathf.Abs(y - desired.y);
+                if (cost >= bestCost || !Fits(a, size, taken)) continue;
 
-                int cost = Mathf.Abs(x - desired.x) * 3 + Mathf.Abs(y - desired.y);
-                if (cost < bestCost)
-                {
-                    bestCost = cost;
-                    best = a;
-                }
+                bestCost = cost;
+                best = a;
             }
         return bestCost != int.MaxValue;
     }
