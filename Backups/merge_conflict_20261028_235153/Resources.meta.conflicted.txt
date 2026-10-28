@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+<<<<<<<< HEAD:Assets/Preuk/Shader Graphs_SpriteShadow.mat.meta
+<<<<<<< HEAD
+guid: 68c4ff91445bb7642aeef4e0b499dd82
+=======
+guid: febba35be44561741b78110306dfa8f9
+>>>>>>> combat-mechanic
+NativeFormatImporter:
+========
+guid: 7f0fe8f4d11e10b4ba010d7199733e8d
+folderAsset: yes
+DefaultImporter:
+>>>>>>>> fee20d99e9b0d167581e1f78cecc75ac3a7e6356:Assets/Resources.meta
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
