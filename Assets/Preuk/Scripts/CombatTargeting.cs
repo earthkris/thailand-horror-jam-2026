@@ -23,10 +23,12 @@ public class CombatTargeting : MonoBehaviour
     [Range(0f, 1f)] public float targetStrength = 0.45f;
 
     [Header("Effects")]
-    [Tooltip("What flies at the target for ranged actions (Holy Verse). Empty = plain ball.")]
+    [Tooltip("Default for ranged actions that have no Projectile of their own. Empty = plain ball.")]
     public GameObject rangedProjectile;
     [Tooltip("Tiles per second.")]
     public float projectileSpeed = 12f;
+    [Tooltip("How high above the floor spells fly (about chest height).")]
+    public float projectileHeight = 0.8f;
 
     TurnManager turns;
     CombatManager combat;
@@ -42,6 +44,7 @@ public class CombatTargeting : MonoBehaviour
 
     public bool IsActive => aiming || busy;   // CombatMovement stands still while true
     public bool IsBusy => busy;               // the dice are rolling
+    public bool IsAiming => aiming;           // waiting for you to click a target
 
     void Awake()
     {
@@ -108,7 +111,7 @@ public class CombatTargeting : MonoBehaviour
 
     void Update()
     {
-        if (!aiming) return;
+        if (!aiming || PauseMenu.BlocksInput) return;
         bool esc = Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame;
         bool rightClick = Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame;
         if (esc || rightClick) Cancel();
@@ -137,6 +140,15 @@ public class CombatTargeting : MonoBehaviour
         Cancel();
         busy = true;
         if (movement != null) movement.Refresh();
+
+        // Casting flourish (sparkles round the priest...), a moment before the dice
+        if (action != null && action.castEffect != null)
+        {
+            // Attached to the cast point (the book), so the sparkles float along with it
+            Transform at = user.castPoint != null ? user.castPoint : user.transform;
+            Instantiate(action.castEffect, at.position, Quaternion.identity, at);
+            yield return new WaitForSeconds(0.3f);
+        }
 
         if (item != null) yield return UseItem(target);
         else if (action.effect == ActionEffect.Damage) yield return Attack(target);
@@ -171,14 +183,15 @@ public class CombatTargeting : MonoBehaviour
             rollText = $"d20 ({r1}, {r2} -> {roll}, disadvantage)";
         }
 
-        // 2. Show the swing / shot
-        if (ranged) yield return Shoot(user.transform, target.transform);
-        else yield return Lunge(user.transform, target.transform);
-
-        // 3. Hit or miss
+        // 2. Hit or miss? (worked out first, so a missed spell can fly wide)
         int total = roll + action.attackBonus;
         bool crit = roll == 20;
         bool hit = crit || (roll != 1 && total >= target.armorClass);
+
+        // 3. Show the swing / shot
+        if (ranged) yield return Shoot(user.transform, target.transform, hit);
+        else yield return Swing(user, target);
+
         string head = $"{user.unitName} uses {action.displayName} on {tName}: {rollText} + {action.attackBonus} = {total} vs AC {target.armorClass}";
 
         if (!hit)
@@ -205,6 +218,7 @@ public class CombatTargeting : MonoBehaviour
         int amount = Mathf.Max(DiceSimulator.Roll(count, sides) + bonus, 0);
         int before = target.CurrentHP;
         target.Heal(amount);
+        if (action != null && action.impactPrefab != null) SpawnEffect(action.impactPrefab, target.transform);
         int healed = target.CurrentHP - before;
         Debug.Log($"{user.unitName} uses {what} on {target.unitName}: {count}d{sides}+{bonus} = {amount} -> healed {healed} ({target.CurrentHP}/{target.maxHP} HP)");
         yield return DiceTray.ShowMessage(what, $"+{healed} HP  {target.unitName}", true);
@@ -270,9 +284,32 @@ public class CombatTargeting : MonoBehaviour
         return false;
     }
 
+    // A one-off effect (it should destroy itself when done, like the sparkle bursts)
+    static void SpawnEffect(GameObject prefab, Transform at)
+    {
+        Instantiate(prefab, at.position, Quaternion.identity);
+    }
+
     static string TargetName(CombatUnit t) => FogOfWar.CanSee(t) ? t.unitName : "something in the dark";
 
     // ================= Animation =================
+
+    // Melee: play the attacker's sword swing (if its SpriteAnimator has attack frames)
+    // and lunge forward on the slash frame. No attack frames = just the lunge.
+    static IEnumerator Swing(CombatUnit who, CombatUnit at)
+    {
+        SpriteAnimator anim = who.GetComponentInChildren<SpriteAnimator>();
+        if (anim == null || !anim.HasAttackFrames)
+        {
+            yield return Lunge(who.transform, at.transform);
+            yield break;
+        }
+
+        anim.PlayAttack(at.transform.position);
+        while (anim.IsAttacking && !anim.OnLastAttackFrame) yield return null;   // wind-up
+        yield return Lunge(who.transform, at.transform);                          // slash
+        while (anim.IsAttacking) yield return null;                               // follow-through
+    }
 
     static IEnumerator Lunge(Transform who, Transform at)
     {
@@ -285,18 +322,40 @@ public class CombatTargeting : MonoBehaviour
         who.position = home;
     }
 
-    IEnumerator Shoot(Transform from, Transform to)
+    // Ranged: fly the action's projectile at the target, then play its impact effect.
+    // A miss flies wide and bursts on the floor beside the target.
+    IEnumerator Shoot(Transform from, Transform to, bool hit)
     {
-        Vector3 a = from.position, b = to.position;
-        GameObject p = rangedProjectile != null ? Instantiate(rangedProjectile) : GameObject.CreatePrimitive(PrimitiveType.Sphere);
-        if (rangedProjectile == null)
+        Vector3 lift = Vector3.up * projectileHeight;
+        Vector3 a = from.position + lift, b = to.position + lift;
+        Vector3 dir = b - a; dir.y = 0f;
+        if (!hit)
+        {
+            Vector3 side = Vector3.Cross(Vector3.up, dir).normalized * (Random.value < 0.5f ? -0.7f : 0.7f);
+            b += side + dir.normalized * 0.4f;
+        }
+
+        GameObject prefab = action != null && action.projectilePrefab != null ? action.projectilePrefab : rangedProjectile;
+        GameObject p = prefab != null ? Instantiate(prefab) : GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        if (prefab == null)
         {
             Destroy(p.GetComponent<Collider>());
             p.transform.localScale = Vector3.one * 0.2f;
         }
         p.transform.SetPositionAndRotation(a, Quaternion.LookRotation(b - a));
+        SpriteFlipbook flip = p.GetComponent<SpriteFlipbook>();
+        if (flip != null) flip.travelDirection = b - a;   // sprite points the way it flies
+
         float time = Vector3.Distance(a, b) / Mathf.Max(projectileSpeed, 0.1f);
         for (float t = 0f; t < 1f; t += Time.deltaTime / time) { p.transform.position = Vector3.Lerp(a, b, t); yield return null; }
         Destroy(p);
+
+        // Impact (explosion). Wait for most of it before the HIT / MISS banner.
+        if (action != null && action.impactPrefab != null)
+        {
+            GameObject boom = Instantiate(action.impactPrefab, b, Quaternion.identity);
+            SpriteFlipbook boomFlip = boom.GetComponent<SpriteFlipbook>();
+            yield return new WaitForSeconds(boomFlip != null ? boomFlip.Duration * 0.7f : 0.3f);
+        }
     }
 }

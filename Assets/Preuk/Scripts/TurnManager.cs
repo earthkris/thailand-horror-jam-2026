@@ -36,6 +36,9 @@ public class TurnManager : MonoBehaviour
     // The UI listens to this and redraws whenever anything changes
     public event System.Action OnChanged;
 
+    // Fired when the whole party is down. DeathScreen listens.
+    public static event System.Action OnPartyFallen;
+
     CombatManager combat;
     CombatTargeting targeting;
     int index;   // position in Order
@@ -86,7 +89,7 @@ public class TurnManager : MonoBehaviour
 
     void StartTurn()
     {
-        // Whole party down? (a proper game-over screen comes later)
+        // Whole party down? The death screen takes over
         if (!AnyAlive(Team.Party))
         {
             FinishBattle(false);
@@ -135,6 +138,7 @@ public class TurnManager : MonoBehaviour
         Debug.Log(won ? "Victory! The monsters are dead." : "The party has fallen...");
         OnChanged?.Invoke();
         if (won) combat.EndCombat();
+        else OnPartyFallen?.Invoke();   // DeathScreen takes it from here
     }
 
     bool AnyAlive(Team team)

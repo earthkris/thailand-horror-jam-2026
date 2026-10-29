@@ -88,6 +88,7 @@ public class ChoiceMenu : MonoBehaviour
 
     void Update()
     {
+        if (PauseMenu.BlocksInput) return;   // the pause menu has the keys
         bool esc = Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame;
         bool rightClick = Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame;
         if (esc || rightClick) Close();

@@ -41,12 +41,19 @@ public class CombatUnit : MonoBehaviour
     [Tooltip("What this character can do with their action. Drag Combat Action assets here.")]
     public List<CombatAction> actions = new List<CombatAction>();
 
+    [Tooltip("Where spell effects appear, e.g. Lucius's holy book. Empty = on the unit itself.")]
+    public Transform castPoint;
+
     public int CurrentHP { get; private set; }
     public bool IsAlive => CurrentHP > 0;
     public int MoveTiles => speedFeet / 5;
     public string DamageText => $"{damageDiceCount}d{damageDiceSides}+{damageBonus}";
 
     public event System.Action<CombatUnit> OnDied;
+
+    // Any unit hurt or healed (HitEffects listens: flash, shake...). The int is the amount.
+    public static event System.Action<CombatUnit, int> OnAnyDamaged;
+    public static event System.Action<CombatUnit, int> OnAnyHealed;
 
     void Awake()
     {
@@ -123,6 +130,7 @@ public class CombatUnit : MonoBehaviour
 
         CurrentHP = Mathf.Max(CurrentHP - amount, 0);
         Debug.Log($"{unitName} takes {amount} damage ({CurrentHP}/{maxHP} HP)");
+        OnAnyDamaged?.Invoke(this, amount);   // before OnDied, while the sprite is still showing
 
         if (CurrentHP == 0)
         {
@@ -135,6 +143,7 @@ public class CombatUnit : MonoBehaviour
     {
         if (!IsAlive) return;
         CurrentHP = Mathf.Min(CurrentHP + amount, maxHP);
+        OnAnyHealed?.Invoke(this, amount);
     }
 
     // Shows the covered tiles as yellow squares in the Scene view when selected

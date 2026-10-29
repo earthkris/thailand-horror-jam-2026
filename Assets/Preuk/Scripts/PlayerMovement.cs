@@ -45,7 +45,7 @@ public class PlayerMovement : MonoBehaviour
         }
 
         // 2. Don't start a new step during dialogue, menus, or combat
-        if (!GameState.CanMove) return;
+        if (!GameState.CanMove || PauseMenu.BlocksInput) return;
 
         // 3. Which direction is pressed?
         Vector2Int dir = GetDirection();
