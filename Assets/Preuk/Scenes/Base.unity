@@ -920,6 +920,11 @@ MonoBehaviour:
   sideFramesFaceRight: 1
   framesPerSecond: 10
   stopDelay: 0.1
+  attackDownFrames: []
+  attackUpFrames: []
+  attackSideFrames: []
+  attackFramesPerSecond: 10
+  attackHoldLastFrame: 0.15
 --- !u!1 &304823672
 GameObject:
   m_ObjectHideFlags: 0
@@ -2009,6 +2014,7 @@ MonoBehaviour:
   targetStrength: 0.45
   rangedProjectile: {fileID: 5810109810387235928, guid: 2f6760f7185c3e041b9ecfae813a0a26, type: 3}
   projectileSpeed: 12
+  projectileHeight: 0.8
 --- !u!1 &593743956
 GameObject:
   m_ObjectHideFlags: 0
@@ -4824,7 +4830,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5282345195073544978, guid: 3ec4372ac318d54458c2808f769cdfad, type: 3}
       propertyPath: m_fontColor32.rgba
-      value: 4284727016
+      value: 4294967295
       objectReference: {fileID: 0}
     - target: {fileID: 6407538616123835839, guid: 3ec4372ac318d54458c2808f769cdfad, type: 3}
       propertyPath: m_Type
@@ -5913,6 +5919,20 @@ MonoBehaviour:
   sideFramesFaceRight: 1
   framesPerSecond: 10
   stopDelay: 0.1
+  attackDownFrames:
+  - {fileID: 144548683, guid: 4165d13d849133947ae5bfeedcd5550a, type: 3}
+  - {fileID: -170992122, guid: 4165d13d849133947ae5bfeedcd5550a, type: 3}
+  - {fileID: -1023438458, guid: 4165d13d849133947ae5bfeedcd5550a, type: 3}
+  attackUpFrames:
+  - {fileID: 3313345, guid: 4165d13d849133947ae5bfeedcd5550a, type: 3}
+  - {fileID: -1097819810, guid: 4165d13d849133947ae5bfeedcd5550a, type: 3}
+  - {fileID: -258894073, guid: 4165d13d849133947ae5bfeedcd5550a, type: 3}
+  attackSideFrames:
+  - {fileID: -1714645759, guid: 4165d13d849133947ae5bfeedcd5550a, type: 3}
+  - {fileID: 1822756076, guid: 4165d13d849133947ae5bfeedcd5550a, type: 3}
+  - {fileID: 1601122667, guid: 4165d13d849133947ae5bfeedcd5550a, type: 3}
+  attackFramesPerSecond: 10
+  attackHoldLastFrame: 0.15
 --- !u!1 &1466545574
 GameObject:
   m_ObjectHideFlags: 0

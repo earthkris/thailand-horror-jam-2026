@@ -10,11 +10,11 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 711817608f2b81247a826ccb20794df1, type: 3}
-  m_Name: Holy Verse
+  m_Name: Holy Fireball
   m_EditorClassIdentifier: Assembly-CSharp::CombatAction
-  displayName: Holy Verse
-  description: Read a verse from the holy book. A bolt of light strikes an enemy
-    up to 8 tiles away. Hard to aim with an enemy next to you.
+  displayName: Holy Fireball
+  description: Read a verse and hurl a ball of holy fire at an enemy up to 8 tiles
+    away. It bursts on impact. Hard to aim with an enemy next to you.
   target: 0
   range: 8
   needsLineOfSight: 1
@@ -26,4 +26,6 @@ MonoBehaviour:
   extraDiceCount: 0
   extraDiceSides: 6
   damageType: radiant
+  projectilePrefab: {fileID: 6301460475028473566, guid: 7e53710e4a5bdfa4db63184ef71d1b34, type: 3}
+  impactPrefab: {fileID: 5987730469374909056, guid: bc357e83f0c135243b1d2091b8eb41a8, type: 3}
   usesPerBattle: 0

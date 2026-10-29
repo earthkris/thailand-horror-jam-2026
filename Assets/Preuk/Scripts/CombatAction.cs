@@ -34,6 +34,12 @@ public class CombatAction : ScriptableObject
     [Tooltip("Just for flavour text: slashing, radiant, force...")]
     public string damageType = "slashing";
 
+    [Header("Visuals (ranged only, optional)")]
+    [Tooltip("What flies at the target. Empty = the Combat object's default Ranged Projectile.")]
+    public GameObject projectilePrefab;
+    [Tooltip("Spawned where the projectile lands, e.g. an explosion.")]
+    public GameObject impactPrefab;
+
     [Header("Limits")]
     [Tooltip("Times per battle. 0 = as often as you like.")]
     [Min(0)] public int usesPerBattle = 0;
