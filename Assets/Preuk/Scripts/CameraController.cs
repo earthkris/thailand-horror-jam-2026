@@ -55,6 +55,15 @@ public class CameraController : MonoBehaviour
         }
     }
 
+    // Jump to the target with no smoothing (after a teleport, while the screen is black)
+    public void SnapToTarget()
+    {
+        if (target == null) return;
+        transform.position = target.position - transform.forward * distance;
+        velocity = Vector3.zero;
+        lastShake = Vector3.zero;
+    }
+
     public void FocusOn(Transform newTarget)
     {
         target = newTarget;

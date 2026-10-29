@@ -125,6 +125,15 @@ public class PlayerMovement : MonoBehaviour
         return true;
     }
 
+    // Jump straight to a spot (a teleport trap). Snaps to the grid and forgets any walk in progress.
+    public void Teleport(Vector3 spot)
+    {
+        path.Clear();
+        isMoving = false;
+        transform.position = SnapToGrid(new Vector3(spot.x, transform.position.y, spot.z));
+        targetPos = transform.position;
+    }
+
     // ---------- Click to move ----------
 
     // Which floor tile was clicked this frame? (Clicks on buttons don't count.)

@@ -31,7 +31,7 @@ public class EnemyEncounter : MonoBehaviour
 
     void Update()
     {
-        if (InCombat || GameState.Current != GameMode.Exploring) return;
+        if (InCombat || !GameState.CanMove) return;   // not during dialogue or cutscenes
 
         // Is anyone in the party touching us? If two touch in the same frame, the closer one counts.
         CombatUnit touched = null;

@@ -1,6 +1,7 @@
 using System.Collections;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.UI;
 
 // Connects combat to the 3D dice roller (RollerPrefabChanged).
@@ -20,6 +21,8 @@ public class DiceTray : MonoBehaviour
     public bool hideWhenIdle = true;
     [Tooltip("Seconds the result stays on screen.")]
     public float showResultFor = 1.2f;
+    [Tooltip("How bright the light on the dice is. 1 = the light's own strength. Changes live while playing.")]
+    [Range(0f, 1f)] public float diceBrightness = 0.2f;
 
     [Header("Banner (above the tray)")]
     public Color captionColor = new Color32(217, 203, 176, 255);   // bone
@@ -34,6 +37,10 @@ public class DiceTray : MonoBehaviour
     TextMeshProUGUI outcome;
     GameObject banner;
     int lastResult;
+    Camera diceCamera;   // draws the dice on top of the game
+    Light[] diceLights;
+    float[] lightStrength;   // each light's own intensity, before Dice Brightness
+    bool fogWasOn;
     bool waiting;
 
     public bool IsBusy => waiting;
@@ -43,8 +50,41 @@ public class DiceTray : MonoBehaviour
         Instance = this;
         if (dice == null) dice = GetComponentInChildren<DiceRoller>(true);
         if (tray == null && dice != null) tray = dice.transform.parent.gameObject;
+        diceCamera = GetComponentInChildren<Camera>(true);
+        diceLights = GetComponentsInChildren<Light>(true);
+        lightStrength = new float[diceLights.Length];
+        for (int i = 0; i < diceLights.Length; i++) lightStrength[i] = diceLights[i].intensity;
         BuildBanner();
         SetVisible(!hideWhenIdle);
+    }
+
+    // The scene's fog would turn the dice black (its camera is far from the dice),
+    // so fog is switched off just while the dice camera draws, and back on right after.
+    void OnEnable()
+    {
+        RenderPipelineManager.beginCameraRendering += BeforeCamera;
+        RenderPipelineManager.endCameraRendering += AfterCamera;
+    }
+
+    void OnDisable()
+    {
+        RenderPipelineManager.beginCameraRendering -= BeforeCamera;
+        RenderPipelineManager.endCameraRendering -= AfterCamera;
+    }
+
+    void BeforeCamera(ScriptableRenderContext context, Camera cam)
+    {
+        if (cam != diceCamera) return;
+        for (int i = 0; i < diceLights.Length; i++)
+            if (diceLights[i] != null) diceLights[i].intensity = lightStrength[i] * diceBrightness;
+        fogWasOn = RenderSettings.fog;
+        RenderSettings.fog = false;
+    }
+
+    void AfterCamera(ScriptableRenderContext context, Camera cam)
+    {
+        if (cam != diceCamera) return;
+        RenderSettings.fog = fogWasOn;
     }
 
     void OnDestroy()

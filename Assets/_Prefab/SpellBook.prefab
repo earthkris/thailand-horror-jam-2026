@@ -10,7 +10,8 @@ GameObject:
   m_Component:
   - component: {fileID: 9192353978707552045}
   - component: {fileID: 4182137546764031588}
-  m_Layer: 0
+  - component: {fileID: 5172545144407107104}
+  m_Layer: 6
   m_Name: SpellBook
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -46,11 +47,35 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 57f05ab3d2a56ff4a85cc5134c9df4cf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpellBook
+  reach: 1.5
+  promptText: Pick up
+  promptHeight: 1.3
   teaches: {fileID: 0}
   learner: Lucius
   visual: {fileID: 5698934733413815234}
   bobHeight: 0.08
   bobSpeed: 2
+--- !u!65 &5172545144407107104
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2091138532706719845}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.9, y: 0.6, z: 0.9}
+  m_Center: {x: 0, y: 0.3, z: 0}
 --- !u!1 &2129286297345942763
 GameObject:
   m_ObjectHideFlags: 0

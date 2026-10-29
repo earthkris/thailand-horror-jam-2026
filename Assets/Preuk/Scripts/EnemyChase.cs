@@ -66,7 +66,7 @@ public class EnemyChase : MonoBehaviour
         }
 
         // 2. Only start new steps while exploring
-        if (GameState.Current != GameMode.Exploring) return;
+        if (!GameState.CanMove) return;   // not during dialogue or cutscenes
 
         if (waitTimer > 0f)
         {

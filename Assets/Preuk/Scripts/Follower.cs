@@ -83,6 +83,14 @@ public class Follower : MonoBehaviour
         return Physics.Raycast(rayStart, Vector3.down, 5f, ~leader.obstacleLayers);
     }
 
+    // After the leader teleports: stand next to them right away (no sliding across the map)
+    public void SnapNextToLeader()
+    {
+        if (leader == null) return;
+        PlaceNextToLeader();
+        targetPos = transform.position;
+    }
+
     // Runs every time the leader starts a step
     void FollowTo(Vector3 tile)
     {

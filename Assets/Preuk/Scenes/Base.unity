@@ -860,7 +860,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8397938735720009558, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
       propertyPath: detectRange
-      value: 8
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 8397938735720009558, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
       propertyPath: pauseBetweenSteps
@@ -3217,7 +3217,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8397938735720009558, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
       propertyPath: detectRange
-      value: 8
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 8397938735720009558, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
       propertyPath: pauseBetweenSteps
@@ -3790,7 +3790,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 2822382030649604350, guid: 25240edd5a0dd4542a55c6add5e72591, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -959
+      value: -956
       objectReference: {fileID: 0}
     - target: {fileID: 2822382030649604350, guid: 25240edd5a0dd4542a55c6add5e72591, type: 3}
       propertyPath: m_LocalPosition.y
@@ -3798,7 +3798,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2822382030649604350, guid: 25240edd5a0dd4542a55c6add5e72591, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -15
+      value: -3
       objectReference: {fileID: 0}
     - target: {fileID: 2822382030649604350, guid: 25240edd5a0dd4542a55c6add5e72591, type: 3}
       propertyPath: m_LocalRotation.w
@@ -3806,15 +3806,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2822382030649604350, guid: 25240edd5a0dd4542a55c6add5e72591, type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 2822382030649604350, guid: 25240edd5a0dd4542a55c6add5e72591, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 2822382030649604350, guid: 25240edd5a0dd4542a55c6add5e72591, type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 2822382030649604350, guid: 25240edd5a0dd4542a55c6add5e72591, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -3831,6 +3831,14 @@ PrefabInstance:
     - target: {fileID: 3308678385445883020, guid: 25240edd5a0dd4542a55c6add5e72591, type: 3}
       propertyPath: m_Name
       value: Tarzan
+      objectReference: {fileID: 0}
+    - target: {fileID: 4758408607261186421, guid: 25240edd5a0dd4542a55c6add5e72591, type: 3}
+      propertyPath: moveSpeed
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 4758408607261186421, guid: 25240edd5a0dd4542a55c6add5e72591, type: 3}
+      propertyPath: pauseBetweenSteps
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -4951,7 +4959,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8397938735720009558, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
       propertyPath: detectRange
-      value: 8
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 8397938735720009558, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
       propertyPath: pauseBetweenSteps

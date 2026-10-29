@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0725c752f6504fe41a7410bc245b62e5, type: 3}
+  m_Name: SeeThroughMaterials
+  m_EditorClassIdentifier: Assembly-CSharp::SeeThroughMaterials
+  originals:
+  - {fileID: 2100000, guid: 770d874acb2e37f4dbb0943d5ef8a660, type: 2}
+  - {fileID: 2100000, guid: 2e701f9d6b8aa304c93f2af59c1ee5d9, type: 2}
+  seeThrough:
+  - {fileID: 2100000, guid: c965edeceff1e104d85e4a0c8bc66b76, type: 2}
+  - {fileID: 2100000, guid: fc4d32b9eb13aa4488940cf6c54bc352, type: 2}

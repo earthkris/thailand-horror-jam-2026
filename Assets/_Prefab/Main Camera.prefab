@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 492123362813185275}
   - component: {fileID: 7555026977171524363}
   - component: {fileID: 5674985379605157205}
+  - component: {fileID: 1283904944771534162}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -167,3 +168,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 22c499a0e821e2d43b215e2b40cb630c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameStateTester
+--- !u!114 &1283904944771534162
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3172960657201981166}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cae4aa9f7dc555d4e86e514c18431b86, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WallFader
+  wallLayers:
+    serializedVersion: 2
+    m_Bits: 64
+  radius: 0.8
+  lookHeight: 0.8
+  keepHiddenFor: 0.3
