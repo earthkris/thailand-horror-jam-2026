@@ -157,6 +157,8 @@ public class HitEffects : MonoBehaviour
     IEnumerator ShakeRoutine(Transform t, float strength, float time)
     {
         Vector3 home = shakeHome[t];
+        SpriteAnimator body = t.GetComponent<SpriteAnimator>();
+        if (body == null) body = t.GetComponentInParent<SpriteAnimator>();
         Vector3 side = Camera.main != null ? Camera.main.transform.right : Vector3.right;   // left-right on screen
         if (t.parent != null) side = t.parent.InverseTransformDirection(side);
 
@@ -165,9 +167,11 @@ public class HitEffects : MonoBehaviour
             if (t == null) yield break;
             float fall = 1f - e / time;
             t.localPosition = home + side * (Mathf.Sin(e * shakeSpeed * Mathf.PI * 2f) * strength * fall * fall);
+            if (body != null) body.HoldFacing(0.1f);   // shaking isn't walking: don't turn
             yield return null;
         }
         if (t != null) t.localPosition = home;
+        if (body != null) body.HoldFacing(0.1f);
         shakes.Remove(t);
         shakeHome.Remove(t);
     }

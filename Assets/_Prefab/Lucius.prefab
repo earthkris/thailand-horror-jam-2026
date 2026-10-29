@@ -389,7 +389,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4a862cbc9f72df44d8924cb4e19802c8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CombatUnit
-  unitName: Friend
+  unitName: Lucius
   team: 0
   size: 1
   tileSize: 1

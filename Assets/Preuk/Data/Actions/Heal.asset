@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CombatAction
   displayName: Heal
   description: Pray over yourself or an ally within 6 tiles to close their wounds.
+  typeIcon: {fileID: -1337039248203370655, guid: a0609fffe09f22d4e9c909027b03867f, type: 3}
   target: 1
   range: 6
   needsLineOfSight: 1

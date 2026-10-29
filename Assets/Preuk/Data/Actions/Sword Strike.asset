@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CombatAction
   displayName: Sword Strike
   description: A steady cut with the blade. Hits an enemy right next to you.
+  typeIcon: {fileID: 4507998296860207705, guid: 8759f277fe018ee479fc51e7fa20ff19, type: 3}
   target: 0
   range: 1
   needsLineOfSight: 1
@@ -25,4 +26,7 @@ MonoBehaviour:
   extraDiceCount: 0
   extraDiceSides: 6
   damageType: slashing
+  projectilePrefab: {fileID: 0}
+  impactPrefab: {fileID: 0}
+  castEffect: {fileID: 0}
   usesPerBattle: 0

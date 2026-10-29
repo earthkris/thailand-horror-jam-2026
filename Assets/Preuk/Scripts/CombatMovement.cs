@@ -2,16 +2,21 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-// Turn-based walking with WASD / arrow keys during your party's turns.
+// Turn-based walking during your party's turns: click a lit tile, or use WASD / arrow keys.
+// A click walks the shortest way there, around walls, rocks and other units.
 // Each step = 1 tile = 5 ft of the unit's speed. You can split it up: walk, attack, walk again.
-// Can't walk through walls, rocks, other units, or off the battle grid.
-// The tiles you can still reach glow dimly on the floor (MOVE button hides/shows them).
+// The tiles you can still reach glow dimly (MOVE button hides/shows them),
+// and hovering one lights up the path you would take.
 // Lives on the Combat object, next to TurnManager.
 [RequireComponent(typeof(TurnManager))]
 public class CombatMovement : MonoBehaviour
 {
     [Tooltip("Tiles per second while stepping.")]
     public float stepSpeed = 5f;
+
+    [Header("Path preview (under the mouse)")]
+    public Color pathColor = new Color32(232, 190, 99, 255);   // candle gold
+    [Range(0f, 1f)] public float pathStrength = 0.4f;
 
     static readonly Vector2Int[] Directions =
         { Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right };
@@ -26,11 +31,31 @@ public class CombatMovement : MonoBehaviour
     Vector3 stepTarget;
     CombatUnit lastBump;   // so bumping into the same thing only logs once
 
+    // A clicked route: grid tiles still to walk, and whose turn it was for
+    readonly Queue<Vector2Int> path = new Queue<Vector2Int>();
+    CombatUnit pathOwner;
+
+    // What the preview currently shows
+    bool previewShown, previewKnown;
+    Vector2Int previewTile;
+    int previewMoves;
+
     void Awake()
     {
         turns = GetComponent<TurnManager>();
         combat = GetComponent<CombatManager>();
         targeting = GetComponent<CombatTargeting>();
+    }
+
+    // Start runs after every Awake, so CombatManager has found its grid by now
+    void Start()
+    {
+        if (Grid != null) Grid.OnMoveClicked += OnMoveClicked;
+    }
+
+    void OnDestroy()
+    {
+        if (combat != null && Grid != null) Grid.OnMoveClicked -= OnMoveClicked;
     }
 
     // CombatTargeting calls this when aiming starts/stops
@@ -61,20 +86,125 @@ public class CombatMovement : MonoBehaviour
             if (turns.Current == mover) turns.SpendMove();   // also redraws the range
         }
 
-        // 2. Only on our own turn, with movement left
-        if (!turns.InBattle || !turns.IsPartyTurn || turns.HasMoved) return;
-        if (Grid == null || !Grid.IsBuilt) return;
-        if (targeting != null && targeting.IsActive) return;   // aiming or rolling: stand still
-        if (PauseMenu.BlocksInput) return;                     // paused or dead
+        // 2. Only on our own turn, with movement left, while not aiming or rolling
+        bool canWalk = turns.InBattle && turns.IsPartyTurn && !turns.HasMoved
+                       && Grid != null && Grid.IsBuilt
+                       && (targeting == null || !targeting.IsActive)
+                       && !PauseMenu.BlocksInput;
+        if (!canWalk || turns.Current != pathOwner) path.Clear();
+        UpdatePreview(canWalk);
+        if (!canWalk) return;
 
-        // 3. Which way? (holding the key keeps walking, like exploring)
+        // 3. Keys take over from a clicked path (holding the key keeps walking, like exploring)
         Vector2Int dir = ReadDirection();
-        if (dir == Vector2Int.zero) return;
+        if (dir != Vector2Int.zero)
+        {
+            path.Clear();
+            TryStep(turns.Current, dir);
+            return;
+        }
 
-        TryStep(turns.Current, dir);
+        // 4. Next tile of a clicked path
+        if (path.Count > 0)
+        {
+            Vector2Int step = path.Dequeue() - GridTileOf(turns.Current);
+            bool ok = Mathf.Abs(step.x) + Mathf.Abs(step.y) == 1 && TryStep(turns.Current, step);
+            if (!ok) path.Clear();   // something got in the way (e.g. a monster in the dark)
+        }
     }
 
-    void TryStep(CombatUnit u, Vector2Int dir)
+    // ---------- Click to move ----------
+
+    void OnMoveClicked(Vector2Int goal)
+    {
+        if (!turns.InBattle || !turns.IsPartyTurn || turns.HasMoved) return;
+        if (targeting != null && targeting.IsActive) return;
+        if (PauseMenu.BlocksInput) return;
+
+        CombatUnit u = turns.Current;
+        // Clicked mid-step? Plan from the tile we're stepping onto.
+        Vector2Int start = stepping ? StepTargetTile() : GridTileOf(u);
+        int moves = turns.MovesLeft - (stepping ? 1 : 0);
+
+        List<Vector2Int> route = FindPath(u, start, goal, moves);
+        if (route == null) return;   // too far, or no way through
+
+        path.Clear();
+        foreach (Vector2Int t in route) path.Enqueue(t);
+        pathOwner = u;
+    }
+
+    // Shortest way (no diagonals) from 'start' to 'goal' within 'steps' steps, not counting 'start'.
+    // Null if there is none. Monsters hidden in the dark are ignored, like the glow;
+    // walking into one stops you.
+    List<Vector2Int> FindPath(CombatUnit u, Vector2Int start, Vector2Int goal, int steps)
+    {
+        if (start == goal || steps <= 0) return null;
+
+        var cameFrom = new Dictionary<Vector2Int, Vector2Int> { [start] = start };
+        var dist = new Dictionary<Vector2Int, int> { [start] = 0 };
+        var queue = new Queue<Vector2Int>();
+        queue.Enqueue(start);
+
+        // Every step costs the same, so a plain breadth-first search finds the shortest way
+        while (queue.Count > 0)
+        {
+            Vector2Int t = queue.Dequeue();
+            if (t == goal) break;
+            if (dist[t] >= steps) continue;
+
+            foreach (Vector2Int d in Directions)
+            {
+                Vector2Int n = t + d;
+                if (dist.ContainsKey(n)) continue;
+                if (!CanStand(u, n, out _, ignoreUnseen: true)) continue;
+                dist[n] = dist[t] + 1;
+                cameFrom[n] = t;
+                queue.Enqueue(n);
+            }
+        }
+
+        if (!cameFrom.ContainsKey(goal)) return null;
+
+        // Walk back from the goal to the start, then flip it
+        var route = new List<Vector2Int>();
+        for (Vector2Int t = goal; t != start; t = cameFrom[t]) route.Add(t);
+        route.Reverse();
+        return route;
+    }
+
+    // Light up the way to the tile under the mouse
+    void UpdatePreview(bool canWalk)
+    {
+        Vector2Int hover = default;
+        bool want = canWalk && !stepping && path.Count == 0 && Grid.TryGetHovered(out hover);
+
+        if (!want)
+        {
+            // Aiming paints its own marks: leave those alone
+            if (previewShown && (targeting == null || !targeting.IsActive)) Grid.ClearMarks();
+            previewShown = false;
+            previewKnown = false;
+            return;
+        }
+
+        if (previewKnown && hover == previewTile && previewMoves == turns.MovesLeft) return;   // nothing changed
+        previewKnown = true;
+        previewTile = hover;
+        previewMoves = turns.MovesLeft;
+
+        if (previewShown) Grid.ClearMarks();
+        previewShown = false;
+
+        List<Vector2Int> route = FindPath(turns.Current, GridTileOf(turns.Current), hover, turns.MovesLeft);
+        if (route == null) return;
+        Grid.MarkTiles(route, pathColor, pathStrength);
+        previewShown = true;
+    }
+
+    // ---------- Stepping ----------
+
+    bool TryStep(CombatUnit u, Vector2Int dir)
     {
         Vector2Int to = GridTileOf(u) + dir;
 
@@ -84,13 +214,14 @@ public class CombatMovement : MonoBehaviour
             if (blocker != null && blocker != lastBump && !FogOfWar.CanSee(blocker))
                 Debug.Log("Something in the dark blocks the way...");
             lastBump = blocker;
-            return;
+            return false;
         }
 
         lastBump = null;
         mover = u;
         stepTarget = u.WorldPositionFor(Grid.OriginTile + to);
         stepping = true;
+        return true;
     }
 
     // Could this unit's whole footprint stand with its bottom-left on grid tile 'anchor'?
@@ -171,6 +302,12 @@ public class CombatMovement : MonoBehaviour
     // ---------- Helpers ----------
 
     Vector2Int GridTileOf(CombatUnit u) => u.AnchorTile - Grid.OriginTile;
+
+    Vector2Int StepTargetTile()
+    {
+        Grid.WorldToTile(stepTarget, out int x, out int y);
+        return new Vector2Int(x, y);
+    }
 
     IEnumerable<CombatUnit> AllUnits()
     {

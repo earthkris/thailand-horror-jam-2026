@@ -41,6 +41,8 @@ public class GridManager : MonoBehaviour
 
     // Left-click on a floor tile (grid coordinates). CombatTargeting listens to this.
     public event System.Action<Vector2Int> OnTileClicked;
+    // Left-click on a floor tile while nobody is aiming. CombatMovement walks there.
+    public event System.Action<Vector2Int> OnMoveClicked;
     Material glowMaterial;
     float floorY;
 
@@ -85,6 +87,10 @@ public class GridManager : MonoBehaviour
             if (OnTileClicked != null)
             {
                 OnTileClicked.Invoke(new Vector2Int(hovered.x, hovered.y));   // someone is choosing a target
+            }
+            else if (hovered.walkable && OnMoveClicked != null)
+            {
+                OnMoveClicked.Invoke(new Vector2Int(hovered.x, hovered.y));   // walk there
             }
             else if (hovered.walkable)
             {
@@ -293,6 +299,13 @@ public class GridManager : MonoBehaviour
         return IsBuilt && InBounds(x, y) ? tiles[x, y] : null;
     }
 
+    // The grid tile under the mouse, if there is one (CombatMovement previews the path to it)
+    public bool TryGetHovered(out Vector2Int tile)
+    {
+        tile = hovered != null ? new Vector2Int(hovered.x, hovered.y) : default;
+        return hovered != null;
+    }
+
     public bool IsWalkable(int x, int y)
     {
         Tile t = GetTile(x, y);
@@ -336,4 +349,4 @@ public class GridManager : MonoBehaviour
             Gizmos.DrawWireCube(TileToWorld(t.x, t.y), new Vector3(tileSize * 0.9f, 0.01f, tileSize * 0.9f));
         }
     }
-}
+}

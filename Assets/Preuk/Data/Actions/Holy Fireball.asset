@@ -13,8 +13,10 @@ MonoBehaviour:
   m_Name: Holy Fireball
   m_EditorClassIdentifier: Assembly-CSharp::CombatAction
   displayName: Holy Fireball
-  description: Read a verse and hurl a ball of holy fire at an enemy up to 8 tiles
-    away. It bursts on impact. Hard to aim with an enemy next to you.
+  description: 'Read a verse and hurl a ball of holy fire at an enemy up to 8 tiles
+    away. It bursts on impact. Hard to aim with an enemy next to you. Sets the target
+    burning: 1d4 fire damage at the start of its next 2 turns.'
+  typeIcon: {fileID: 4507998296860207705, guid: 8759f277fe018ee479fc51e7fa20ff19, type: 3}
   target: 0
   range: 8
   needsLineOfSight: 1
@@ -29,4 +31,15 @@ MonoBehaviour:
   projectilePrefab: {fileID: 6301460475028473566, guid: 7e53710e4a5bdfa4db63184ef71d1b34, type: 3}
   impactPrefab: {fileID: 5987730469374909056, guid: bc357e83f0c135243b1d2091b8eb41a8, type: 3}
   castEffect: {fileID: 1018217874299416271, guid: f21cea955444c93428064d032aa90bfa, type: 3}
+  swingDownFrames: []
+  swingUpFrames: []
+  swingSideFrames: []
+  blessDie: 0
+  bonusAC: 0
+  wholeParty: 0
+  inflicts: 1
+  statusTurns: 2
+  statusChance: 100
+  statusDiceCount: 1
+  statusDiceSides: 4
   usesPerBattle: 0

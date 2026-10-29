@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 711817608f2b81247a826ccb20794df1, type: 3}
+  m_Name: Lay on Hands
+  m_EditorClassIdentifier: Assembly-CSharp::CombatAction
+  displayName: Lay on Hands
+  description: Kairos lays a hand on himself or an ally right next to him and holy
+    power closes their wounds. Once per fight.
+  typeIcon: {fileID: -1337039248203370655, guid: a0609fffe09f22d4e9c909027b03867f, type: 3}
+  target: 1
+  range: 1
+  needsLineOfSight: 0
+  effect: 1
+  attackBonus: 5
+  diceCount: 2
+  diceSides: 6
+  bonus: 2
+  extraDiceCount: 0
+  extraDiceSides: 6
+  damageType: 
+  projectilePrefab: {fileID: 0}
+  impactPrefab: {fileID: 1018217874299416271, guid: f21cea955444c93428064d032aa90bfa, type: 3}
+  castEffect: {fileID: 0}
+  swingDownFrames: []
+  swingUpFrames: []
+  swingSideFrames: []
+  blessDie: 0
+  bonusAC: 0
+  wholeParty: 0
+  usesPerBattle: 1

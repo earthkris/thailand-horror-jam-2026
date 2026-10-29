@@ -25,8 +25,10 @@ public class DiceTray : MonoBehaviour
     public Color captionColor = new Color32(217, 203, 176, 255);   // bone
     public Color hitColor = new Color32(232, 190, 99, 255);        // candle gold
     public Color missColor = new Color32(194, 59, 59, 255);        // blood
-    [Tooltip("Where the banner sits on screen (0-1). Default: above the tray, bottom-right.")]
-    public Vector2 bannerPosition = new Vector2(0.845f, 0.6f);
+    [Tooltip("Banner height on screen (0 = bottom, 1 = top).")]
+    [Range(0f, 1f)] public float bannerHeight = 0.6f;
+    [Tooltip("Gap between the banner and the right edge of the screen.")]
+    public float bannerRightMargin = 20f;
 
     TextMeshProUGUI caption;
     TextMeshProUGUI outcome;
@@ -147,16 +149,19 @@ public class DiceTray : MonoBehaviour
         var go = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI));
         go.transform.SetParent(banner.transform, false);
         var rt = (RectTransform)go.transform;
-        rt.anchorMin = rt.anchorMax = bannerPosition;
-        rt.pivot = new Vector2(0.5f, 0.5f);
+        rt.anchorMin = rt.anchorMax = new Vector2(1f, bannerHeight);   // pinned to the right edge
+        rt.pivot = new Vector2(1f, 0.5f);
         rt.sizeDelta = new Vector2(560, 60);
-        rt.anchoredPosition = offset;
+        rt.anchoredPosition = new Vector2(-bannerRightMargin, offset.y);
 
         var t = go.GetComponent<TextMeshProUGUI>();
         t.fontSize = size;
         t.color = color;
         t.alignment = TextAlignmentOptions.Center;
         t.textWrappingMode = TextWrappingModes.NoWrap;
+        t.enableAutoSizing = true;                 // long lines shrink instead of running off screen
+        t.fontSizeMax = size;
+        t.fontSizeMin = size * 0.5f;
         t.raycastTarget = false;
         t.outlineWidth = 0.25f;                     // dark edge so it reads over anything
         t.outlineColor = new Color32(5, 4, 7, 255);

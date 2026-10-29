@@ -34,6 +34,15 @@ public class TurnPanel : MonoBehaviour
     public Button itemButton;
     public Button endTurnButton;
 
+    [Header("Choosing a target")]
+    [Tooltip("Shown instead of the battle UI while you pick a target. Holds the X button.")]
+    public GameObject aimPanel;
+    [Tooltip("The X. Cancels the action and brings the battle UI back.")]
+    public Button cancelAimButton;
+    [Tooltip("Optional. Says what you're aiming, e.g. 'Holy Fireball - choose a target'.")]
+    public TextMeshProUGUI aimText;
+    public string aimFormat = "{0}  -  choose a target";
+
     [Header("Menus")]
     [Tooltip("The pop-up list ACTION and USE ITEM open.")]
     public ChoiceMenu menu;
@@ -53,6 +62,7 @@ public class TurnPanel : MonoBehaviour
     [Range(0f, 1f)] public float disabledLabelAlpha = 0.35f;
 
     readonly List<TextMeshProUGUI> rows = new List<TextMeshProUGUI>();
+    CombatTargeting targeting;
     FontStyles rowStyle;
     bool ready;
 
@@ -72,7 +82,9 @@ public class TurnPanel : MonoBehaviour
         rowTemplate.gameObject.SetActive(false);
 
         if (inventory == null) inventory = FindAnyObjectByType<PartyInventory>();
+        targeting = turns.GetComponent<CombatTargeting>();
         if (menu != null) menu.Close();
+        if (cancelAimButton != null) cancelAimButton.onClick.AddListener(CancelAim);
 
         moveButton.onClick.AddListener(turns.ChooseMove);
         actionButton.onClick.AddListener(OpenActions);
@@ -100,8 +112,11 @@ public class TurnPanel : MonoBehaviour
     void Refresh()
     {
         bool show = turns.InBattle && turns.Current != null;
-        initiativePanel.SetActive(show);
-        actionPanel.SetActive(show);
+        bool aiming = show && targeting != null && targeting.IsAiming;
+        initiativePanel.SetActive(show && !aiming);   // out of the way while you pick a target
+        actionPanel.SetActive(show && !aiming);
+        if (aimPanel != null) aimPanel.SetActive(aiming);
+        if (aiming && aimText != null) aimText.text = string.Format(aimFormat, targeting.AimingName);
 
         // Close the menu when it's no longer our turn, or our action is used up
         if (menu != null && menu.IsOpen && (!show || !turns.IsPartyTurn || turns.HasActed)) menu.Close();
@@ -149,7 +164,8 @@ public class TurnPanel : MonoBehaviour
             turnTitle.text = $"{u.unitName}'s turn";
             turnTitle.color = u.team == Team.Party ? partyColor : enemyColor;
             if (turnInfo != null)
-                turnInfo.text = $"Round {turns.Round}     HP {u.CurrentHP}/{u.maxHP}     AC {u.armorClass}     Move {turns.MovesLeft}/{u.MoveTiles}";
+                turnInfo.text = $"Round {turns.Round}     HP {u.CurrentHP}/{u.maxHP}     AC {u.ArmorClass}\nMove {turns.MovesLeft}/{u.MoveTiles}"
+                              + (u.BlessDie > 0 ? $"     Blessed +1d{u.BlessDie}" : "") + u.StatusText;
         }
         else
         {
@@ -179,12 +195,13 @@ public class TurnPanel : MonoBehaviour
             if (a == null) continue;
             int left = turns.UsesLeft(u, a);
             string uses = left < 0 ? "" : $"   {left}/{a.usesPerBattle}";
-            string range = a.range <= 1 ? "melee" : $"{a.range} tiles";
+            string range = a.range > 1 ? $"{a.range} tiles" : a.effect == ActionEffect.Damage ? "melee" : "touch";
             CombatAction picked = a;
             options.Add(new ChoiceMenu.Option
             {
+                icon = a.typeIcon,
                 label = a.displayName,
-                detail = $"{a.RangeText}   {range}{uses}",
+                detail = $"{a.AmountText}   {range}{uses}",
                 description = a.description,
                 enabled = left != 0,
                 onPick = () => { menu.Close(); turns.ChooseAction(picked); }
@@ -213,6 +230,11 @@ public class TurnPanel : MonoBehaviour
                 });
             }
         menu.Open("ITEMS", options);
+    }
+
+    void CancelAim()
+    {
+        if (targeting != null && targeting.IsAiming) targeting.Cancel();
     }
 
     void SetButton(Button b, bool on)

@@ -31,7 +31,10 @@ public class TurnManager : MonoBehaviour
     // Is the "where can I walk" highlight on? (MOVE button toggles it)
     public bool ShowMoveRange { get; private set; } = true;
 
-    public bool IsPartyTurn => Current != null && Current.team == Team.Party;
+    public bool IsPartyTurn => Current != null && Current.team == Team.Party && !ResolvingStatus;
+
+    // True while burn / paralyse is being shown at the start of a turn (nobody can act yet)
+    public bool ResolvingStatus { get; private set; }
 
     // The UI listens to this and redraws whenever anything changes
     public event System.Action OnChanged;
@@ -61,6 +64,7 @@ public class TurnManager : MonoBehaviour
 
         var everyone = new List<CombatUnit>(combat.Party);
         everyone.AddRange(combat.Enemies);
+        foreach (CombatUnit u in everyone) u.ClearBuffs();   // last fight's Bless is gone
 
         // Everyone rolls d20 + Dex
         foreach (CombatUnit u in everyone)
@@ -80,6 +84,7 @@ public class TurnManager : MonoBehaviour
         });
 
         InBattle = true;
+        ResolvingStatus = false;
         Round = 1;
         index = 0;
         StartTurn();
@@ -124,8 +129,53 @@ public class TurnManager : MonoBehaviour
             combat.cameraController.FocusOn(Current.transform);
 
         Debug.Log($"Round {Round}: {Current.unitName}'s turn{(FogOfWar.CanSee(Current) ? "" : " (unseen, in the dark)")}");
+        // Burning or paralysed? That happens before they can act
+        if (Current.HasAnyStatus)
+        {
+            StartCoroutine(StatusTurnStart(Current));
+            return;
+        }
+
         OnChanged?.Invoke();
 
+        if (!IsPartyTurn) StartCoroutine(EnemyTurn());
+    }
+
+    // Burn: fire damage now. Paralyse: the whole turn is lost. Then every status ticks down one turn.
+    IEnumerator StatusTurnStart(CombatUnit me)
+    {
+        ResolvingStatus = true;
+        OnChanged?.Invoke();
+        string who = FogOfWar.CanSee(me) ? me.unitName : "Something in the dark";
+        bool goodForParty = me.team == Team.Enemy;
+        yield return new WaitForSeconds(0.3f);
+
+        if (me.Has(StatusType.Burn))
+        {
+            int damage = me.RollBurn();
+            Debug.Log($"{me.unitName} burns for {damage} fire damage");
+            me.TakeDamage(damage);
+            yield return DiceTray.ShowMessage($"{who} is burning", $"{damage} fire damage" + (me.IsAlive ? "" : "  —  DOWN"), goodForParty);
+        }
+
+        bool paralysed = me.IsAlive && me.Has(StatusType.Paralyse);
+        if (paralysed)
+        {
+            Debug.Log($"{me.unitName} is paralysed and loses the turn");
+            yield return DiceTray.ShowMessage($"{who} is paralysed", "loses this turn", goodForParty);
+        }
+
+        me.CountDownStatuses();
+        ResolvingStatus = false;
+
+        if (!me.IsAlive || paralysed)
+        {
+            CheckForVictory();
+            if (InBattle && Current == me) EndTurn();
+            yield break;
+        }
+
+        OnChanged?.Invoke();
         if (!IsPartyTurn) StartCoroutine(EnemyTurn());
     }
 
@@ -133,7 +183,10 @@ public class TurnManager : MonoBehaviour
     {
         StopAllCoroutines();
         if (targeting != null) targeting.Cancel();
+        foreach (Combatant c in Order)
+            if (c.unit != null) c.unit.ClearBuffs();   // buffs end with the fight
         InBattle = false;
+        ResolvingStatus = false;
         Current = null;
         Debug.Log(won ? "Victory! The monsters are dead." : "The party has fallen...");
         OnChanged?.Invoke();
@@ -191,6 +244,9 @@ public class TurnManager : MonoBehaviour
     }
 
     public void MarkActed() { HasActed = true; OnChanged?.Invoke(); }
+
+    // Something else changed what the UI should show (e.g. aiming started or stopped)
+    public void NotifyChanged() => OnChanged?.Invoke();
 
     // ---------- Buttons (TurnPanel calls these) ----------
 

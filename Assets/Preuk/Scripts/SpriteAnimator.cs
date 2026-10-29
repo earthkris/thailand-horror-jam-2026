@@ -36,6 +36,8 @@ public class SpriteAnimator : MonoBehaviour
 
     bool attacking;
     float attackTime;
+    Sprite[] swingDown, swingUp, swingSide;   // this swing's own frames (a special move can bring them)
+    float holdFacingUntil;   // real time; until then moving doesn't turn us (a lunge sliding back, a hit shake)
 
     // ---------- Attack (called by CombatTargeting) ----------
 
@@ -61,9 +63,16 @@ public class SpriteAnimator : MonoBehaviour
 
     // Turn toward 'target' and swing once. Walking/idle resumes by itself afterwards,
     // and the character keeps facing the target.
-    public void PlayAttack(Vector3 target)
+    public void PlayAttack(Vector3 target) => PlayAttack(target, null, null, null);
+
+    // Same, but with other frames for this one swing (e.g. Divine Smite's glowing sword).
+    // Empty lists fall back to the normal attack frames.
+    public void PlayAttack(Vector3 target, Sprite[] down, Sprite[] up, Sprite[] side)
     {
-        if (!HasAttackFrames) return;
+        swingDown = down;
+        swingUp = up;
+        swingSide = side;
+        if (GetAttackFrames() == null || GetAttackFrames().Length == 0) return;
         FaceToward(target - transform.position);
         attacking = true;
         attackTime = 0f;
@@ -77,6 +86,13 @@ public class SpriteAnimator : MonoBehaviour
         else
             facing = direction.z > 0 ? Facing.Up : Facing.Down;
     }
+
+    // Moving in the next 'seconds' won't turn the character or play the walk.
+    // Lunges and hit shakes call this, so sliding back home doesn't count as walking away.
+    public void HoldFacing(float seconds) =>
+        holdFacingUntil = Mathf.Max(holdFacingUntil, Time.unscaledTime + seconds);
+
+    bool FacingHeld => Time.unscaledTime < holdFacingUntil;
 
     // ---------- Every frame ----------
 
@@ -103,7 +119,7 @@ public class SpriteAnimator : MonoBehaviour
             int i = AttackFrameIndex(swing);
             float length = swing.Length / attackFramesPerSecond + attackHoldLastFrame;
             // Keep holding the slash while the lunge is still sliding us back home
-            if (attackTime < length || movedThisFrame)
+            if (attackTime < length || movedThisFrame || FacingHeld)
             {
                 sr.sprite = swing[Mathf.Min(i, swing.Length - 1)];
                 ApplyMirror();
@@ -114,7 +130,7 @@ public class SpriteAnimator : MonoBehaviour
         }
 
         // 3. Update facing direction from the movement
-        if (movedThisFrame)
+        if (movedThisFrame && !FacingHeld)   // a lunge or a hit shake isn't walking
         {
             stillTime = 0f;
             FaceToward(delta);
@@ -177,10 +193,14 @@ public class SpriteAnimator : MonoBehaviour
         Sprite[] f;
         switch (facing)
         {
-            case Facing.Up: f = attackUpFrames; break;
-            case Facing.Down: f = attackDownFrames; break;
-            default: f = attackSideFrames; break;
+            case Facing.Up: f = Pick(swingUp, attackUpFrames); break;
+            case Facing.Down: f = Pick(swingDown, attackDownFrames); break;
+            default: f = Pick(swingSide, attackSideFrames); break;
         }
-        return f != null && f.Length > 0 ? f : attackDownFrames;
+        return f != null && f.Length > 0 ? f : Pick(swingDown, attackDownFrames);
     }
+
+    // The special move's frames if it has some, otherwise the normal ones
+    static Sprite[] Pick(Sprite[] special, Sprite[] normal) =>
+        special != null && special.Length > 0 ? special : normal;
 }

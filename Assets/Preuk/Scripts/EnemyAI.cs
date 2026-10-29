@@ -2,28 +2,38 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public enum AttackStyle { Melee, Ranged }
+// Melee: only hits right next to it. Ranged: only shoots from a distance.
+// Both: attacks in melee when it can reach you this turn, otherwise shoots (a spider spitting web).
+public enum AttackStyle { Melee, Ranged, Both }
 
 // A monster's brain in combat. On its turn it walks (up to its speed), then attacks if it can.
 //   Melee:  goes for the nearest party member and hits them when standing right next to them.
 //   Ranged: keeps its distance, finds a spot with a clear shot, and fires a projectile.
+//   Both:   walks up and attacks in melee if it can get there this turn; if not, shoots instead.
+// Melee plays the monster's attack frames if its SpriteAnimator has some, then lunges.
 // Monsters always know where the party is, even in the dark.
-// The hit roll and damage come from the CombatUnit's "Attack" stats.
+// The hit roll and damage come from the CombatUnit's "Attack" stats (the same for melee and shots).
 [RequireComponent(typeof(CombatUnit))]
 public class EnemyAI : MonoBehaviour
 {
     [Header("Fighting Style")]
     public AttackStyle style = AttackStyle.Melee;
-    [Tooltip("How far it can attack, in tiles. Melee is always 1.")]
+    [Tooltip("How far it can shoot, in tiles. Melee is always 1.")]
     [Min(1)] public int attackRange = 1;
     [Tooltip("Ranged only: how far from the party it likes to stand.")]
     [Min(1)] public int preferredDistance = 4;
 
-    [Header("Projectile (Ranged)")]
+    [Header("Projectile (Ranged / Both)")]
     [Tooltip("What flies at the target. Leave empty for a plain ball.")]
     public GameObject projectilePrefab;
+    [Tooltip("Spawned where the shot lands, e.g. a web splat. Optional.")]
+    public GameObject impactPrefab;
     [Tooltip("Tiles per second.")]
     public float projectileSpeed = 10f;
+
+    [Header("Words (battle log and dice banner)")]
+    public string meleeVerb = "attacks";
+    public string rangedVerb = "shoots at";
 
     [Header("Animation")]
     [Tooltip("Tiles per second while walking.")]
@@ -54,14 +64,17 @@ public class EnemyAI : MonoBehaviour
         if (target == null) yield break;   // nobody left to fight
 
         // 1. Walk
-        List<Vector2Int> path = style == AttackStyle.Melee ? PlanMelee(target) : PlanRanged(target);
+        List<Vector2Int> path =
+            style == AttackStyle.Melee ? PlanMelee(target) :
+            style == AttackStyle.Ranged ? PlanRanged(target) :
+            PlanBoth(target);
         foreach (Vector2Int tile in path)
             yield return Step(tile);
 
-        // 2. Attack whoever we can reach now (the nearest one we can hit)
-        CombatUnit victim = TargetInReach();
+        // 2. Attack whoever we can reach now (melee first, then a shot)
+        CombatUnit victim = TargetInReach(out bool melee);
         if (victim != null)
-            yield return Attack(victim);
+            yield return Attack(victim, melee);
         else
             Debug.Log($"{Name()} can't reach anyone this turn.");
     }
@@ -110,6 +123,15 @@ public class EnemyAI : MonoBehaviour
         return PlanMelee(target);
     }
 
+    // Both: if we can get next to the target this turn, go and hit it. Otherwise find a spot to shoot from.
+    List<Vector2Int> PlanBoth(CombatUnit target)
+    {
+        List<Vector2Int> melee = PlanMelee(target);
+        Vector2Int end = melee.Count > 0 ? melee[melee.Count - 1] : MyTile();
+        if (Gap(end, target) <= 1) return melee;
+        return PlanRanged(target);
+    }
+
     // Spread out from 'start' over every tile we could stand on (walls, rocks and units block)
     void Flood(Vector2Int start, out Dictionary<Vector2Int, int> dist, out Dictionary<Vector2Int, Vector2Int> cameFrom)
     {
@@ -153,27 +175,43 @@ public class EnemyAI : MonoBehaviour
 
     // ================= Attacking =================
 
-    CombatUnit TargetInReach()
+    // Who can we hit from here? 'melee' says how.
+    CombatUnit TargetInReach(out bool melee)
+    {
+        melee = false;
+        Vector2Int me = MyTile();
+
+        // Melee first: anyone right next to us
+        if (style != AttackStyle.Ranged)
+        {
+            CombatUnit near = NearestWhere(p => Gap(me, p) <= 1);
+            if (near != null) { melee = true; return near; }
+            if (style == AttackStyle.Melee) return null;
+        }
+
+        // Then a shot: in range, nothing in the way
+        return NearestWhere(p => Gap(me, p) <= attackRange && ClearShot(me, p));
+    }
+
+    CombatUnit NearestWhere(System.Func<CombatUnit, bool> ok)
     {
         CombatUnit best = null;
         int bestGap = int.MaxValue;
         Vector2Int me = MyTile();
         foreach (CombatUnit p in combat.Party)
         {
-            if (p == null || !p.IsAlive) continue;
+            if (p == null || !p.IsAlive || !ok(p)) continue;
             int gap = Gap(me, p);
-            if (gap > attackRange) continue;
-            if (style == AttackStyle.Ranged && !ClearShot(me, p)) continue;
             if (gap < bestGap) { bestGap = gap; best = p; }
         }
         return best;
     }
 
-    IEnumerator Attack(CombatUnit target)
+    IEnumerator Attack(CombatUnit target, bool melee)
     {
         // D&D: shooting with an enemy right next to you = disadvantage (roll twice, keep the lower)
-        bool disadvantage = style == AttackStyle.Ranged && NearestPartyGap(MyTile()) <= 1;
-        string verb = style == AttackStyle.Melee ? "attacks" : "shoots at";
+        bool disadvantage = !melee && NearestPartyGap(MyTile()) <= 1;
+        string verb = melee ? meleeVerb : rangedVerb;
 
         // Rolled on the real dice (DiceTray), or DiceSimulator if there's no dice in the scene
         int r1 = 0, r2 = 0;
@@ -183,16 +221,19 @@ public class EnemyAI : MonoBehaviour
             yield return DiceTray.RollD20("Disadvantage  —  second roll", v => r2 = v);
         int roll = Mathf.Min(r1, r2);
 
-        // Show it
-        if (style == AttackStyle.Melee) yield return Lunge(target);
-        else yield return Shoot(target);
-
+        // Hit or miss? (worked out first, so a missed shot can fly wide)
         int total = roll + unit.attackBonus;
         bool crit = roll == 20;
-        bool hit = crit || (roll != 1 && total >= target.armorClass);
+        bool hit = crit || (roll != 1 && total >= target.ArmorClass);
+
+        // Show it
+        SpriteAnimator facer = GetComponentInChildren<SpriteAnimator>();   // look at who we attack
+        if (facer != null) facer.FaceToward(target.transform.position - transform.position);
+        if (melee) yield return Swing(target);
+        else yield return Shoot(target, hit);
+
         string rollText = disadvantage ? $"d20 ({r1}, {r2} -> {roll}, disadvantage)" : $"d20 ({roll})";
-        string attack = $"{Name()} {(style == AttackStyle.Melee ? "attacks" : "shoots at")} {target.unitName}: " +
-                        $"{rollText} + {unit.attackBonus} = {total} vs AC {target.armorClass}";
+        string attack = $"{Name()} {verb} {target.unitName}: {rollText} + {unit.attackBonus} = {total} vs AC {target.ArmorClass}";
 
         if (!hit)
         {
@@ -210,9 +251,26 @@ public class EnemyAI : MonoBehaviour
         yield return DiceTray.ShowOutcome((crit ? $"CRITICAL!  {damage} damage" : $"HIT  —  {damage} damage") + down, false);
     }
 
-    // Quick jab toward the target and back
+    // Play the attack frames (if any), lunge on the last one (the hit), then finish the swing
+    IEnumerator Swing(CombatUnit target)
+    {
+        SpriteAnimator body = GetComponentInChildren<SpriteAnimator>();
+        if (body == null || !body.HasAttackFrames)
+        {
+            yield return Lunge(target);
+            yield break;
+        }
+
+        body.PlayAttack(target.transform.position);
+        while (body.IsAttacking && !body.OnLastAttackFrame) yield return null;   // wind-up
+        yield return Lunge(target);                                              // the hit
+        while (body.IsAttacking) yield return null;                              // follow-through
+    }
+
+    // Quick jab toward the target and back. Facing is held so sliding back doesn't turn us around.
     IEnumerator Lunge(CombatUnit target)
     {
+        SpriteAnimator body = GetComponentInChildren<SpriteAnimator>();
         Vector3 home = transform.position;
         Vector3 toward = target.transform.position - home;
         toward.y = 0f;
@@ -221,33 +279,48 @@ public class EnemyAI : MonoBehaviour
         for (float t = 0f; t < 1f; t += Time.deltaTime / 0.1f)
         {
             transform.position = Vector3.Lerp(home, hitPos, t);
+            if (body != null) body.HoldFacing(0.1f);
             yield return null;
         }
         for (float t = 0f; t < 1f; t += Time.deltaTime / 0.15f)
         {
             transform.position = Vector3.Lerp(hitPos, home, t);
+            if (body != null) body.HoldFacing(0.1f);
             yield return null;
         }
         transform.position = home;
+        if (body != null) body.HoldFacing(0.1f);
     }
 
-    // Fly a projectile from us to the target
-    IEnumerator Shoot(CombatUnit target)
+    // Fly a projectile from us to the target. A miss flies wide and lands beside them.
+    IEnumerator Shoot(CombatUnit target, bool hit)
     {
         Vector3 from = transform.position;
         Vector3 to = target.transform.position;
+        Vector3 flat = to - from;
+        flat.y = 0f;
+        if (!hit && flat.sqrMagnitude > 0.0001f)
+        {
+            Vector3 side = Vector3.Cross(Vector3.up, flat).normalized * (Random.value < 0.5f ? -0.7f : 0.7f);
+            to += (side + flat.normalized * 0.4f) * unit.tileSize;
+        }
 
         GameObject p = projectilePrefab != null ? Instantiate(projectilePrefab) : MakePlaceholderBall();
         p.transform.position = from;
-        p.transform.rotation = Quaternion.LookRotation(to - from);   // point it at the target (for arrows)
+        if (to != from) p.transform.rotation = Quaternion.LookRotation(to - from);   // point it at the target (for arrows)
+        if (p.TryGetComponent(out SpriteFlipbook flipbook)) flipbook.travelDirection = to - from;   // sprites: turn on screen instead
 
         float time = Vector3.Distance(from, to) / Mathf.Max(projectileSpeed * unit.tileSize, 0.1f);
-        for (float t = 0f; t < 1f; t += Time.deltaTime / time)
+        for (float t = 0f; t < 1f; t += Time.deltaTime / Mathf.Max(time, 0.01f))
         {
             p.transform.position = Vector3.Lerp(from, to, t);
             yield return null;
         }
         Destroy(p);
+
+        // On the target, or on the floor beside them after a miss
+        if (impactPrefab != null)
+            Instantiate(impactPrefab, hit ? to : to + Vector3.down * 0.6f * unit.tileSize, Quaternion.identity);
     }
 
     static GameObject MakePlaceholderBall()

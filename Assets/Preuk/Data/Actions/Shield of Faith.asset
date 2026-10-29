@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 711817608f2b81247a826ccb20794df1, type: 3}
+  m_Name: Shield of Faith
+  m_EditorClassIdentifier: Assembly-CSharp::CombatAction
+  displayName: Shield of Faith
+  description: 'A shimmering ward surrounds one ally within 6 tiles: +2 AC until
+    the fight ends. Once per fight.'
+  typeIcon: {fileID: 4203996732852112780, guid: 03ff3c98d63172e4c94b0b5064f8613d, type: 3}
+  target: 1
+  range: 6
+  needsLineOfSight: 0
+  effect: 2
+  attackBonus: 5
+  diceCount: 0
+  diceSides: 8
+  bonus: 0
+  extraDiceCount: 0
+  extraDiceSides: 6
+  damageType: 
+  projectilePrefab: {fileID: 0}
+  impactPrefab: {fileID: 1018217874299416271, guid: f21cea955444c93428064d032aa90bfa, type: 3}
+  castEffect: {fileID: 1018217874299416271, guid: f21cea955444c93428064d032aa90bfa, type: 3}
+  swingDownFrames: []
+  swingUpFrames: []
+  swingSideFrames: []
+  blessDie: 0
+  bonusAC: 2
+  wholeParty: 0
+  usesPerBattle: 1

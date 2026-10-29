@@ -45,6 +45,7 @@ public class CombatTargeting : MonoBehaviour
     public bool IsActive => aiming || busy;   // CombatMovement stands still while true
     public bool IsBusy => busy;               // the dice are rolling
     public bool IsAiming => aiming;           // waiting for you to click a target
+    public string AimingName => aiming ? Name : "";   // e.g. "Holy Fireball"
 
     void Awake()
     {
@@ -82,11 +83,13 @@ public class CombatTargeting : MonoBehaviour
             Grid.ClearMarks();
         }
         if (movement != null) movement.Refresh();
+        turns.NotifyChanged();   // the battle UI comes back
     }
 
     void StartAiming()
     {
         aiming = true;
+        Grid.ClearMarks();   // e.g. the walking path preview
         Grid.OnTileClicked += OnTileClicked;
         if (movement != null) movement.Refresh();   // hide the walking range while aiming
 
@@ -107,6 +110,7 @@ public class CombatTargeting : MonoBehaviour
         Grid.MarkTiles(hits, color, targetStrength);
 
         Debug.Log($"{user.unitName}: choose a target for {Name}  (right-click / Esc to cancel)");
+        turns.NotifyChanged();   // the battle UI hides, the cancel X shows
     }
 
     void Update()
@@ -152,6 +156,7 @@ public class CombatTargeting : MonoBehaviour
 
         if (item != null) yield return UseItem(target);
         else if (action.effect == ActionEffect.Damage) yield return Attack(target);
+        else if (action.effect == ActionEffect.Buff) yield return Buff(target);
         else yield return Heal(action.displayName, action.diceCount, action.diceSides, action.bonus, target);
 
         if (action != null) turns.SpendUse(user, action);
@@ -169,11 +174,12 @@ public class CombatTargeting : MonoBehaviour
         bool disadvantage = hidden || crowded;
         string why = hidden ? "can't see the target" : "enemy right next to you";
         string tName = TargetName(target);
-        int need = Mathf.Clamp(target.armorClass - action.attackBonus, 2, 20);
+        int need = Mathf.Clamp(target.ArmorClass - action.attackBonus, 2, 20);
 
         // 1. Roll to hit (twice with disadvantage, keep the lower)
         int r1 = 0, r2 = 0;
-        yield return DiceTray.RollD20($"{action.displayName}  —  need {need}+" + (disadvantage ? "   (disadvantage)" : ""), v => r1 = v);
+        yield return DiceTray.RollD20($"{action.displayName}  —  need {need}+" + (disadvantage ? "   (disadvantage)" : "")
+                                    + (user.BlessDie > 0 ? $"   (+1d{user.BlessDie} blessed)" : ""), v => r1 = v);
         int roll = r1;
         string rollText = $"d20 ({r1})";
         if (disadvantage)
@@ -184,15 +190,18 @@ public class CombatTargeting : MonoBehaviour
         }
 
         // 2. Hit or miss? (worked out first, so a missed spell can fly wide)
-        int total = roll + action.attackBonus;
+        // Bless: add the blessing die (a d4) to the roll
+        int blessRoll = user.BlessDie > 0 ? DiceSimulator.Roll(user.BlessDie) : 0;
+        if (blessRoll > 0) rollText += $" + bless 1d{user.BlessDie} ({blessRoll})";
+        int total = roll + action.attackBonus + blessRoll;
         bool crit = roll == 20;
-        bool hit = crit || (roll != 1 && total >= target.armorClass);
+        bool hit = crit || (roll != 1 && total >= target.ArmorClass);
 
         // 3. Show the swing / shot
         if (ranged) yield return Shoot(user.transform, target.transform, hit);
-        else yield return Swing(user, target);
+        else yield return Swing(user, target, action);
 
-        string head = $"{user.unitName} uses {action.displayName} on {tName}: {rollText} + {action.attackBonus} = {total} vs AC {target.armorClass}";
+        string head = $"{user.unitName} uses {action.displayName} on {tName}: {rollText} + {action.attackBonus} = {total} vs AC {target.ArmorClass}";
 
         if (!hit)
         {
@@ -210,6 +219,14 @@ public class CombatTargeting : MonoBehaviour
         Debug.Log($"{head} — {(crit ? "CRITICAL HIT" : "hit")}! {damage} {action.damageType} damage");
         target.TakeDamage(damage);
         string killed = target.IsAlive ? "" : "  —  IT FALLS";
+
+        // 5. Burn / paralyse (Holy Fireball, Divine Smite)
+        if (target.IsAlive && action.inflicts != StatusType.None && Random.Range(0, 100) < action.statusChance)
+        {
+            target.AddStatus(action.inflicts, action.statusTurns, action.statusDiceCount, action.statusDiceSides);
+            killed = "  —  " + StatusInfo.Word(action.inflicts).ToUpper();
+            Debug.Log($"{tName} is {StatusInfo.Word(action.inflicts)} for {action.statusTurns} turn(s)");
+        }
         yield return DiceTray.ShowOutcome((crit ? $"CRITICAL!  {damage} damage" : $"HIT  —  {damage} damage") + killed, true);
     }
 
@@ -222,6 +239,29 @@ public class CombatTargeting : MonoBehaviour
         int healed = target.CurrentHP - before;
         Debug.Log($"{user.unitName} uses {what} on {target.unitName}: {count}d{sides}+{bonus} = {amount} -> healed {healed} ({target.CurrentHP}/{target.maxHP} HP)");
         yield return DiceTray.ShowMessage(what, $"+{healed} HP  {target.unitName}", true);
+    }
+
+    // Bless, Shield of Faith...: no roll, the blessing lasts until the fight ends
+    IEnumerator Buff(CombatUnit target)
+    {
+        var who = new List<CombatUnit>();
+        if (action.wholeParty)
+        {
+            foreach (CombatUnit u in Candidates())
+                if (CanReach(u)) who.Add(u);   // everyone in range
+        }
+        else who.Add(target);
+
+        foreach (CombatUnit u in who)
+        {
+            u.AddBuff(action.blessDie, action.bonusAC);
+            if (action.impactPrefab != null) SpawnEffect(action.impactPrefab, u.transform);
+        }
+
+        string names = string.Join(" & ", who.ConvertAll(u => u.unitName));
+        Debug.Log($"{user.unitName} uses {action.displayName}: {names} get {action.BuffText} until the fight ends");
+        turns.NotifyChanged();   // the turn panel shows "Blessed" / the new AC
+        yield return DiceTray.ShowMessage(action.displayName, $"{names}   {action.BuffText}", true);
     }
 
     IEnumerator UseItem(CombatUnit target)
@@ -296,7 +336,7 @@ public class CombatTargeting : MonoBehaviour
 
     // Melee: play the attacker's sword swing (if its SpriteAnimator has attack frames)
     // and lunge forward on the slash frame. No attack frames = just the lunge.
-    static IEnumerator Swing(CombatUnit who, CombatUnit at)
+    static IEnumerator Swing(CombatUnit who, CombatUnit at, CombatAction with)
     {
         SpriteAnimator anim = who.GetComponentInChildren<SpriteAnimator>();
         if (anim == null || !anim.HasAttackFrames)
@@ -305,7 +345,7 @@ public class CombatTargeting : MonoBehaviour
             yield break;
         }
 
-        anim.PlayAttack(at.transform.position);
+        anim.PlayAttack(at.transform.position, with.swingDownFrames, with.swingUpFrames, with.swingSideFrames);
         while (anim.IsAttacking && !anim.OnLastAttackFrame) yield return null;   // wind-up
         yield return Lunge(who.transform, at.transform);                          // slash
         while (anim.IsAttacking) yield return null;                               // follow-through
@@ -313,13 +353,21 @@ public class CombatTargeting : MonoBehaviour
 
     static IEnumerator Lunge(Transform who, Transform at)
     {
+        SpriteAnimator anim = who.GetComponentInChildren<SpriteAnimator>();   // facing is held so the slide back doesn't turn us
         Vector3 home = who.position;
         Vector3 toward = at.position - home;
         toward.y = 0f;
+        if (anim != null) anim.FaceToward(toward);
         Vector3 hitPos = home + toward.normalized * 0.35f;
-        for (float t = 0f; t < 1f; t += Time.deltaTime / 0.1f) { who.position = Vector3.Lerp(home, hitPos, t); yield return null; }
-        for (float t = 0f; t < 1f; t += Time.deltaTime / 0.15f) { who.position = Vector3.Lerp(hitPos, home, t); yield return null; }
+        for (float t = 0f; t < 1f; t += Time.deltaTime / 0.1f) { who.position = Vector3.Lerp(home, hitPos, t); Hold(anim); yield return null; }
+        for (float t = 0f; t < 1f; t += Time.deltaTime / 0.15f) { who.position = Vector3.Lerp(hitPos, home, t); Hold(anim); yield return null; }
         who.position = home;
+        Hold(anim);
+    }
+
+    static void Hold(SpriteAnimator anim)
+    {
+        if (anim != null) anim.HoldFacing(0.1f);
     }
 
     // Ranged: fly the action's projectile at the target, then play its impact effect.

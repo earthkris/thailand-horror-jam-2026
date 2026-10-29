@@ -6,7 +6,8 @@ using UnityEngine.UI;
 
 // A pop-up list of choices (used for ACTION and USE ITEM).
 // The look is all in the Hierarchy: restyle the panel, the Option template and the Back button freely.
-// The Option template needs a child text called "Label"; a child text called "Detail" is optional.
+// The Option template needs a child text called "Label"; a child text called "Detail" is optional,
+// and so is a child Image called "Icon" (hidden when an option has no icon).
 // Esc or right-click closes it.
 public class ChoiceMenu : MonoBehaviour
 {
@@ -22,6 +23,7 @@ public class ChoiceMenu : MonoBehaviour
 
     public struct Option
     {
+        public Sprite icon;         // small picture in front of the label, e.g. the attack type
         public string label;        // big text, e.g. "Sword Strike"
         public string detail;       // small text on the right, e.g. "1d8+3"
         public string description;  // shown when hovered
@@ -65,6 +67,7 @@ public class ChoiceMenu : MonoBehaviour
             Option o = options[i];
             SetText(b.transform, "Label", o.label, o.enabled);
             SetText(b.transform, "Detail", o.detail, o.enabled);
+            SetIcon(b.transform, o.icon, o.enabled);
             b.interactable = o.enabled;
 
             b.onClick.RemoveAllListeners();
@@ -92,6 +95,17 @@ public class ChoiceMenu : MonoBehaviour
         bool esc = Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame;
         bool rightClick = Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame;
         if (esc || rightClick) Close();
+    }
+
+    void SetIcon(Transform button, Sprite icon, bool enabled)
+    {
+        Transform t = button.Find("Icon");
+        if (t == null || !t.TryGetComponent(out Image img)) return;
+        img.sprite = icon;
+        img.enabled = icon != null;
+        Color c = img.color;
+        c.a = enabled ? 1f : disabledLabelAlpha;
+        img.color = c;
     }
 
     void SetText(Transform button, string child, string text, bool enabled)

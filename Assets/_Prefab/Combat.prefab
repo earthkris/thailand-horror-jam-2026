@@ -16,6 +16,7 @@ GameObject:
   - component: {fileID: 6697141626180144042}
   - component: {fileID: 8646375163813700402}
   - component: {fileID: 9075720010113193228}
+  - component: {fileID: 5287691783524297684}
   m_Layer: 0
   m_Name: Combat
   m_TagString: Untagged
@@ -96,6 +97,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CombatMovement
   stepSpeed: 5
+  pathColor: {r: 0.9098039, g: 0.74509805, b: 0.3882353, a: 1}
+  pathStrength: 0.4
 --- !u!114 &6697141626180144042
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -157,3 +160,25 @@ MonoBehaviour:
   healColor: {r: 0.55, g: 0.9, b: 0.5, a: 1}
   healGlow: 0.5
   healTime: 0.6
+--- !u!114 &5287691783524297684
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4938010249863311312}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4073c4d29f1806a4ba4388880267a095, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StatusEffects
+  burnSprite: {fileID: -1556627095, guid: c07785df40877d44aa5c825b30660877, type: 3}
+  paralyseSprite: {fileID: 96623774, guid: c07785df40877d44aa5c825b30660877, type: 3}
+  material: {fileID: 2100000, guid: 46f24d11d5bd81042bfe5f9421d3772d, type: 2}
+  burnEvery: 0.1
+  burnLife: 0.7
+  burnRise: 0.9
+  burnSize: {x: 0.4, y: 0.7}
+  sparkEvery: 0.14
+  sparkLife: 0.25
+  sparkSize: {x: 0.45, y: 0.75}
