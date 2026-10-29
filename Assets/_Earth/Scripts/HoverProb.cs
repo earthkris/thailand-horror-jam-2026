@@ -11,6 +11,7 @@ public class HoverProb : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        if(!prob) return;
         currentPos = prob.position;
         float newCycle = Mathf.Sin(Time.time / speed);
         Vector3 newPosition = position * newCycle;
