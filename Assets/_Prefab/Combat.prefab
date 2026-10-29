@@ -1,0 +1,159 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &4938010249863311312
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2073883211319478927}
+  - component: {fileID: 725136967667852039}
+  - component: {fileID: 5256419983131077116}
+  - component: {fileID: 8606558915101877961}
+  - component: {fileID: 414482362239161806}
+  - component: {fileID: 6697141626180144042}
+  - component: {fileID: 8646375163813700402}
+  - component: {fileID: 9075720010113193228}
+  m_Layer: 0
+  m_Name: Combat
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2073883211319478927
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4938010249863311312}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 7.36931, y: 1, z: -0.51162}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &725136967667852039
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4938010249863311312}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 43e265f7dc66f68418854b91fd0432f1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TurnManager
+  enemyTurnDelay: 0.5
+--- !u!114 &5256419983131077116
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4938010249863311312}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 74baf3bbd5a083a4d8fc95d58a50d6b9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatManager
+  grid: {fileID: 0}
+  cameraController: {fileID: 0}
+  joinRange: 0
+--- !u!114 &8606558915101877961
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4938010249863311312}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c666adb2fbc722047a9eed1032dcebc3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FogOfWar
+  revealRadius: 4
+  lightBlockers:
+    serializedVersion: 2
+    m_Bits: 64
+  checkInterval: 0.1
+--- !u!114 &414482362239161806
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4938010249863311312}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d73bfd184a7e3044d8b0fb148161aeb5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatMovement
+  stepSpeed: 5
+--- !u!114 &6697141626180144042
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4938010249863311312}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fb416f01eec28ae47a1c21db6c766735, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PartyInventory
+  items:
+  - item: {fileID: 11400000, guid: 6449c17b83466494aa9c25993efe3e37, type: 2}
+    count: 2
+--- !u!114 &8646375163813700402
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4938010249863311312}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a8a7cd9bc0438614c89a741c0202c471, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatTargeting
+  enemyColor: {r: 0.7607843, g: 0.23137255, b: 0.23137255, a: 1}
+  allyColor: {r: 0.56078434, g: 0.6901961, b: 0.47058824, a: 1}
+  rangeStrength: 0.12
+  targetStrength: 0.45
+  rangedProjectile: {fileID: 5810109810387235928, guid: 2f6760f7185c3e041b9ecfae813a0a26, type: 3}
+  projectileSpeed: 12
+  projectileHeight: 0.8
+--- !u!114 &9075720010113193228
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4938010249863311312}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2ce1c75438cecb345b01d36e2a3617a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HitEffects
+  hitColor: {r: 0.95, g: 0.12, b: 0.08, a: 1}
+  flashHold: 0.08
+  flashFade: 0.3
+  shakeStrength: 0.08
+  shakeTime: 0.3
+  shakeSpeed: 18
+  hitStop: 0.07
+  cameraController: {fileID: 0}
+  cameraShake: 0.07
+  cameraShakeTime: 0.2
+  normalDamage: 6
+  collapseTime: 0.5
+  healColor: {r: 0.55, g: 0.9, b: 0.5, a: 1}
+  healGlow: 0.5
+  healTime: 0.6

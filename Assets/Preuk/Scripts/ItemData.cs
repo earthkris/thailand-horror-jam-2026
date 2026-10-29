@@ -25,4 +25,11 @@ public class ItemData : ScriptableObject
     public int bonus = 2;
 
     public string DiceText => bonus != 0 ? $"{diceCount}d{diceSides}{(bonus > 0 ? "+" : "")}{bonus}" : $"{diceCount}d{diceSides}";
+
+    // Lowest and highest it can roll
+    public int MinAmount => Mathf.Max(0, diceCount + bonus);
+    public int MaxAmount => Mathf.Max(MinAmount, diceCount * diceSides + bonus);
+
+    // For menus: "4–10" with a small faint "2d4+2" after it
+    public string RangeText => DiceFormat.Rich(MinAmount, MaxAmount, DiceText);
 }

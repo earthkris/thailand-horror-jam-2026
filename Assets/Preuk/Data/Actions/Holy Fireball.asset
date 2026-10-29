@@ -28,4 +28,5 @@ MonoBehaviour:
   damageType: radiant
   projectilePrefab: {fileID: 6301460475028473566, guid: 7e53710e4a5bdfa4db63184ef71d1b34, type: 3}
   impactPrefab: {fileID: 5987730469374909056, guid: bc357e83f0c135243b1d2091b8eb41a8, type: 3}
+  castEffect: {fileID: 1018217874299416271, guid: f21cea955444c93428064d032aa90bfa, type: 3}
   usesPerBattle: 0

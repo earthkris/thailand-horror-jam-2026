@@ -10,6 +10,12 @@ public class Follower : MonoBehaviour
 
     Vector3 targetPos;
 
+    // As a prefab in a new scene: follow whoever the player walks with
+    void Awake()
+    {
+        if (leader == null) leader = FindAnyObjectByType<PlayerMovement>();
+    }
+
     void Start()
     {
         if (placeNextToLeaderOnStart && leader != null)

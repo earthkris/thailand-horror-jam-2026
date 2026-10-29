@@ -65,6 +65,7 @@ public class CombatMovement : MonoBehaviour
         if (!turns.InBattle || !turns.IsPartyTurn || turns.HasMoved) return;
         if (Grid == null || !Grid.IsBuilt) return;
         if (targeting != null && targeting.IsActive) return;   // aiming or rolling: stand still
+        if (PauseMenu.BlocksInput) return;                     // paused or dead
 
         // 3. Which way? (holding the key keeps walking, like exploring)
         Vector2Int dir = ReadDirection();

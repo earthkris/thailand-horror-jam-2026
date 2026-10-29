@@ -37,8 +37,12 @@ public class CombatAction : ScriptableObject
     [Header("Visuals (ranged only, optional)")]
     [Tooltip("What flies at the target. Empty = the Combat object's default Ranged Projectile.")]
     public GameObject projectilePrefab;
-    [Tooltip("Spawned where the projectile lands, e.g. an explosion.")]
+    [Tooltip("Spawned where the projectile lands (e.g. an explosion), or on whoever gets healed.")]
     public GameObject impactPrefab;
+
+    [Header("Visuals (any action, optional)")]
+    [Tooltip("Spawned on the user as the action starts, e.g. sparkles when a spell is cast.")]
+    public GameObject castEffect;
 
     [Header("Limits")]
     [Tooltip("Times per battle. 0 = as often as you like.")]
@@ -56,4 +60,11 @@ public class CombatAction : ScriptableObject
             return s;
         }
     }
+
+    // Lowest and highest it can roll, without a crit. Damage is never below 1.
+    public int MinAmount => Mathf.Max(effect == ActionEffect.Damage ? 1 : 0, diceCount + bonus + extraDiceCount);
+    public int MaxAmount => Mathf.Max(MinAmount, diceCount * diceSides + bonus + extraDiceCount * extraDiceSides);
+
+    // For menus: "4–11" with a small faint "1d8+3" after it
+    public string RangeText => DiceFormat.Rich(MinAmount, MaxAmount, DiceText);
 }

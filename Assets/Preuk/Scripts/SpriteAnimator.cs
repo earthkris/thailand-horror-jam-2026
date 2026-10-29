@@ -42,6 +42,12 @@ public class SpriteAnimator : MonoBehaviour
     public bool HasAttackFrames => attackDownFrames != null && attackDownFrames.Length > 0;
     public bool IsAttacking => attacking;
 
+    // Which way we face: (0,-1) toward the camera, (0,1) away, (-1,0) left, (1,0) right
+    public Vector2Int FacingDirection =>
+        facing == Facing.Down ? Vector2Int.down :
+        facing == Facing.Up ? Vector2Int.up :
+        facing == Facing.Left ? Vector2Int.left : Vector2Int.right;
+
     // True once the swing reaches its last frame (the slash) - a good moment to hit
     public bool OnLastAttackFrame
     {

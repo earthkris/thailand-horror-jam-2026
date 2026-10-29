@@ -12,6 +12,8 @@ Shader "Preuk/Sprite Lit"
         _MinBrightness ("Minimum Brightness", Range(0,0.5)) = 0.02
         _MaxPerLight ("Max From One Light", Range(0.1,3)) = 0.9
         _MaxBrightness ("Max Brightness", Range(0.5,3)) = 1.1
+        [HideInInspector] _HitColor ("Hit Color", Color) = (1,0.15,0.1,1)
+        [HideInInspector] _HitAmount ("Hit Amount", Range(0,1)) = 0
     }
 
     SubShader
@@ -32,6 +34,8 @@ Shader "Preuk/Sprite Lit"
             half _MinBrightness;
             half _MaxPerLight;
             half _MaxBrightness;
+            half4 _HitColor;   // set per sprite by HitEffects
+            half _HitAmount;
         CBUFFER_END
         ENDHLSL
 
@@ -102,7 +106,9 @@ Shader "Preuk/Sprite Lit"
                 LIGHT_LOOP_END
 
                 light = clamp(light, _MinBrightness, _MaxBrightness);
-                half3 col = MixFog(tex.rgb * light, i.fogFactor);
+                half3 col = tex.rgb * light;
+                col = lerp(col, _HitColor.rgb, _HitAmount);   // hit flash: glows, so it shows even in the dark
+                col = MixFog(col, i.fogFactor);
                 return half4(col, 1);
             }
             ENDHLSL

@@ -64,6 +64,7 @@ public class TurnPanel : MonoBehaviour
 
     void Awake()
     {
+        if (turns == null) turns = FindAnyObjectByType<TurnManager>();   // works as a prefab in any scene
         ready = CheckReferences();
         if (!ready) return;
 
@@ -183,7 +184,7 @@ public class TurnPanel : MonoBehaviour
             options.Add(new ChoiceMenu.Option
             {
                 label = a.displayName,
-                detail = $"{a.DiceText}   {range}{uses}",
+                detail = $"{a.RangeText}   {range}{uses}",
                 description = a.description,
                 enabled = left != 0,
                 onPick = () => { menu.Close(); turns.ChooseAction(picked); }
@@ -205,7 +206,7 @@ public class TurnPanel : MonoBehaviour
                 options.Add(new ChoiceMenu.Option
                 {
                     label = s.item.displayName,
-                    detail = $"x{s.count}",
+                    detail = $"{s.item.RangeText}   x{s.count}",
                     description = s.item.description,
                     enabled = true,
                     onPick = () => { menu.Close(); turns.ChooseItem(picked); }

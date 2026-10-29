@@ -22,6 +22,13 @@ public class CombatManager : MonoBehaviour
     // Fired once both sides are placed on the grid
     public event System.Action OnBattleReady;
 
+    // As a prefab in a new scene: find the grid and the camera by itself
+    void Awake()
+    {
+        if (grid == null) grid = FindAnyObjectByType<GridManager>();
+        if (cameraController == null) cameraController = FindAnyObjectByType<CameraController>();
+    }
+
     void OnEnable() => EnemyEncounter.OnCombatStarted += BeginCombat;
     void OnDisable() => EnemyEncounter.OnCombatStarted -= BeginCombat;
 

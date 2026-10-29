@@ -44,6 +44,7 @@ public class CombatTargeting : MonoBehaviour
 
     public bool IsActive => aiming || busy;   // CombatMovement stands still while true
     public bool IsBusy => busy;               // the dice are rolling
+    public bool IsAiming => aiming;           // waiting for you to click a target
 
     void Awake()
     {
@@ -110,7 +111,7 @@ public class CombatTargeting : MonoBehaviour
 
     void Update()
     {
-        if (!aiming) return;
+        if (!aiming || PauseMenu.BlocksInput) return;
         bool esc = Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame;
         bool rightClick = Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame;
         if (esc || rightClick) Cancel();
@@ -139,6 +140,15 @@ public class CombatTargeting : MonoBehaviour
         Cancel();
         busy = true;
         if (movement != null) movement.Refresh();
+
+        // Casting flourish (sparkles round the priest...), a moment before the dice
+        if (action != null && action.castEffect != null)
+        {
+            // Attached to the cast point (the book), so the sparkles float along with it
+            Transform at = user.castPoint != null ? user.castPoint : user.transform;
+            Instantiate(action.castEffect, at.position, Quaternion.identity, at);
+            yield return new WaitForSeconds(0.3f);
+        }
 
         if (item != null) yield return UseItem(target);
         else if (action.effect == ActionEffect.Damage) yield return Attack(target);
@@ -208,6 +218,7 @@ public class CombatTargeting : MonoBehaviour
         int amount = Mathf.Max(DiceSimulator.Roll(count, sides) + bonus, 0);
         int before = target.CurrentHP;
         target.Heal(amount);
+        if (action != null && action.impactPrefab != null) SpawnEffect(action.impactPrefab, target.transform);
         int healed = target.CurrentHP - before;
         Debug.Log($"{user.unitName} uses {what} on {target.unitName}: {count}d{sides}+{bonus} = {amount} -> healed {healed} ({target.CurrentHP}/{target.maxHP} HP)");
         yield return DiceTray.ShowMessage(what, $"+{healed} HP  {target.unitName}", true);
@@ -271,6 +282,12 @@ public class CombatTargeting : MonoBehaviour
         foreach (CombatUnit e in combat.Enemies)
             if (e != null && e.IsAlive && e.StepsTo(u.AnchorTile) <= 1) return true;
         return false;
+    }
+
+    // A one-off effect (it should destroy itself when done, like the sparkle bursts)
+    static void SpawnEffect(GameObject prefab, Transform at)
+    {
+        Instantiate(prefab, at.position, Quaternion.identity);
     }
 
     static string TargetName(CombatUnit t) => FogOfWar.CanSee(t) ? t.unitName : "something in the dark";
