@@ -50,7 +50,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CombatUnit
   unitName: Spider
-  team: 0
+  team: 1
   size: 1
   tileSize: 1
   maxHP: 10

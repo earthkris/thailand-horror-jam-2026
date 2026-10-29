@@ -12,6 +12,8 @@ public class DialogueScriptableObject : ScriptableObject
     {
         public Sprite spriteImage;
         public string name;
+
+        [TextArea(3, 10)]
         public string text;
     }
 }

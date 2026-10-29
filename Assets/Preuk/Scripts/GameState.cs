@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public enum GameMode { Exploring, Dialogue, Menu, Combat }
+public enum GameMode { Exploring, Dialogue, Menu, Combat, Cutscene }
 
 public static class GameState
 {
