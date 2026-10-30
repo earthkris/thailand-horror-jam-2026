@@ -13,9 +13,7 @@ MonoBehaviour:
   m_Name: Thunder Crash
   m_EditorClassIdentifier: Assembly-CSharp::CombatAction
   displayName: Thunder Crash
-  description: 'Kairos brings his blade down with a crack of thunder. Heavy lightning
-    damage to an enemy right next to you, and it is paralysed: it loses its next
-    2 turns. Once per fight.'
+  description: 'roarrr roarrr '
   typeIcon: {fileID: 4507998296860207705, guid: 8759f277fe018ee479fc51e7fa20ff19, type: 3}
   target: 0
   range: 1

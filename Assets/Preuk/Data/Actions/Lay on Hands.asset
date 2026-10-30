@@ -13,8 +13,7 @@ MonoBehaviour:
   m_Name: Lay on Hands
   m_EditorClassIdentifier: Assembly-CSharp::CombatAction
   displayName: Lay on Hands
-  description: Kairos lays a hand on a friend right next to him and holy power closes
-    their wounds. He heals half as much himself. Once per fight.
+  description: heal friend, half for yourself
   typeIcon: {fileID: -1337039248203370655, guid: a0609fffe09f22d4e9c909027b03867f, type: 3}
   target: 1
   range: 1

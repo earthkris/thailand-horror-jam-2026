@@ -13,11 +13,10 @@ MonoBehaviour:
   m_Name: Sweeping Strike
   m_EditorClassIdentifier: Assembly-CSharp::CombatAction
   displayName: Sweeping Strike
-  description: A wide swing that cuts every enemy right next to you. Each one must
-    be beaten on the same roll.
+  description: Also normal sword but sweep
   typeIcon: {fileID: 4507998296860207705, guid: 8759f277fe018ee479fc51e7fa20ff19, type: 3}
   target: 0
-  range: 2
+  range: 1
   needsLineOfSight: 1
   effect: 0
   attackBonus: 5

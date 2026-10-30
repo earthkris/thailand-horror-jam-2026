@@ -13,9 +13,7 @@ MonoBehaviour:
   m_Name: Holy Fireball
   m_EditorClassIdentifier: Assembly-CSharp::CombatAction
   displayName: Holy Fireball
-  description: 'Read a verse and hurl a ball of holy fire at an enemy up to 8 tiles
-    away. It bursts on impact. Hard to aim with an enemy next to you. Sets the target
-    burning: 1d4 fire damage at the start of its next 2 turns.'
+  description: yellow ball
   typeIcon: {fileID: 4507998296860207705, guid: 8759f277fe018ee479fc51e7fa20ff19, type: 3}
   target: 0
   range: 8
@@ -42,4 +40,15 @@ MonoBehaviour:
   statusChance: 100
   statusDiceCount: 1
   statusDiceSides: 4
+  advantage: 0
+  area: 0
+  areaRadius: 1
+  areaDamagePercent: 50
+  selfHealFraction: 0
+  blessBonus: 0
+  regenTurns: 0
+  regenDiceCount: 2
+  regenDiceSides: 4
+  glowSword: 0
+  glowColor: {r: 1, g: 0.8392157, b: 0.3529412, a: 1}
   usesPerBattle: 0

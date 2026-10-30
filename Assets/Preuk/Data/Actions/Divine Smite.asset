@@ -13,9 +13,7 @@ MonoBehaviour:
   m_Name: Divine Smite
   m_EditorClassIdentifier: Assembly-CSharp::CombatAction
   displayName: Divine Smite
-  description: Holy light pours down the blade. A huge radiant sword hit, rolled
-    with advantage (two d20s, keep the higher). Hits an enemy right next to you.
-    Twice per fight.
+  description: sword from sky
   typeIcon: {fileID: 4507998296860207705, guid: 8759f277fe018ee479fc51e7fa20ff19, type: 3}
   target: 0
   range: 1

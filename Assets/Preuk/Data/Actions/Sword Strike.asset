@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Sword Strike
   m_EditorClassIdentifier: Assembly-CSharp::CombatAction
   displayName: Sword Strike
-  description: A steady cut with the blade. Hits an enemy right next to you.
+  description: Just really normal sword attack
   typeIcon: {fileID: 4507998296860207705, guid: 8759f277fe018ee479fc51e7fa20ff19, type: 3}
   target: 0
   range: 1
@@ -29,4 +29,26 @@ MonoBehaviour:
   projectilePrefab: {fileID: 0}
   impactPrefab: {fileID: 0}
   castEffect: {fileID: 0}
+  swingDownFrames: []
+  swingUpFrames: []
+  swingSideFrames: []
+  blessDie: 0
+  bonusAC: 0
+  wholeParty: 0
+  inflicts: 0
+  statusTurns: 1
+  statusChance: 100
+  statusDiceCount: 1
+  statusDiceSides: 4
+  advantage: 0
+  area: 0
+  areaRadius: 1
+  areaDamagePercent: 50
+  selfHealFraction: 0
+  blessBonus: 0
+  regenTurns: 0
+  regenDiceCount: 2
+  regenDiceSides: 4
+  glowSword: 0
+  glowColor: {r: 1, g: 0.8392157, b: 0.3529412, a: 1}
   usesPerBattle: 0

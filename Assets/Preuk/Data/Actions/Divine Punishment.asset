@@ -13,9 +13,7 @@ MonoBehaviour:
   m_Name: Divine Punishment
   m_EditorClassIdentifier: Assembly-CSharp::CombatAction
   displayName: Divine Punishment
-  description: 'A burst of holy fire up to 8 tiles away. Heavy radiant damage, and
-    it bursts: enemies next to the target take half. Everyone hit burns for 2d4 at
-    the start of their next 3 turns. Once per fight.'
+  description: burn that thing down
   typeIcon: {fileID: 4507998296860207705, guid: 8759f277fe018ee479fc51e7fa20ff19, type: 3}
   target: 0
   range: 8

@@ -13,8 +13,7 @@ MonoBehaviour:
   m_Name: Bless
   m_EditorClassIdentifier: Assembly-CSharp::CombatAction
   displayName: Bless
-  description: 'Lucius blesses both of you: +3 on every attack roll and saving throw
-    until the fight ends. Once per fight.'
+  description: Lucius blesses both of you :D
   typeIcon: {fileID: 4203996732852112780, guid: 03ff3c98d63172e4c94b0b5064f8613d, type: 3}
   target: 1
   range: 99
