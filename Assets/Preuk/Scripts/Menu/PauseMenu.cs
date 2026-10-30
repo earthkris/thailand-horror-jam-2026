@@ -94,6 +94,12 @@ public class PauseMenu : MonoBehaviour
 
     static bool OnWeb => Application.platform == RuntimePlatform.WebGLPlayer;
 
+    // Before the first death the goddess hasn't given the loop power yet: LOOP and the loop count are blacked out
+    static bool LoopSecret => LoopManager.LoopsUsed == 0;
+    TMP_Text loopLabel;
+    string loopLabelText;
+    Color loopLabelColor, loopsTextColor;
+
     void Awake()
     {
         inventory = FindAnyObjectByType<PartyInventory>();
@@ -101,6 +107,9 @@ public class PauseMenu : MonoBehaviour
         targeting = FindAnyObjectByType<CombatTargeting>();
 
         optionTemplate.gameObject.SetActive(false);
+        loopLabel = loopButton.GetComponentInChildren<TMP_Text>(true);
+        if (loopLabel != null) { loopLabelText = loopLabel.text; loopLabelColor = loopLabel.color; }
+        if (loopsText != null) loopsTextColor = loopsText.color;
         root.SetActive(false);
         if (exitScreen != null) exitScreen.SetActive(false);
 
@@ -203,13 +212,27 @@ public class PauseMenu : MonoBehaviour
     void ShowMain()
     {
         ShowPage(mainPage, Close);
-        SetButton(loopButton, LoopManager.CanLoop && GameState.InDungeon);   // locked before the dungeon
+        bool secret = LoopSecret;
+        SetButton(loopButton, !secret && LoopManager.CanLoop && GameState.InDungeon);   // locked before the dungeon
+        if (loopLabel != null)
+        {
+            loopLabel.text = secret ? Redact(loopLabelText) : loopLabelText;
+            loopLabel.color = secret ? Color.black : loopLabelColor;
+            if (secret) loopLabel.alpha = 1f;
+        }
         if (loopsText != null)
-            loopsText.text = !GameState.InDungeon ? "LOOP LOCKED" : LoopManager.CanLoop ? "LOOPS LEFT" : "NO LOOPS LEFT";
+        {
+            string text = !GameState.InDungeon ? "LOOP LOCKED" : LoopManager.CanLoop ? "LOOPS LEFT" : "NO LOOPS LEFT";
+            loopsText.text = secret ? Redact("LOOPS LEFT") : text;
+            loopsText.color = secret ? Color.black : loopsTextColor;
+        }
         if (loopIcons != null)
             for (int i = 0; i < loopIcons.Length; i++)
                 if (loopIcons[i] != null)
+                {
                     loopIcons[i].sprite = i < LoopManager.LoopsLeft ? loopLeftSprite : loopUsedSprite;
+                    loopIcons[i].color = secret ? Color.black : Color.white;   // a black silhouette
+                }
     }
 
     // ================= Use Item =================
@@ -309,7 +332,7 @@ public class PauseMenu : MonoBehaviour
 
     void AskLoop()
     {
-        if (!LoopManager.CanLoop || !GameState.InDungeon) return;
+        if (LoopSecret || !LoopManager.CanLoop || !GameState.InDungeon) return;
         Ask("Loop back in time?\n<size=60%><color=#FFFFFFB3>You will die here, and the loop takes something from you.\n"
             + $"Loops left after this: {LoopManager.LoopsLeft - 1}</color></size>", LoopFromMenu, ShowMain);
     }
@@ -424,6 +447,9 @@ public class PauseMenu : MonoBehaviour
         tmp.text = text;
         tmp.alpha = enabled ? 1f : (child == "Label" ? disabledLabelAlpha : disabledDetailAlpha);
     }
+
+    // Black bar over the words (TMP highlight in black, black text)
+    static string Redact(string text) => $"<mark=#000000FF>{text}</mark>";
 
     // Turns a button on/off and fades its label to match
     void SetButton(Button b, bool on)
