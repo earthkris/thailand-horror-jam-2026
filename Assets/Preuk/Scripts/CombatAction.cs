@@ -1,7 +1,8 @@
 using UnityEngine;
 
 public enum ActionTarget { Enemy, Ally, Self }   // Ally = any party member, including yourself
-public enum ActionEffect { Damage, Heal, Buff }   // Buff = Bless, Shield of Faith... (lasts until the fight ends)
+public enum ActionEffect { Damage, Heal, Buff }
+public enum ActionArea { Single, AroundTarget, AroundUser }   // AroundTarget = splash round who you hit, AroundUser = a sweep round you   // Buff = Bless, Shield of Faith... (lasts until the fight ends)
 
 // One thing a character can do with their action (Sword Strike, Holy Verse, Heal...).
 // Make new ones: right-click in the Project window -> Create -> Game -> Combat Action.
@@ -72,6 +73,35 @@ public class CombatAction : ScriptableObject
     [Min(1)] public int statusDiceCount = 1;
     [Min(1)] public int statusDiceSides = 4;
 
+    [Header("Advantage (Damage only)")]
+    [Tooltip("Roll the d20 twice and keep the higher (cancels out with disadvantage).")]
+    public bool advantage = false;
+
+    [Header("Area (Damage only)")]
+    [Tooltip("Single = just the target. Around Target = also enemies near who you hit. Around User = also every enemy near you (a sweep).")]
+    public ActionArea area = ActionArea.Single;
+    [Tooltip("How many tiles the area reaches.")]
+    [Min(1)] public int areaRadius = 1;
+    [Tooltip("Damage the others take, in percent of the main hit. Same attack roll against each one's AC.")]
+    [Range(0, 100)] public int areaDamagePercent = 50;
+
+    [Header("Heal extras")]
+    [Tooltip("Healing someone else also heals you by this much of it. Lay on Hands = 0.5.")]
+    [Range(0f, 1f)] public float selfHealFraction = 0f;
+
+    [Header("Buff extras")]
+    [Tooltip("Flat bonus on attack rolls and saves. Bless = 3.")]
+    public int blessBonus = 0;
+    [Tooltip("Regeneration: heals (count)d(sides) at the start of each of the ally's turns, for this many turns. 0 = none.")]
+    [Min(0)] public int regenTurns = 0;
+    [Min(1)] public int regenDiceCount = 2;
+    [Min(1)] public int regenDiceSides = 4;
+
+    [Header("Sword glow (melee, optional)")]
+    [Tooltip("The user's floating sword glows during the attack (Divine Smite).")]
+    public bool glowSword = false;
+    public Color glowColor = new Color32(255, 214, 90, 255);
+
     [Header("Limits")]
     [Tooltip("Times per battle. 0 = as often as you like.")]
     [Min(0)] public int usesPerBattle = 0;
@@ -103,6 +133,8 @@ public class CombatAction : ScriptableObject
         {
             string s = "";
             if (blessDie > 0) s += $"+1d{blessDie} to hit";
+            if (blessBonus > 0) s += (s.Length > 0 ? ", " : "") + $"+{blessBonus} to rolls";
+            if (regenTurns > 0) s += (s.Length > 0 ? ", " : "") + $"+{regenDiceCount}d{regenDiceSides} HP a turn ({regenTurns} turns)";
             if (bonusAC != 0) s += (s.Length > 0 ? ", " : "") + $"{(bonusAC > 0 ? "+" : "")}{bonusAC} AC";
             return s;
         }

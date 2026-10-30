@@ -66,6 +66,7 @@ public static class LoopManager
         Time.timeScale = 1f;
         AudioListener.pause = false;
         GameState.Current = GameMode.Exploring;
+        GameState.InDungeon = false;   // LoopStart puts the party back in after a loop
 
         Scene scene = SceneManager.GetActiveScene();
         if (scene.buildIndex >= 0)

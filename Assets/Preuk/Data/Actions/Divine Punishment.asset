@@ -1,0 +1,56 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 711817608f2b81247a826ccb20794df1, type: 3}
+  m_Name: Divine Punishment
+  m_EditorClassIdentifier: Assembly-CSharp::CombatAction
+  displayName: Divine Punishment
+  description: 'A burst of holy fire up to 8 tiles away. Heavy radiant damage, and
+    it bursts: enemies next to the target take half. Everyone hit burns for 2d4 at
+    the start of their next 3 turns. Once per fight.'
+  typeIcon: {fileID: 4507998296860207705, guid: 8759f277fe018ee479fc51e7fa20ff19, type: 3}
+  target: 0
+  range: 8
+  needsLineOfSight: 1
+  effect: 0
+  attackBonus: 4
+  diceCount: 2
+  diceSides: 10
+  bonus: 2
+  extraDiceCount: 0
+  extraDiceSides: 6
+  damageType: radiant
+  projectilePrefab: {fileID: 6301460475028473566, guid: 7e53710e4a5bdfa4db63184ef71d1b34, type: 3}
+  impactPrefab: {fileID: 5987730469374909056, guid: bc357e83f0c135243b1d2091b8eb41a8, type: 3}
+  castEffect: {fileID: 1018217874299416271, guid: f21cea955444c93428064d032aa90bfa, type: 3}
+  swingDownFrames: []
+  swingUpFrames: []
+  swingSideFrames: []
+  blessDie: 0
+  bonusAC: 0
+  wholeParty: 0
+  inflicts: 1
+  statusTurns: 3
+  statusChance: 100
+  statusDiceCount: 2
+  statusDiceSides: 4
+  advantage: 0
+  area: 1
+  areaRadius: 1
+  areaDamagePercent: 50
+  selfHealFraction: 0
+  blessBonus: 0
+  regenTurns: 0
+  regenDiceCount: 2
+  regenDiceSides: 4
+  glowSword: 0
+  glowColor: {r: 1, g: 0.8392157, b: 0.3529412, a: 1}
+  usesPerBattle: 1

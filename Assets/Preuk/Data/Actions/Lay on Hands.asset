@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: Lay on Hands
   m_EditorClassIdentifier: Assembly-CSharp::CombatAction
   displayName: Lay on Hands
-  description: Kairos lays a hand on himself or an ally right next to him and holy
-    power closes their wounds. Once per fight.
+  description: Kairos lays a hand on a friend right next to him and holy power closes
+    their wounds. He heals half as much himself. Once per fight.
   typeIcon: {fileID: -1337039248203370655, guid: a0609fffe09f22d4e9c909027b03867f, type: 3}
   target: 1
   range: 1
@@ -22,7 +22,7 @@ MonoBehaviour:
   effect: 1
   attackBonus: 5
   diceCount: 2
-  diceSides: 6
+  diceSides: 8
   bonus: 2
   extraDiceCount: 0
   extraDiceSides: 6
@@ -36,4 +36,20 @@ MonoBehaviour:
   blessDie: 0
   bonusAC: 0
   wholeParty: 0
+  inflicts: 0
+  statusTurns: 1
+  statusChance: 100
+  statusDiceCount: 1
+  statusDiceSides: 4
+  advantage: 0
+  area: 0
+  areaRadius: 1
+  areaDamagePercent: 50
+  selfHealFraction: 0.5
+  blessBonus: 0
+  regenTurns: 0
+  regenDiceCount: 2
+  regenDiceSides: 4
+  glowSword: 0
+  glowColor: {r: 1, g: 0.8392157, b: 0.3529412, a: 1}
   usesPerBattle: 1

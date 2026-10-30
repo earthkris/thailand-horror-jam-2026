@@ -1,12 +1,12 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public enum StatusType { None, Burn, Paralyse }
+public enum StatusType { None, Burn, Paralyse, Regen }
 
 // Words for the battle log and the dice banner
 public static class StatusInfo
 {
-    public static string Word(StatusType s) => s == StatusType.Burn ? "burning" : s == StatusType.Paralyse ? "paralysed" : "";
+    public static string Word(StatusType s) => s == StatusType.Burn ? "burning" : s == StatusType.Paralyse ? "paralysed" : s == StatusType.Regen ? "regenerating" : "";
 }
 
 // Shows burn and paralyse on whoever has them: little flames rising off a burning unit,
@@ -35,6 +35,14 @@ public class StatusEffects : MonoBehaviour
     public float sparkLife = 0.25f;
     public Vector2 sparkSize = new Vector2(0.45f, 0.75f);
 
+    [Header("Regen: little + signs floating up (heal_type)")]
+    public Sprite regenSprite;
+    public Color regenColor = new Color(0.6f, 1f, 0.55f);
+    public float regenEvery = 0.2f;
+    public float regenLife = 1f;
+    public float regenRise = 0.7f;
+    public Vector2 regenSize = new Vector2(0.22f, 0.38f);
+
     class Particle
     {
         public Transform t;
@@ -48,6 +56,7 @@ public class StatusEffects : MonoBehaviour
     readonly List<CombatUnit> afflicted = new List<CombatUnit>();
     readonly Dictionary<CombatUnit, float> burnClock = new Dictionary<CombatUnit, float>();
     readonly Dictionary<CombatUnit, float> sparkClock = new Dictionary<CombatUnit, float>();
+    readonly Dictionary<CombatUnit, float> regenClock = new Dictionary<CombatUnit, float>();
 
     void OnEnable() => CombatUnit.OnAnyStatusChanged += OnStatusChanged;
 
@@ -82,6 +91,7 @@ public class StatusEffects : MonoBehaviour
 
             if (u.Has(StatusType.Burn) && Due(burnClock, u, burnEvery, dt)) Spawn(body, cam, false);
             if (u.Has(StatusType.Paralyse) && Due(sparkClock, u, sparkEvery, dt)) Spawn(body, cam, true);
+            if (u.Has(StatusType.Regen) && Due(regenClock, u, regenEvery, dt)) SpawnRegen(body, cam);
         }
 
         // 2. Move, fade, face the camera
@@ -124,6 +134,28 @@ public class StatusEffects : MonoBehaviour
         if (wait > 0f) { clock[u] = wait - dt; return false; }
         clock[u] = Mathf.Max(every, 0.02f) * Random.Range(0.7f, 1.3f);
         return true;
+    }
+
+    // A green + floating up off a regenerating unit
+    void SpawnRegen(SpriteRenderer body, Camera cam)
+    {
+        if (regenSprite == null) return;
+        Bounds b = body.bounds;
+        Vector3 right = cam.transform.right;
+        float halfWidth = Mathf.Max(b.extents.x, b.extents.z) * 0.7f;
+        Vector3 pos = new Vector3(b.center.x, b.min.y, b.center.z) + right * Random.Range(-halfWidth, halfWidth)
+                    + Vector3.up * b.size.y * Random.Range(0.1f, 0.6f) - cam.transform.forward * 0.15f;
+        float size = Random.Range(regenSize.x, regenSize.y);
+        var go = new GameObject("Regen", typeof(SpriteRenderer));
+        go.transform.SetPositionAndRotation(pos, cam.transform.rotation);
+        go.transform.localScale = Vector3.one * size;
+        var sr = go.GetComponent<SpriteRenderer>();
+        sr.sprite = regenSprite;
+        if (material != null) sr.sharedMaterial = material;
+        sr.color = regenColor;
+        sr.sortingOrder = body.sortingOrder + 1;
+        particles.Add(new Particle { t = go.transform, sr = sr, life = regenLife * Random.Range(0.8f, 1.2f), size = size, angle = 0f,
+            velocity = Vector3.up * regenRise * Random.Range(0.7f, 1.2f), spark = false });
     }
 
     void Spawn(SpriteRenderer body, Camera cam, bool spark)

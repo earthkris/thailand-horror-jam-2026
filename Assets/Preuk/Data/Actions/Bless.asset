@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: Bless
   m_EditorClassIdentifier: Assembly-CSharp::CombatAction
   displayName: Bless
-  description: 'Lucius blesses the whole party within 6 tiles: +1d4 on every attack
-    roll until the fight ends. Once per fight.'
+  description: 'Lucius blesses both of you: +3 on every attack roll and saving throw
+    until the fight ends. Once per fight.'
   typeIcon: {fileID: 4203996732852112780, guid: 03ff3c98d63172e4c94b0b5064f8613d, type: 3}
   target: 1
-  range: 6
+  range: 99
   needsLineOfSight: 0
   effect: 2
   attackBonus: 5
@@ -33,7 +33,23 @@ MonoBehaviour:
   swingDownFrames: []
   swingUpFrames: []
   swingSideFrames: []
-  blessDie: 4
+  blessDie: 0
   bonusAC: 0
   wholeParty: 1
+  inflicts: 0
+  statusTurns: 1
+  statusChance: 100
+  statusDiceCount: 1
+  statusDiceSides: 4
+  advantage: 0
+  area: 0
+  areaRadius: 1
+  areaDamagePercent: 50
+  selfHealFraction: 0
+  blessBonus: 3
+  regenTurns: 0
+  regenDiceCount: 2
+  regenDiceSides: 4
+  glowSword: 0
+  glowColor: {r: 1, g: 0.8392157, b: 0.3529412, a: 1}
   usesPerBattle: 1

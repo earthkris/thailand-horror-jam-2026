@@ -91,6 +91,7 @@ public class TrapChest : Interactable
 
         // 4. Teleport while the screen is black
         player.Teleport(LandingSpot());
+        GameState.InDungeon = true;   // the menu's LOOP unlocks
         foreach (Follower f in FindObjectsByType<Follower>(FindObjectsSortMode.None)) f.SnapNextToLeader();
         if (cam != null) cam.SnapToTarget();
         spinning = false;
@@ -105,11 +106,12 @@ public class TrapChest : Interactable
     }
 
     // The middle of the destination's picture (a 4x4 floor tile's pivot is at its corner), on the grid
-    Vector3 LandingSpot()
+    public Vector3 LandingSpot()
     {
         Renderer r = destination.GetComponentInChildren<Renderer>();
         Vector3 p = r != null ? r.bounds.center : destination.position;
-        float ts = player.tileSize;
+        if (player == null) player = FindAnyObjectByType<PlayerMovement>();
+        float ts = player != null ? player.tileSize : 1f;
         return new Vector3(Mathf.Round(p.x / ts) * ts, p.y, Mathf.Round(p.z / ts) * ts);
     }
 

@@ -25,6 +25,14 @@ public class TurnPanel : MonoBehaviour
     [Header("Current Turn")]
     public TextMeshProUGUI turnTitle;
     public TextMeshProUGUI turnInfo;
+    [Tooltip("'Round 3', shown above the initiative list.")]
+    public TextMeshProUGUI roundText;
+
+    [Header("Icons (TMP sprite asset)")]
+    [Tooltip("Holds the HP heart and the armor icon. Empty = plain 'HP' / 'AC' text.")]
+    public TMP_SpriteAsset icons;
+    public string hpIcon = "Heart";
+    public string acIcon = "Armor";
 
     [Header("Buttons")]
     public Button moveButton;
@@ -79,6 +87,11 @@ public class TurnPanel : MonoBehaviour
         if (!ready) return;
 
         rowStyle = rowTemplate.fontStyle;
+        if (icons != null)
+        {
+            rowTemplate.spriteAsset = icons;
+            if (turnInfo != null) turnInfo.spriteAsset = icons;
+        }
         rowTemplate.gameObject.SetActive(false);
 
         if (inventory == null) inventory = FindAnyObjectByType<PartyInventory>();
@@ -122,6 +135,8 @@ public class TurnPanel : MonoBehaviour
         if (menu != null && menu.IsOpen && (!show || !turns.IsPartyTurn || turns.HasActed)) menu.Close();
         if (!show) return;
 
+        if (roundText != null) roundText.text = $"Round {turns.Round}";
+
         // One copy of the row template per unit
         while (rows.Count < turns.Order.Count)
         {
@@ -142,7 +157,7 @@ public class TurnPanel : MonoBehaviour
             bool seen = FogOfWar.CanSee(c.unit);
 
             string marker = isCurrent ? currentMarker : "";
-            row.text = seen ? $"{marker}{c.initiative}   {c.unit.unitName}"
+            row.text = seen ? $"{marker}{c.initiative}   {c.unit.unitName}   {Hp(c.unit)}"
                             : $"{marker}?    {unseenName}";   // you know something is there, nothing more
             row.fontStyle = rowStyle;
             if (isCurrent) row.fontStyle |= FontStyles.Bold;
@@ -164,14 +179,14 @@ public class TurnPanel : MonoBehaviour
             turnTitle.text = $"{u.unitName}'s turn";
             turnTitle.color = u.team == Team.Party ? partyColor : enemyColor;
             if (turnInfo != null)
-                turnInfo.text = $"Round {turns.Round}     HP {u.CurrentHP}/{u.maxHP}     AC {u.ArmorClass}\nMove {turns.MovesLeft}/{u.MoveTiles}"
-                              + (u.BlessDie > 0 ? $"     Blessed +1d{u.BlessDie}" : "") + u.StatusText;
+                turnInfo.text = RoundPrefix + $"{Hp(u)}     {Ac(u)}"
+                              + (u.IsBlessed ? "     Blessed" + (u.BlessDie > 0 ? $" +1d{u.BlessDie}" : "") + (u.BlessBonus > 0 ? $" +{u.BlessBonus}" : "") : "") + u.StatusText;
         }
         else
         {
             turnTitle.text = unseenTurnTitle;
             turnTitle.color = enemyColor;
-            if (turnInfo != null) turnInfo.text = $"Round {turns.Round}";
+            if (turnInfo != null) turnInfo.text = RoundPrefix.Trim();
         }
 
         // Buttons only work on your own turn, and only once each
@@ -181,6 +196,13 @@ public class TurnPanel : MonoBehaviour
         if (itemButton != null) SetButton(itemButton, mine && !turns.HasActed);   // items use your action too
         SetButton(endTurnButton, mine);
     }
+
+    // HP and AC, with the icons when there are some
+    string Hp(CombatUnit u) => (icons != null ? $"<sprite name=\"{hpIcon}\">" : "HP ") + $"{u.CurrentHP}/{u.maxHP}";
+    string Ac(CombatUnit u) => (icons != null ? $"<sprite name=\"{acIcon}\">" : "AC ") + u.ArmorClass;
+
+    // The round is shown above the initiative list; only falls back into the info text without a Round Text
+    string RoundPrefix => roundText != null ? "" : $"Round {turns.Round}     ";
 
     // ---------- Menus ----------
 

@@ -1,0 +1,55 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 711817608f2b81247a826ccb20794df1, type: 3}
+  m_Name: Rejuvenation
+  m_EditorClassIdentifier: Assembly-CSharp::CombatAction
+  displayName: Rejuvenation
+  description: 'A warm green light settles on both of you: each heals 2d4 at the
+    start of their next 3 turns. Once per fight.'
+  typeIcon: {fileID: -1337039248203370655, guid: a0609fffe09f22d4e9c909027b03867f, type: 3}
+  target: 1
+  range: 99
+  needsLineOfSight: 0
+  effect: 2
+  attackBonus: 5
+  diceCount: 0
+  diceSides: 8
+  bonus: 0
+  extraDiceCount: 0
+  extraDiceSides: 6
+  damageType: 
+  projectilePrefab: {fileID: 0}
+  impactPrefab: {fileID: 1018217874299416271, guid: f21cea955444c93428064d032aa90bfa, type: 3}
+  castEffect: {fileID: 1018217874299416271, guid: f21cea955444c93428064d032aa90bfa, type: 3}
+  swingDownFrames: []
+  swingUpFrames: []
+  swingSideFrames: []
+  blessDie: 0
+  bonusAC: 0
+  wholeParty: 1
+  inflicts: 0
+  statusTurns: 1
+  statusChance: 100
+  statusDiceCount: 1
+  statusDiceSides: 4
+  advantage: 0
+  area: 0
+  areaRadius: 1
+  areaDamagePercent: 50
+  selfHealFraction: 0
+  blessBonus: 0
+  regenTurns: 3
+  regenDiceCount: 2
+  regenDiceSides: 4
+  glowSword: 0
+  glowColor: {r: 1, g: 0.8392157, b: 0.3529412, a: 1}
+  usesPerBattle: 1

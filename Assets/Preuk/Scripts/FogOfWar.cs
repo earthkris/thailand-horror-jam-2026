@@ -1,9 +1,11 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// The party can only see enemies that stand in light:
+// The party can only properly see enemies that stand in light:
 // close enough to a switched-on point/spot light, with no wall or rock between them and it.
-// Enemies in the dark are invisible (sprite + shadows hidden).
+// Enemies in the dark still show, but only as a dim shape (Dark Material): you can tell something
+// is lurking there, but not what it is. Its name, HP and turn stay hidden ('???'),
+// the camera doesn't follow it, and attacks on it have disadvantage (CombatTargeting).
 // Enemies ALWAYS see the party: their AI never checks this.
 // Works on every enemy automatically (any CombatUnit on the Enemy team). One per scene.
 public class FogOfWar : MonoBehaviour
@@ -14,13 +16,15 @@ public class FogOfWar : MonoBehaviour
     public LayerMask lightBlockers;
     [Tooltip("Seconds between visibility checks.")]
     public float checkInterval = 0.1f;
+    [Tooltip("Enemies in the dark are drawn with this: an unlit, dark-tinted sprite material, so they show as a lurking shape. Empty = hidden completely.")]
+    public Material darkMaterial;
 
     static readonly HashSet<CombatUnit> hidden = new HashSet<CombatUnit>();
 
     // Fired when any enemy steps into or out of the light (the UI redraws)
     public static event System.Action OnChanged;
 
-    // Can the party see this unit? (Party members are always visible.)
+    // Can the party see who this is? (Party members are always visible.)
     public static bool CanSee(CombatUnit u) => u != null && !hidden.Contains(u);
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -31,6 +35,8 @@ public class FogOfWar : MonoBehaviour
     }
 
     readonly List<CombatUnit> enemies = new List<CombatUnit>();
+    readonly Dictionary<CombatUnit, List<SpriteRenderer>> bodies = new Dictionary<CombatUnit, List<SpriteRenderer>>();
+    readonly Dictionary<SpriteRenderer, Material> normalMaterial = new Dictionary<SpriteRenderer, Material>();
     Light[] lights;
     float nextRefresh;
     float nextCheck;
@@ -60,7 +66,7 @@ public class FogOfWar : MonoBehaviour
         foreach (CombatUnit u in enemies)
         {
             if (u == null) continue;
-            if (!u.IsAlive) { SetVisible(u, false); continue; }   // dead monsters stay gone
+            if (!u.IsAlive) { Show(u, false, false); continue; }   // dead monsters stay gone
             bool seen = IsLit(u);
             bool wasSeen = !hidden.Contains(u);
             if (seen != wasSeen)
@@ -69,7 +75,7 @@ public class FogOfWar : MonoBehaviour
                 else hidden.Add(u);
                 changed = true;
             }
-            SetVisible(u, seen);
+            Show(u, true, seen);
         }
 
         if (changed) OnChanged?.Invoke();
@@ -109,19 +115,51 @@ public class FogOfWar : MonoBehaviour
         return false;
     }
 
-    // Shows or hides everything that draws the unit (sprite and fake shadows).
-    // Lights the enemy carries stay on, so you'd see their glow.
-    static void SetVisible(CombatUnit u, bool visible)
+    // alive + lit:  everything drawn normally
+    // alive + dark: only the body, as a dim shape (no shadows, no status effects)
+    // dead:         nothing
+    void Show(CombatUnit u, bool alive, bool lit)
     {
+        List<SpriteRenderer> body = BodyOf(u);
+        bool lurk = alive && !lit && darkMaterial != null;
         foreach (Renderer r in u.GetComponentsInChildren<Renderer>(true))
-            r.enabled = visible;
+        {
+            bool isBody = r is SpriteRenderer sr && body.Contains(sr);
+            r.enabled = alive && (lit || (lurk && isBody));
+        }
+        foreach (SpriteRenderer sr in body)
+        {
+            if (sr == null) continue;
+            if (lurk)
+            {
+                // Remember its normal look (again if something else, like a hit flash, swapped it back)
+                if (sr.sharedMaterial != darkMaterial) { normalMaterial[sr] = sr.sharedMaterial; sr.sharedMaterial = darkMaterial; }
+            }
+            else if (sr.sharedMaterial == darkMaterial && normalMaterial.TryGetValue(sr, out Material m)) sr.sharedMaterial = m;
+        }
+    }
+
+    // The sprites that make up the monster itself (the animated ones; not shadows or effects)
+    List<SpriteRenderer> BodyOf(CombatUnit u)
+    {
+        if (bodies.TryGetValue(u, out List<SpriteRenderer> list)) return list;
+        list = new List<SpriteRenderer>();
+        if (u.TryGetComponent(out BossAI boss) && boss.body != null)
+            list.AddRange(boss.body.GetComponentsInChildren<SpriteRenderer>(true));
+        foreach (SpriteAnimator a in u.GetComponentsInChildren<SpriteAnimator>(true))
+            if (a.TryGetComponent(out SpriteRenderer sr) && !list.Contains(sr)) list.Add(sr);
+        if (list.Count == 0)
+            foreach (SpriteRenderer sr in u.GetComponentsInChildren<SpriteRenderer>(true))
+                if (!sr.name.Contains("Shadow")) { list.Add(sr); break; }
+        bodies[u] = list;
+        return list;
     }
 
     // Turning the fog off shows every enemy again (handy for testing)
     void OnDisable()
     {
         foreach (CombatUnit u in enemies)
-            if (u != null) SetVisible(u, true);
+            if (u != null && u.IsAlive) { hidden.Remove(u); Show(u, true, true); }
         bool hadHidden = hidden.Count > 0;
         hidden.Clear();
         if (hadHidden) OnChanged?.Invoke();

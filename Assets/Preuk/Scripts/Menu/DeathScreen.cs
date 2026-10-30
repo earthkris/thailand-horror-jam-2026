@@ -71,15 +71,23 @@ public class DeathScreen : MonoBehaviour
     public void Show()
     {
         if (IsShowing || !Application.isPlaying) return;
+        if (GodScene.TakesOverDeath) return;   // the goddess speaks first (GodScene), and calls ShowGameOver when no loops are left
         StartCoroutine(Play(final: !LoopManager.CanLoop));
     }
 
-    IEnumerator Play(bool final)
+    // GAME OVER straight away, no wait (GodScene calls this after her last line)
+    public void ShowGameOver()
+    {
+        if (IsShowing) return;
+        StartCoroutine(Play(final: true, wait: 0f));
+    }
+
+    IEnumerator Play(bool final, float wait = -1f)
     {
         IsShowing = true;
         GameState.Current = GameMode.Menu;   // nothing moves behind the screen
 
-        yield return new WaitForSecondsRealtime(delay);
+        yield return new WaitForSecondsRealtime(wait >= 0f ? wait : delay);
 
         screen.gameObject.SetActive(true);
         screen.alpha = 0f;

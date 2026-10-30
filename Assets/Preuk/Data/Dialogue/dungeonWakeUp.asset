@@ -18,20 +18,19 @@ MonoBehaviour:
     text: Ugh... Where are we..?
   - spriteImage: {fileID: 1047115457, guid: 37d55987ad413b240ab05e7a56eec345, type: 3}
     name: Lucius
-    text: You're finally awake, are you hurt anywhere?
+    text: You're finally awake! Are you hurt anywhere?
   - spriteImage: {fileID: 752313563, guid: 300db373928b38f45a1826963cc9dcc3, type: 3}
     name: Kairos
-    text: I'm fine but... What is going on?
+    text: I'm fine, but... what is going on?
   - spriteImage: {fileID: 1047115457, guid: 37d55987ad413b240ab05e7a56eec345, type: 3}
     name: Lucius
-    text: I think that chest was a trap. It teleported us into this dungeon.
+    text: That chest was a trap. It teleported us into this dungeon.
   - spriteImage: {fileID: 752313563, guid: 300db373928b38f45a1826963cc9dcc3, type: 3}
     name: Kairos
-    text: Are you kidding, how is this even possible?!
+    text: Are you kidding? How is this even possible?!
   - spriteImage: {fileID: 1047115457, guid: 37d55987ad413b240ab05e7a56eec345, type: 3}
     name: Lucius
-    text: I don't know, but I think we better find a way out of here first. Let's
-      go find the way out.
+    text: I don't know, but we'd better find a way out of here first.
   - spriteImage: {fileID: 752313563, guid: 300db373928b38f45a1826963cc9dcc3, type: 3}
     name: Kairos
     text: Yeah, let's go.

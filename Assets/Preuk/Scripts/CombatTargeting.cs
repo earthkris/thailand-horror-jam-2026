@@ -171,7 +171,8 @@ public class CombatTargeting : MonoBehaviour
         bool hidden = !FogOfWar.CanSee(target);
         bool ranged = action.range > 1;
         bool crowded = ranged && EnemyNextTo(user);
-        bool disadvantage = hidden || crowded;
+        bool advantage = action.advantage && !(hidden || crowded);    // advantage and disadvantage cancel out
+        bool disadvantage = (hidden || crowded) && !action.advantage;
         string why = hidden ? "can't see the target" : "enemy right next to you";
         string tName = TargetName(target);
         int need = Mathf.Clamp(target.ArmorClass - action.attackBonus, 2, 20);
@@ -179,7 +180,7 @@ public class CombatTargeting : MonoBehaviour
         // 1. Roll to hit (twice with disadvantage, keep the lower)
         int r1 = 0, r2 = 0;
         yield return DiceTray.RollD20($"{action.displayName}  —  need {need}+" + (disadvantage ? "   (disadvantage)" : "")
-                                    + (user.BlessDie > 0 ? $"   (+1d{user.BlessDie} blessed)" : ""), v => r1 = v);
+                                    + (advantage ? "   (advantage)" : "") + (user.IsBlessed ? "   (blessed)" : ""), v => r1 = v);
         int roll = r1;
         string rollText = $"d20 ({r1})";
         if (disadvantage)
@@ -188,14 +189,22 @@ public class CombatTargeting : MonoBehaviour
             roll = Mathf.Min(r1, r2);
             rollText = $"d20 ({r1}, {r2} -> {roll}, disadvantage)";
         }
+        if (advantage)
+        {
+            yield return DiceTray.RollD20("Advantage  —  second roll", v => r2 = v);
+            roll = Mathf.Max(r1, r2);
+            rollText = $"d20 ({r1}, {r2} -> {roll}, advantage)";
+        }
 
         // 2. Hit or miss? (worked out first, so a missed spell can fly wide)
         // Bless: add the blessing die (a d4) to the roll
-        int blessRoll = user.BlessDie > 0 ? DiceSimulator.Roll(user.BlessDie) : 0;
-        if (blessRoll > 0) rollText += $" + bless 1d{user.BlessDie} ({blessRoll})";
+        int blessRoll = (user.BlessDie > 0 ? DiceSimulator.Roll(user.BlessDie) : 0) + user.BlessBonus;
+        if (blessRoll > 0) rollText += $" + bless ({blessRoll})";
         int total = roll + action.attackBonus + blessRoll;
         bool crit = roll == 20;
         bool hit = crit || (roll != 1 && total >= target.ArmorClass);
+
+        if (action.glowSword) StartCoroutine(SwordGlow(user, action.glowColor, 2.4f));
 
         // 3. Show the swing / shot
         if (ranged) yield return Shoot(user.transform, target.transform, hit);
@@ -227,7 +236,20 @@ public class CombatTargeting : MonoBehaviour
             killed = "  —  " + StatusInfo.Word(action.inflicts).ToUpper();
             Debug.Log($"{tName} is {StatusInfo.Word(action.inflicts)} for {action.statusTurns} turn(s)");
         }
-        yield return DiceTray.ShowOutcome((crit ? $"CRITICAL!  {damage} damage" : $"HIT  —  {damage} damage") + killed, true);
+        // 6. Area: a splash round the target, or a sweep round the user. The same roll against each one's AC.
+        string extra = "";
+        if (action.area != ActionArea.Single)
+            foreach (CombatUnit other in AreaTargets(target))
+            {
+                if (!(crit || (roll != 1 && total >= other.ArmorClass))) continue;
+                int d = Mathf.Max(damage * action.areaDamagePercent / 100, 1);
+                other.TakeDamage(d);
+                if (other.IsAlive && action.inflicts != StatusType.None && Random.Range(0, 100) < action.statusChance)
+                    other.AddStatus(action.inflicts, action.statusTurns, action.statusDiceCount, action.statusDiceSides);
+                extra += $"   +{TargetName(other)} {d}";
+                Debug.Log($"{action.displayName} also hits {other.unitName} for {d}");
+            }
+        yield return DiceTray.ShowOutcome((crit ? $"CRITICAL!  {damage} damage" : $"HIT  —  {damage} damage") + killed + extra, true);
     }
 
     IEnumerator Heal(string what, int count, int sides, int bonus, CombatUnit target)
@@ -237,8 +259,18 @@ public class CombatTargeting : MonoBehaviour
         target.Heal(amount);
         if (action != null && action.impactPrefab != null) SpawnEffect(action.impactPrefab, target.transform);
         int healed = target.CurrentHP - before;
+        // Lay on Hands: healing a friend heals you a bit too
+        string selfText = "";
+        if (action != null && action.selfHealFraction > 0f && target != user && user.IsAlive)
+        {
+            int selfAmount = Mathf.RoundToInt(amount * action.selfHealFraction);
+            int b2 = user.CurrentHP;
+            user.Heal(selfAmount);
+            if (action.impactPrefab != null) SpawnEffect(action.impactPrefab, user.transform);
+            selfText = $"   +{user.CurrentHP - b2} HP  {user.unitName}";
+        }
         Debug.Log($"{user.unitName} uses {what} on {target.unitName}: {count}d{sides}+{bonus} = {amount} -> healed {healed} ({target.CurrentHP}/{target.maxHP} HP)");
-        yield return DiceTray.ShowMessage(what, $"+{healed} HP  {target.unitName}", true);
+        yield return DiceTray.ShowMessage(what, $"+{healed} HP  {target.unitName}" + selfText, true);
     }
 
     // Bless, Shield of Faith...: no roll, the blessing lasts until the fight ends
@@ -254,7 +286,8 @@ public class CombatTargeting : MonoBehaviour
 
         foreach (CombatUnit u in who)
         {
-            u.AddBuff(action.blessDie, action.bonusAC);
+            u.AddBuff(action.blessDie, action.bonusAC, action.blessBonus);
+            if (action.regenTurns > 0) u.AddStatus(StatusType.Regen, action.regenTurns, action.regenDiceCount, action.regenDiceSides);
             if (action.impactPrefab != null) SpawnEffect(action.impactPrefab, u.transform);
         }
 
@@ -322,6 +355,65 @@ public class CombatTargeting : MonoBehaviour
         foreach (CombatUnit e in combat.Enemies)
             if (e != null && e.IsAlive && e.StepsTo(u.AnchorTile) <= 1) return true;
         return false;
+    }
+
+    // Enemies caught in an area: near the target (splash) or near the user (sweep)
+    List<CombatUnit> AreaTargets(CombatUnit main)
+    {
+        var list = new List<CombatUnit>();
+        foreach (CombatUnit e in combat.Enemies)
+        {
+            if (e == null || !e.IsAlive || e == main) continue;
+            int gap = action.area == ActionArea.AroundUser ? GapTo(e) : UnitGap(main, e);
+            if (gap <= action.areaRadius) list.Add(e);
+        }
+        return list;
+    }
+
+    // Steps between two units' footprints (1 = next to each other)
+    static int UnitGap(CombatUnit a, CombatUnit b)
+    {
+        Vector2Int pa = a.AnchorTile, pb = b.AnchorTile;
+        int dx = Mathf.Max(0, pb.x - (pa.x + a.size - 1), pa.x - (pb.x + b.size - 1));
+        int dy = Mathf.Max(0, pb.y - (pa.y + a.size - 1), pa.y - (pb.y + b.size - 1));
+        return dx + dy;
+    }
+
+    // Divine Smite: the floating sword glows gold (tinted, a halo and a light) for a moment
+    IEnumerator SwordGlow(CombatUnit who, Color color, float seconds)
+    {
+        SpriteRenderer sword = null;
+        foreach (SpriteRenderer sr in who.GetComponentsInChildren<SpriteRenderer>())
+            if (sr.name == "Sword") { sword = sr; break; }
+        if (sword == null) yield break;
+        Color baseColor = sword.color;
+        var lightGo = new GameObject("Sword Glow", typeof(Light));
+        lightGo.transform.SetParent(sword.transform, false);
+        var glowLight = lightGo.GetComponent<Light>();
+        glowLight.type = LightType.Point;
+        glowLight.color = color;
+        glowLight.range = 2.5f;
+        glowLight.intensity = 0f;
+        var halo = new GameObject("Sword Halo", typeof(SpriteRenderer));
+        halo.transform.SetParent(sword.transform, false);
+        halo.transform.localPosition = new Vector3(0f, 0f, 0.01f);
+        halo.transform.localScale = Vector3.one * 1.35f;
+        var hr = halo.GetComponent<SpriteRenderer>();
+        hr.sharedMaterial = sword.sharedMaterial;
+        hr.sortingOrder = sword.sortingOrder - 1;
+        for (float t = 0f; t < seconds && sword != null; t += Time.deltaTime)
+        {
+            float k = Mathf.Min(t / 0.2f, 1f) * Mathf.Clamp01((seconds - t) / 0.4f);   // fade in, fade out
+            float pulse = 0.8f + 0.2f * Mathf.Sin(t * 18f);
+            sword.color = Color.Lerp(baseColor, color, 0.6f * k);
+            hr.sprite = sword.sprite;
+            hr.color = new Color(color.r, color.g, color.b, 0.55f * k * pulse);
+            glowLight.intensity = 3f * k * pulse;
+            yield return null;
+        }
+        if (sword != null) sword.color = baseColor;
+        Destroy(lightGo);
+        Destroy(halo);
     }
 
     // A one-off effect (it should destroy itself when done, like the sparkle bursts)

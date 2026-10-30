@@ -24,7 +24,7 @@ public class GridManager : MonoBehaviour
     [Tooltip("1 = glows touch each other, smaller = gaps between tiles.")]
     [Range(0.5f, 1f)] public float tileInset = 0.92f;
     [Tooltip("Height above the floor, so the glow doesn't flicker into it.")]
-    public float floorOffset = 0.02f;
+    public float floorOffset = 0.06f;
 
     [Header("Colors")]
     public Color hoverColor = new Color32(217, 203, 176, 255);    // bone

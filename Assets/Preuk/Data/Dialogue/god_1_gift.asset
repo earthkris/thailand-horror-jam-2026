@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8453e01badfd74c409ba1b29f21aa1e8, type: 3}
+  m_Name: god_1_gift
+  m_EditorClassIdentifier: Assembly-CSharp::DialogueScriptableObject
+  lines:
+  - spriteImage: {fileID: 752313563, guid: 300db373928b38f45a1826963cc9dcc3, type: 3}
+    name: Kairos
+    text: HUH?! What are you?!
+  - spriteImage: {fileID: 2035414, guid: 9516edbe2684a8645a2bf6b1389b7b06, type: 3}
+    name: ???
+    text: Calm down. I am here to bestow upon you the power to overcome this struggle.
+  - spriteImage: {fileID: 752313563, guid: 300db373928b38f45a1826963cc9dcc3, type: 3}
+    name: Kairos
+    text: (What? What's the point of giving me power now...?)
+  - spriteImage: {fileID: 2035414, guid: 9516edbe2684a8645a2bf6b1389b7b06, type: 3}
+    name: ???
+    text: You will be able to loop back in time and fix your mistakes.
+  - spriteImage: {fileID: 2035414, guid: 9516edbe2684a8645a2bf6b1389b7b06, type: 3}
+    name: ???
+    text: But remember...
+  - spriteImage: {fileID: 2035414, guid: 9516edbe2684a8645a2bf6b1389b7b06, type: 3}
+    name: ???
+    text: Everything has a price to pay.
+  - spriteImage: {fileID: 2035414, guid: 9516edbe2684a8645a2bf6b1389b7b06, type: 3}
+    name: ???
+    text: You had 3 chances. Now you have 2. Make your decisions wisely.
+  - spriteImage: {fileID: 2035414, guid: 9516edbe2684a8645a2bf6b1389b7b06, type: 3}
+    name: ???
+    text: Otherwise, you might never be able to <i>talk</i> with your friend again.

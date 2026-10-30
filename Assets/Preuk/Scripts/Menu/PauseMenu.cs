@@ -203,9 +203,9 @@ public class PauseMenu : MonoBehaviour
     void ShowMain()
     {
         ShowPage(mainPage, Close);
-        SetButton(loopButton, LoopManager.CanLoop);
+        SetButton(loopButton, LoopManager.CanLoop && GameState.InDungeon);   // locked before the dungeon
         if (loopsText != null)
-            loopsText.text = LoopManager.CanLoop ? "LOOPS LEFT" : "NO LOOPS LEFT";
+            loopsText.text = !GameState.InDungeon ? "LOOP LOCKED" : LoopManager.CanLoop ? "LOOPS LEFT" : "NO LOOPS LEFT";
         if (loopIcons != null)
             for (int i = 0; i < loopIcons.Length; i++)
                 if (loopIcons[i] != null)
@@ -309,9 +309,17 @@ public class PauseMenu : MonoBehaviour
 
     void AskLoop()
     {
-        if (!LoopManager.CanLoop) return;
-        Ask("Loop back to the beginning?\n<size=60%><color=#FFFFFFB3>Everything since then is undone, and the loop takes something from you.\n"
-            + $"Loops left after this: {LoopManager.LoopsLeft - 1}</color></size>", LoopManager.Loop, ShowMain);
+        if (!LoopManager.CanLoop || !GameState.InDungeon) return;
+        Ask("Loop back in time?\n<size=60%><color=#FFFFFFB3>You will die here, and the loop takes something from you.\n"
+            + $"Loops left after this: {LoopManager.LoopsLeft - 1}</color></size>", LoopFromMenu, ShowMain);
+    }
+
+    // Looping means dying: the menu closes, the party falls, and the goddess takes it from there
+    void LoopFromMenu()
+    {
+        Close();
+        if (GodScene.TakesOverDeath) GodScene.Instance.DieAndLoop();
+        else LoopManager.Loop();
     }
 
     void AskExit()

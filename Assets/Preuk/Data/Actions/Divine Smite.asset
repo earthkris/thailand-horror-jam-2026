@@ -13,19 +13,19 @@ MonoBehaviour:
   m_Name: Divine Smite
   m_EditorClassIdentifier: Assembly-CSharp::CombatAction
   displayName: Divine Smite
-  description: 'Holy light pours down the blade. A sword hit that also burns with
-    radiant power. Hits an enemy right next to you. Paralyses the target: it loses
-    its next turn.'
+  description: Holy light pours down the blade. A huge radiant sword hit, rolled
+    with advantage (two d20s, keep the higher). Hits an enemy right next to you.
+    Twice per fight.
   typeIcon: {fileID: 4507998296860207705, guid: 8759f277fe018ee479fc51e7fa20ff19, type: 3}
   target: 0
   range: 1
   needsLineOfSight: 1
   effect: 0
   attackBonus: 5
-  diceCount: 1
+  diceCount: 2
   diceSides: 8
   bonus: 3
-  extraDiceCount: 1
+  extraDiceCount: 2
   extraDiceSides: 8
   damageType: slashing + radiant
   projectilePrefab: {fileID: 0}
@@ -46,9 +46,20 @@ MonoBehaviour:
   blessDie: 0
   bonusAC: 0
   wholeParty: 0
-  inflicts: 2
+  inflicts: 0
   statusTurns: 1
   statusChance: 100
   statusDiceCount: 1
   statusDiceSides: 4
+  advantage: 1
+  area: 0
+  areaRadius: 1
+  areaDamagePercent: 50
+  selfHealFraction: 0
+  blessBonus: 0
+  regenTurns: 0
+  regenDiceCount: 2
+  regenDiceSides: 4
+  glowSword: 1
+  glowColor: {r: 1, g: 0.8392157, b: 0.3529412, a: 1}
   usesPerBattle: 2

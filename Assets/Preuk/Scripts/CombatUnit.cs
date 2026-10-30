@@ -51,11 +51,14 @@ public class CombatUnit : MonoBehaviour
 
     // ---------- Buffs (Bless, Shield of Faith...). They last until the fight ends. ----------
     public int BlessDie { get; private set; }        // 4 = +1d4 on attack rolls, 0 = not blessed
+    public int BlessBonus { get; private set; }      // flat bonus on attack rolls and saves (Bless +3)
+    public bool IsBlessed => BlessDie > 0 || BlessBonus > 0;
     public int BonusAC { get; private set; }
     public int ArmorClass => armorClass + BonusAC;   // use this for rolls, not armorClass
 
-    public void AddBuff(int blessDie, int bonusAC)
+    public void AddBuff(int blessDie, int bonusAC, int blessBonus = 0)
     {
+        BlessBonus = Mathf.Max(BlessBonus, blessBonus);
         // The same spell twice doesn't stack (D&D rule): keep the bigger one
         BlessDie = Mathf.Max(BlessDie, blessDie);
         BonusAC = Mathf.Max(BonusAC, bonusAC);
@@ -64,6 +67,7 @@ public class CombatUnit : MonoBehaviour
     public void ClearBuffs()
     {
         BlessDie = 0;
+        BlessBonus = 0;
         BonusAC = 0;
         ClearStatuses();   // burn and paralyse end with the fight too
     }
@@ -71,6 +75,7 @@ public class CombatUnit : MonoBehaviour
     // ---------- Statuses (Burn, Paralyse). Counted in this unit's own turns; they end with the fight. ----------
     readonly Dictionary<StatusType, int> statusTurns = new Dictionary<StatusType, int>();
     int burnDiceCount = 1, burnDiceSides = 4;
+    int regenDiceCount = 1, regenDiceSides = 4;
 
     // Any unit gaining or losing a status (StatusEffects listens: flames, sparks)
     public static event System.Action<CombatUnit> OnAnyStatusChanged;
@@ -84,11 +89,15 @@ public class CombatUnit : MonoBehaviour
         if (s == StatusType.None || turns <= 0 || !IsAlive) return;
         statusTurns[s] = Mathf.Max(TurnsLeft(s), turns);   // doesn't stack: the longer one wins
         if (s == StatusType.Burn) { burnDiceCount = Mathf.Max(diceCount, 1); burnDiceSides = Mathf.Max(diceSides, 1); }
+        if (s == StatusType.Regen) { regenDiceCount = Mathf.Max(diceCount, 1); regenDiceSides = Mathf.Max(diceSides, 1); }
         OnAnyStatusChanged?.Invoke(this);
     }
 
     // Burn damage for one turn, e.g. 1d4
     public int RollBurn() => Mathf.Max(DiceSimulator.Roll(burnDiceCount, burnDiceSides), 1);
+
+    // Regeneration heal for one turn, e.g. 2d4
+    public int RollRegen() => Mathf.Max(DiceSimulator.Roll(regenDiceCount, regenDiceSides), 1);
 
     // Start of this unit's turn (after burn and paralyse did their thing): every status loses a turn
     public void CountDownStatuses()
@@ -114,9 +123,13 @@ public class CombatUnit : MonoBehaviour
             string s = "";
             if (Has(StatusType.Burn)) s += $"     Burning {TurnsLeft(StatusType.Burn)}";
             if (Has(StatusType.Paralyse)) s += $"     Paralysed {TurnsLeft(StatusType.Paralyse)}";
+            if (Has(StatusType.Regen)) s += $"     Regen {TurnsLeft(StatusType.Regen)}";
             return s;
         }
     }
+
+    // Story fights: HP never drops below 1 (the forced boss fight sets this)
+    [HideInInspector] public bool cannotDie;
 
     public event System.Action<CombatUnit> OnDied;
 
@@ -197,7 +210,7 @@ public class CombatUnit : MonoBehaviour
     {
         if (!IsAlive) return;
 
-        CurrentHP = Mathf.Max(CurrentHP - amount, 0);
+        CurrentHP = Mathf.Max(CurrentHP - amount, cannotDie ? 1 : 0);
         Debug.Log($"{unitName} takes {amount} damage ({CurrentHP}/{maxHP} HP)");
         OnAnyDamaged?.Invoke(this, amount);   // before OnDied, while the sprite is still showing
 

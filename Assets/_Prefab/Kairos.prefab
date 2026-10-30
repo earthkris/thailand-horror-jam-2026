@@ -200,7 +200,7 @@ MonoBehaviour:
   targetStrength: 0.6
   targetPulse: 0.2
   targetInset: 0.92
-  targetFloorOffset: 0.02
+  targetFloorOffset: 0.06
   sprite: {fileID: 0}
   moveAction: {fileID: 0}
 --- !u!114 &8460631004899846965
@@ -229,7 +229,9 @@ MonoBehaviour:
   speedFeet: 30
   actions:
   - {fileID: 11400000, guid: 751ac8c9fde0f724898784c399b954f5, type: 2}
+  - {fileID: 11400000, guid: 2f0d6704fee7ab14d86c64472f02531c, type: 2}
   castPoint: {fileID: 0}
+  cannotDie: 0
 --- !u!114 &5167209909534517020
 MonoBehaviour:
   m_ObjectHideFlags: 0

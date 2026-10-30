@@ -28,13 +28,14 @@ public class PlayerMovement : MonoBehaviour
     [Tooltip("1 = fills the tile, smaller = a gap around it.")]
     [Range(0.5f, 1f)] public float targetInset = 0.92f;
     [Tooltip("Height above the floor, so the glow doesn't flicker into it.")]
-    public float targetFloorOffset = 0.02f;
+    public float targetFloorOffset = 0.06f;
 
     [Header("References")]
     public SpriteRenderer sprite;
     public InputActionReference moveAction; // optional
     public event System.Action<Vector3> OnStepStarted;   // "I'm leaving this tile"
     bool isMoving;
+    bool scripted;          // walking a path a cutscene set: keys and clicks are ignored
     Vector3 targetPos;
 
     // Tiles still to walk after a click (world positions, in order)
@@ -61,6 +62,7 @@ public class PlayerMovement : MonoBehaviour
         // Coming back after combat moved us: start from where we stand now
         targetPos = SnapToGrid(transform.position);
         isMoving = false;
+        scripted = false;
         path.Clear();
         ClearTarget();
     }
@@ -74,11 +76,11 @@ public class PlayerMovement : MonoBehaviour
 
     void Update()
     {
-        bool canMove = GameState.CanMove && !PauseMenu.BlocksInput;
+        bool canMove = (GameState.CanMove || scripted) && !PauseMenu.BlocksInput;
 
         // 0. A click picks a new destination. Mid-step, the new path starts where this step ends.
         //    A click on a book (any Interactable) goes to it instead.
-        if (canMove && ClickedTile(out Vector3 clicked, out Ray clickRay) && !Interactable.TryHandleClick(clickRay, clicked))
+        if (canMove && !scripted && ClickedTile(out Vector3 clicked, out Ray clickRay) && !Interactable.TryHandleClick(clickRay, clicked))
             SetPathTo(clicked);
 
         // 1. If we're mid-step, keep sliding toward the target tile
@@ -102,7 +104,7 @@ public class PlayerMovement : MonoBehaviour
         }
 
         // 3. Keys win. Otherwise take the next tile of a clicked path.
-        Vector2Int dir = GetDirection();
+        Vector2Int dir = scripted ? Vector2Int.zero : GetDirection();
         Vector3 next;
         if (dir != Vector2Int.zero)
         {
@@ -122,6 +124,7 @@ public class PlayerMovement : MonoBehaviour
             if (IsBlocked(next))
             {
                 path.Clear();   // something moved into the way
+                scripted = false;
                 ClearTarget();
                 return;
             }
@@ -130,6 +133,7 @@ public class PlayerMovement : MonoBehaviour
         else
         {
             ClearTarget();   // arrived (or nowhere to go)
+            scripted = false;
             return;
         }
 
@@ -145,7 +149,14 @@ public class PlayerMovement : MonoBehaviour
     public bool IsStepping => isMoving;                    // sliding between two tiles right now
     public bool IsWalking => isMoving || path.Count > 0;   // still has somewhere to go
     public Vector3 CurrentTile => targetPos;               // the tile we stand on, or are stepping onto
-    public void StopWalking() { path.Clear(); ClearTarget(); }   // finish this step, then stand still
+    public void StopWalking() { path.Clear(); ClearTarget(); scripted = false; }   // finish this step, then stand still
+
+    // Walk there even during a cutscene (keys and clicks are ignored on the way). PathBlocker uses it to turn you back.
+    public bool WalkToScripted(Vector3 goal)
+    {
+        scripted = WalkTo(goal);
+        return scripted;
+    }
 
     // Walk the shortest way to this tile. False if it can't be reached (or we're already there).
     public bool WalkTo(Vector3 goal)
@@ -164,6 +175,7 @@ public class PlayerMovement : MonoBehaviour
         path.Clear();
         ClearTarget();
         isMoving = false;
+        scripted = false;
         transform.position = SnapToGrid(new Vector3(spot.x, transform.position.y, spot.z));
         targetPos = transform.position;
     }

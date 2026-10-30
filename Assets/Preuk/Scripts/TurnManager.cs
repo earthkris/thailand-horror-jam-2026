@@ -117,8 +117,8 @@ public class TurnManager : MonoBehaviour
 
     void StartTurn()
     {
-        // Whole party down? The death screen takes over
-        if (!AnyAlive(Team.Party))
+        // Kairos down (even if Lucius still stands), or the whole party? Time loops
+        if (!AnyAlive(Team.Party) || PlayerDown())
         {
             FinishBattle(false);
             return;
@@ -181,6 +181,15 @@ public class TurnManager : MonoBehaviour
             yield return DiceTray.ShowMessage($"{who} is burning", $"{damage} fire damage" + (me.IsAlive ? "" : "  —  DOWN"), goodForParty);
         }
 
+        if (me.IsAlive && me.Has(StatusType.Regen))
+        {
+            int heal = me.RollRegen();
+            int before = me.CurrentHP;
+            me.Heal(heal);
+            Debug.Log($"{me.unitName} regenerates {me.CurrentHP - before} HP");
+            yield return DiceTray.ShowMessage($"{who} regenerates", $"+{me.CurrentHP - before} HP", !goodForParty);
+        }
+
         bool paralysed = me.IsAlive && me.Has(StatusType.Paralyse);
         if (paralysed)
         {
@@ -217,6 +226,14 @@ public class TurnManager : MonoBehaviour
         else OnPartyFallen?.Invoke();   // DeathScreen takes it from here
     }
 
+    // The one you play (Kairos) is down
+    bool PlayerDown()
+    {
+        foreach (Combatant c in Order)
+            if (c.unit != null && !c.unit.IsAlive && c.unit.GetComponent<PlayerMovement>() != null) return true;
+        return false;
+    }
+
     bool AnyAlive(Team team)
     {
         foreach (Combatant c in Order)
@@ -251,6 +268,8 @@ public class TurnManager : MonoBehaviour
 
         if (me.TryGetComponent(out EnemyAI ai))
             yield return ai.TakeTurn(combat);
+        else if (me.TryGetComponent(out BossAI boss))
+            yield return boss.TakeTurn(combat);
         else
             Debug.Log($"{me.unitName} waits. (Give it an EnemyAI to make it fight)");
 
@@ -317,7 +336,8 @@ public class TurnManager : MonoBehaviour
     // After an attack kills the last monster, the fight should end right away
     public void CheckForVictory()
     {
-        if (InBattle && !AnyAlive(Team.Enemy)) FinishBattle(true);
+        if (InBattle && PlayerDown()) FinishBattle(false);   // Kairos down: loop at once, even if Lucius stands
+        else if (InBattle && !AnyAlive(Team.Enemy)) FinishBattle(true);
     }
 
     public void EndTurnButton()

@@ -52,6 +52,13 @@ public class EnemyEncounter : MonoBehaviour
         if (touched != null) StartCombat(touched);
     }
 
+    // Start the fight from a script (a boss intro), as if 'touched' had walked into us
+    public void StartCombatWith(CombatUnit touched)
+    {
+        if (InCombat || touched == null) return;
+        StartCombat(touched);
+    }
+
     // The combat manager calls this on other enemies that join the same fight
     public void MarkInCombat() => InCombat = true;
 

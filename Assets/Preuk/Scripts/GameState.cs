@@ -6,6 +6,9 @@ public static class GameState
 {
     public static GameMode Current = GameMode.Exploring;
 
+    // The party is in the dungeon (after the trap chest, or after a loop). The menu's LOOP only works here.
+    public static bool InDungeon;
+
     // Walking, picking things up, bumping into monsters: only while exploring with no dialogue box open.
     // The frame a dialogue box closes still counts as open, so the E that closes it doesn't also pick up a book.
     public static bool CanMove
@@ -26,6 +29,7 @@ public static class GameState
     static void ResetOnPlay()
     {
         Current = GameMode.Exploring;
+        InDungeon = false;
         lastDialogueFrame = -10;
     }
 }
