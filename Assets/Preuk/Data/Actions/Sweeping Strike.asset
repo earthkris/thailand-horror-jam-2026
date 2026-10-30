@@ -17,7 +17,7 @@ MonoBehaviour:
     be beaten on the same roll.
   typeIcon: {fileID: 4507998296860207705, guid: 8759f277fe018ee479fc51e7fa20ff19, type: 3}
   target: 0
-  range: 1
+  range: 2
   needsLineOfSight: 1
   effect: 0
   attackBonus: 5
@@ -43,7 +43,7 @@ MonoBehaviour:
   statusDiceSides: 4
   advantage: 0
   area: 2
-  areaRadius: 1
+  areaRadius: 2
   areaDamagePercent: 100
   selfHealFraction: 0
   blessBonus: 0

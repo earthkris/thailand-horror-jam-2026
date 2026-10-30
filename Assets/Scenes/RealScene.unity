@@ -17595,7 +17595,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4a862cbc9f72df44d8924cb4e19802c8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CombatUnit
-  unitName: Giant
+  unitName: Bomb
   team: 1
   size: 3
   tileSize: 1
@@ -88115,6 +88115,10 @@ PrefabInstance:
       propertyPath: grid
       value: 
       objectReference: {fileID: 1123346583}
+    - target: {fileID: 5256419983131077116, guid: f08ccbfaa20701447b5fefd28e8451df, type: 3}
+      propertyPath: joinRange
+      value: 5
+      objectReference: {fileID: 0}
     - target: {fileID: 5256419983131077116, guid: f08ccbfaa20701447b5fefd28e8451df, type: 3}
       propertyPath: cameraController
       value: 
