@@ -14,7 +14,6 @@ public class VidPlayer : MonoBehaviour
     {
         videoPlayer = GetComponent<VideoPlayer>();
         PlayVideo();   
-        videoPlayer.loopPointReached += OnCutsceneFinished;
     }
 
     private void PlayVideo(){
@@ -27,6 +26,7 @@ public class VidPlayer : MonoBehaviour
         {
             videoPlayer.url = System.IO.Path.Combine (Application.streamingAssetsPath, videoFileName); 
             videoPlayer.Play();
+            videoPlayer.loopPointReached += OnCutsceneFinished;
         }
     }
 
