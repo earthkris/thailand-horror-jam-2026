@@ -21722,6 +21722,17 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1233486395695313315, guid: 14d51a6b6126bf04ba808b50e9296999, type: 3}
   m_PrefabInstance: {fileID: 1572147182}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &509486899 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8460631004899846965, guid: 14d51a6b6126bf04ba808b50e9296999, type: 3}
+  m_PrefabInstance: {fileID: 1572147182}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 337735752}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4a862cbc9f72df44d8924cb4e19802c8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatUnit
 --- !u!1001 &510519640
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -28228,6 +28239,17 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 3691802033882473710, guid: 239a43bcf56631d4a9ba93f97306f800, type: 3}
   m_PrefabInstance: {fileID: 1257082773}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &622008399 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4527888229690405670, guid: 9879cef38d0ba0449b16ad8794af15c8, type: 3}
+  m_PrefabInstance: {fileID: 101592886}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4a862cbc9f72df44d8924cb4e19802c8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatUnit
 --- !u!1001 &622308122
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -77852,6 +77874,88 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 3b53240b6039888418262fdebda4455b, type: 3}
+--- !u!1 &1676720179
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1676720181}
+  - component: {fileID: 1676720180}
+  m_Layer: 0
+  m_Name: Tutorial Combat
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1676720180
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1676720179}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b944c456bda1d71439bba567494e19e7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TutorialCombat
+  tutorialEnemy: {fileID: 1774861222}
+  kairos: {fileID: 509486899}
+  lucius: {fileID: 622008399}
+  kairosRoll: 17
+  luciusRoll: 12
+  enemyRoll: 4
+  initiativeHint: Every battle, each character rolls a dice to decide who starts
+    first.
+  walkHint: 'Walk up to a target.
+
+    Click a lit tile, or use WASD.'
+  actionHint: Press ACTION and pick an attack.
+  aimHint: 'Click the {enemy} to attack.
+
+    Roll high on the d20 to hit!'
+  endTurnHint: Done for this turn? Press END TURN.
+  luciusHint: 'Now it''s Lucius''s turn.
+
+    Holy Fireball hits from afar, Heal
+    patches up a friend.'
+  enemyHint: Now the {enemy} takes its turn. Watch out for its web!
+  continueHint: Click or press E to continue
+  beforeHeal: {fileID: 11400000, guid: c20cf5285d52b9e4dae1178cbc3aadf9, type: 2}
+  afterHeal: {fileID: 11400000, guid: 6ac0654703b2ad641985810d9583d36e, type: 2}
+  pauseBeforeDialogue: 0.8
+  pauseAfterHeal: 0.7
+  boxSprite: {fileID: -1980293477, guid: f45d93de38fd97e45b0fb89c74c3d2a4, type: 3}
+  arrowLeft: {fileID: 492196221, guid: f45d93de38fd97e45b0fb89c74c3d2a4, type: 3}
+  arrowUp: {fileID: -1895440278, guid: f45d93de38fd97e45b0fb89c74c3d2a4, type: 3}
+  arrowDown: {fileID: -2116201626, guid: f45d93de38fd97e45b0fb89c74c3d2a4, type: 3}
+  arrowRight: {fileID: -1499739694, guid: f45d93de38fd97e45b0fb89c74c3d2a4, type: 3}
+  framePixelScale: 2
+  arrowPixelScale: 4
+  boxWidth: 880
+  textColor: {r: 0.8509804, g: 0.79607844, b: 0.6901961, a: 1}
+  continueColor: {r: 0.9098039, g: 0.74509805, b: 0.3882353, a: 0.74509805}
+  dimScreen: 0.2
+  font: {fileID: 0}
+--- !u!4 &1676720181
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1676720179}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -71, y: 2, z: -13}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &1677515731 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 18909760996641151, guid: c863f656782d099438e2f1ba789301c8, type: 3}
@@ -82687,6 +82791,17 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 2111616663}
   m_SourcePrefab: {fileID: 100100000, guid: c863f656782d099438e2f1ba789301c8, type: 3}
+--- !u!114 &1774861222 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7112429994158550825, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
+  m_PrefabInstance: {fileID: 2048762404}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4a862cbc9f72df44d8924cb4e19802c8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CombatUnit
 --- !u!1001 &1775496832
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -95023,6 +95138,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: Spider
       objectReference: {fileID: 0}
+    - target: {fileID: 5531129746062378286, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
+      propertyPath: openWithRanged
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5531129746062378286, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
+      propertyPath: preferRangedChance
+      value: 0.4
+      objectReference: {fileID: 0}
     - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
       propertyPath: m_LocalScale.x
       value: 2
@@ -100931,3 +101054,4 @@ SceneRoots:
   - {fileID: 699121298}
   - {fileID: 1141377839}
   - {fileID: 1075325319}
+  - {fileID: 1676720181}

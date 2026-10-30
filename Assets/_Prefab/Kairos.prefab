@@ -195,6 +195,12 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 1
   maxPathLength: 40
+  showTargetGlow: 1
+  targetColor: {r: 0.9098039, g: 0.74509805, b: 0.3882353, a: 1}
+  targetStrength: 0.6
+  targetPulse: 0.2
+  targetInset: 0.92
+  targetFloorOffset: 0.02
   sprite: {fileID: 0}
   moveAction: {fileID: 0}
 --- !u!114 &8460631004899846965
@@ -213,7 +219,7 @@ MonoBehaviour:
   team: 0
   size: 1
   tileSize: 1
-  maxHP: 12
+  maxHP: 27
   armorClass: 16
   dexModifier: 2
   attackBonus: 5

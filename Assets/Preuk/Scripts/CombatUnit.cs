@@ -216,6 +216,15 @@ public class CombatUnit : MonoBehaviour
         OnAnyHealed?.Invoke(this, amount);
     }
 
+    // Back on their feet (a story heal after a fight). Undoes the grey "down" look.
+    public void Revive(int hp)
+    {
+        if (IsAlive) { Heal(hp); return; }
+        CurrentHP = Mathf.Clamp(hp, 1, maxHP);
+        foreach (SpriteRenderer sr in GetComponentsInChildren<SpriteRenderer>(true)) sr.color = Color.white;
+        OnAnyHealed?.Invoke(this, CurrentHP);
+    }
+
     // Shows the covered tiles as yellow squares in the Scene view when selected
     void OnDrawGizmosSelected()
     {

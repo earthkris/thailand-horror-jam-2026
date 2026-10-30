@@ -90,7 +90,7 @@ public class CombatMovement : MonoBehaviour
         bool canWalk = turns.InBattle && turns.IsPartyTurn && !turns.HasMoved
                        && Grid != null && Grid.IsBuilt
                        && (targeting == null || !targeting.IsActive)
-                       && !PauseMenu.BlocksInput;
+                       && !PauseMenu.BlocksInput && !TutorialCombat.BlocksInput;
         if (!canWalk || turns.Current != pathOwner) path.Clear();
         UpdatePreview(canWalk);
         if (!canWalk) return;

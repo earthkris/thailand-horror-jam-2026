@@ -18,6 +18,18 @@ public class PlayerMovement : MonoBehaviour
     [Tooltip("Clicks further away than this many tiles are ignored (keeps the search quick).")]
     public int maxPathLength = 40;
 
+    [Header("Click target glow")]
+    [Tooltip("Light up the tile you clicked until you get there.")]
+    public bool showTargetGlow = true;
+    public Color targetColor = new Color32(232, 190, 99, 255);   // candle gold, same as combat
+    [Range(0f, 1f)] public float targetStrength = 0.6f;
+    [Tooltip("How much the glow breathes (0 = steady).")]
+    [Range(0f, 0.5f)] public float targetPulse = 0.2f;
+    [Tooltip("1 = fills the tile, smaller = a gap around it.")]
+    [Range(0.5f, 1f)] public float targetInset = 0.92f;
+    [Tooltip("Height above the floor, so the glow doesn't flicker into it.")]
+    public float targetFloorOffset = 0.02f;
+
     [Header("References")]
     public SpriteRenderer sprite;
     public InputActionReference moveAction; // optional
@@ -27,6 +39,11 @@ public class PlayerMovement : MonoBehaviour
 
     // Tiles still to walk after a click (world positions, in order)
     readonly List<Vector3> path = new List<Vector3>();
+
+    // The glow on the clicked tile
+    GameObject targetGlow;
+    Renderer targetRend;
+    bool hasTarget;
 
     static readonly Vector2Int[] Directions =
         { Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right };
@@ -45,6 +62,14 @@ public class PlayerMovement : MonoBehaviour
         targetPos = SnapToGrid(transform.position);
         isMoving = false;
         path.Clear();
+        ClearTarget();
+    }
+
+    void OnDisable() => ClearTarget();
+
+    void OnDestroy()
+    {
+        if (targetGlow != null) Destroy(targetGlow);
     }
 
     void Update()
@@ -72,6 +97,7 @@ public class PlayerMovement : MonoBehaviour
         if (!canMove)
         {
             path.Clear();
+            ClearTarget();
             return;
         }
 
@@ -81,6 +107,7 @@ public class PlayerMovement : MonoBehaviour
         if (dir != Vector2Int.zero)
         {
             path.Clear();   // the keys take over
+            ClearTarget();
 
             // Face left/right even when walking into a wall
             if (sprite != null && dir.x != 0) sprite.flipX = dir.x < 0;
@@ -95,11 +122,16 @@ public class PlayerMovement : MonoBehaviour
             if (IsBlocked(next))
             {
                 path.Clear();   // something moved into the way
+                ClearTarget();
                 return;
             }
             if (sprite != null && Mathf.Abs(next.x - targetPos.x) > 0.01f) sprite.flipX = next.x < targetPos.x;
         }
-        else return;
+        else
+        {
+            ClearTarget();   // arrived (or nowhere to go)
+            return;
+        }
 
         // 4. Start the step
         Vector3 from = targetPos;      // the tile we're leaving
@@ -113,15 +145,16 @@ public class PlayerMovement : MonoBehaviour
     public bool IsStepping => isMoving;                    // sliding between two tiles right now
     public bool IsWalking => isMoving || path.Count > 0;   // still has somewhere to go
     public Vector3 CurrentTile => targetPos;               // the tile we stand on, or are stepping onto
-    public void StopWalking() => path.Clear();             // finish this step, then stand still
+    public void StopWalking() { path.Clear(); ClearTarget(); }   // finish this step, then stand still
 
     // Walk the shortest way to this tile. False if it can't be reached (or we're already there).
     public bool WalkTo(Vector3 goal)
     {
         path.Clear();
         List<Vector3> route = FindPath(targetPos, SnapToGrid(new Vector3(goal.x, targetPos.y, goal.z)));
-        if (route == null) return false;
+        if (route == null) { ClearTarget(); return false; }
         path.AddRange(route);
+        SetTarget(route[route.Count - 1]);
         return true;
     }
 
@@ -129,6 +162,7 @@ public class PlayerMovement : MonoBehaviour
     public void Teleport(Vector3 spot)
     {
         path.Clear();
+        ClearTarget();
         isMoving = false;
         transform.position = SnapToGrid(new Vector3(spot.x, transform.position.y, spot.z));
         targetPos = transform.position;
@@ -167,7 +201,73 @@ public class PlayerMovement : MonoBehaviour
     {
         path.Clear();
         List<Vector3> route = FindPath(targetPos, goal);
-        if (route != null) path.AddRange(route);
+        if (route == null) { ClearTarget(); return; }   // can't get there
+        path.AddRange(route);
+        SetTarget(route[route.Count - 1]);
+    }
+
+    // ---------- Click target glow ----------
+
+    // Light up the tile we're walking to (same glow as the battle grid)
+    void SetTarget(Vector3 tile)
+    {
+        if (!showTargetGlow) return;
+        if (targetGlow == null && !CreateGlow()) return;
+
+        // Sit just above the floor under that tile
+        float y = FloorHeight();
+        Vector3 above = new Vector3(tile.x, transform.position.y, tile.z);
+        if (Physics.Raycast(above, Vector3.down, out RaycastHit hit, tileSize * 3f, floorLayers, QueryTriggerInteraction.Ignore))
+            y = hit.point.y;
+
+        targetGlow.transform.position = new Vector3(tile.x, y + targetFloorOffset, tile.z);
+        targetRend.enabled = true;
+        hasTarget = true;
+        UpdateGlow();
+    }
+
+    void ClearTarget()
+    {
+        hasTarget = false;
+        if (targetRend != null) targetRend.enabled = false;
+    }
+
+    void LateUpdate()
+    {
+        if (hasTarget) UpdateGlow();
+    }
+
+    // Gentle breathing so it reads as "you're going here"
+    void UpdateGlow()
+    {
+        Color c = targetColor;
+        c.a = targetStrength * (1f - targetPulse + targetPulse * Mathf.Sin(Time.time * 4f));
+        targetRend.material.color = c;
+    }
+
+    bool CreateGlow()
+    {
+        Material mat = Resources.Load<Material>("TileGlow");   // Assets/Preuk/Resources/TileGlow.mat
+        if (mat == null)
+        {
+            Debug.LogWarning("TileGlow material not found in a Resources folder: no click glow.");
+            showTargetGlow = false;
+            return false;
+        }
+
+        targetGlow = GameObject.CreatePrimitive(PrimitiveType.Quad);
+        targetGlow.name = "Click Target Glow";
+        targetGlow.layer = 2;   // Ignore Raycast
+        DestroyImmediate(targetGlow.GetComponent<Collider>());
+        targetGlow.transform.rotation = Quaternion.Euler(90f, 0f, 0f);   // lie flat, facing up
+        targetGlow.transform.localScale = Vector3.one * tileSize * targetInset;
+
+        targetRend = targetGlow.GetComponent<MeshRenderer>();
+        targetRend.sharedMaterial = mat;
+        targetRend.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        targetRend.receiveShadows = false;
+        targetRend.enabled = false;
+        return true;
     }
 
     // A* on the tile grid (no diagonals): the tiles to walk, not counting the start.

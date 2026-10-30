@@ -7,7 +7,8 @@ using UnityEngine;
 public enum AttackStyle { Melee, Ranged, Both }
 
 // A monster's brain in combat. On its turn it walks (up to its speed), then attacks if it can.
-//   Melee:  goes for the nearest party member and hits them when standing right next to them.
+// Target: usually the nearest party member, but sometimes it smells blood and hunts the most hurt one.
+//   Melee:  goes for its target and hits them when standing right next to them.
 //   Ranged: keeps its distance, finds a spot with a clear shot, and fires a projectile.
 //   Both:   walks up and attacks in melee if it can get there this turn; if not, shoots instead.
 // Melee plays the monster's attack frames if its SpriteAnimator has some, then lunges.
@@ -22,6 +23,16 @@ public class EnemyAI : MonoBehaviour
     [Min(1)] public int attackRange = 1;
     [Tooltip("Ranged only: how far from the party it likes to stand.")]
     [Min(1)] public int preferredDistance = 4;
+    [Tooltip("Both only: its first turn of a fight is a shot (good for a tutorial).")]
+    public bool openWithRanged = false;
+    [Tooltip("Both only: chance each turn to shoot even when it could walk up and hit in melee.")]
+    [Range(0f, 1f)] public float preferRangedChance = 0f;
+
+    [Header("Picking a target")]
+    [Tooltip("Chance each turn that it goes for the most hurt party member (lowest HP %) instead of the closest.")]
+    [Range(0f, 1f)] public float focusWeakChance = 0.5f;
+    [Tooltip("It only goes after the hurt one if they're at most this many tiles further away than the closest.")]
+    [Min(0)] public int maxDetour = 6;
 
     [Header("Projectile (Ranged / Both)")]
     [Tooltip("What flies at the target. Leave empty for a plain ball.")]
@@ -45,6 +56,10 @@ public class EnemyAI : MonoBehaviour
     CombatManager combat;
     GridManager grid;
 
+    CombatUnit chosen;     // who we're after this turn
+    bool huntingWeak;      // this turn we go for whoever is most hurt
+    int turnsTaken;        // for openWithRanged
+
     void Awake() => unit = GetComponent<CombatUnit>();
 
     // Keeps the Inspector honest: melee can only hit right next to it
@@ -60,19 +75,24 @@ public class EnemyAI : MonoBehaviour
         combat = battle;
         grid = battle.grid;
 
-        CombatUnit target = ClosestPartyMember(MyTile());
+        CombatUnit target = ChooseTarget();
         if (target == null) yield break;   // nobody left to fight
+
+        // Both: shoot this turn instead of going in for the bite?
+        bool shoot = style == AttackStyle.Both &&
+                     ((openWithRanged && turnsTaken == 0) || Random.value < preferRangedChance);
+        turnsTaken++;
 
         // 1. Walk
         List<Vector2Int> path =
             style == AttackStyle.Melee ? PlanMelee(target) :
-            style == AttackStyle.Ranged ? PlanRanged(target) :
+            style == AttackStyle.Ranged || shoot ? PlanRanged(target) :
             PlanBoth(target);
         foreach (Vector2Int tile in path)
             yield return Step(tile);
 
         // 2. Attack whoever we can reach now (melee first, then a shot)
-        CombatUnit victim = TargetInReach(out bool melee);
+        CombatUnit victim = TargetInReach(out bool melee, shoot);
         if (victim != null)
             yield return Attack(victim, melee);
         else
@@ -175,36 +195,88 @@ public class EnemyAI : MonoBehaviour
 
     // ================= Attacking =================
 
-    // Who can we hit from here? 'melee' says how.
-    CombatUnit TargetInReach(out bool melee)
+    // Who can we hit from here? 'melee' says how. 'preferShot' = try a shot before melee.
+    CombatUnit TargetInReach(out bool melee, bool preferShot = false)
     {
         melee = false;
         Vector2Int me = MyTile();
 
+        if (preferShot)
+        {
+            CombatUnit shot = PickWhere(p => Gap(me, p) <= attackRange && ClearShot(me, p));
+            if (shot != null) return shot;   // no clear shot? fall back to a bite below
+        }
+
         // Melee first: anyone right next to us
         if (style != AttackStyle.Ranged)
         {
-            CombatUnit near = NearestWhere(p => Gap(me, p) <= 1);
+            CombatUnit near = PickWhere(p => Gap(me, p) <= 1);
             if (near != null) { melee = true; return near; }
             if (style == AttackStyle.Melee) return null;
         }
 
         // Then a shot: in range, nothing in the way
-        return NearestWhere(p => Gap(me, p) <= attackRange && ClearShot(me, p));
+        return PickWhere(p => Gap(me, p) <= attackRange && ClearShot(me, p));
     }
 
-    CombatUnit NearestWhere(System.Func<CombatUnit, bool> ok)
+    // Of the party members we could hit: the one we came for, else the most hurt (when hunting)
+    // or the nearest
+    CombatUnit PickWhere(System.Func<CombatUnit, bool> ok)
     {
+        if (chosen != null && chosen.IsAlive && ok(chosen)) return chosen;
+
         CombatUnit best = null;
-        int bestGap = int.MaxValue;
         Vector2Int me = MyTile();
         foreach (CombatUnit p in combat.Party)
         {
             if (p == null || !p.IsAlive || !ok(p)) continue;
-            int gap = Gap(me, p);
-            if (gap < bestGap) { bestGap = gap; best = p; }
+            bool better = best == null ||
+                          (huntingWeak ? IsWeaker(p, best) : Gap(me, p) < Gap(me, best));
+            if (better) best = p;
         }
         return best;
+    }
+
+    // ================= Picking a target =================
+
+    // Usually the closest party member. Sometimes (focusWeakChance) the most hurt one instead,
+    // if they're not too far out of the way.
+    CombatUnit ChooseTarget()
+    {
+        Vector2Int me = MyTile();
+        CombatUnit closest = ClosestPartyMember(me);
+        chosen = closest;
+        huntingWeak = false;
+        if (closest == null) return null;
+
+        huntingWeak = Random.value < focusWeakChance;
+        if (!huntingWeak) return closest;
+
+        int closestGap = Gap(me, closest);
+        CombatUnit weakest = null;
+        foreach (CombatUnit p in combat.Party)
+        {
+            if (p == null || !p.IsAlive) continue;
+            if (Gap(me, p) > closestGap + maxDetour) continue;   // too far out of the way
+            if (weakest == null || IsWeaker(p, weakest)) weakest = p;
+        }
+
+        if (weakest != null && weakest != closest && IsWeaker(weakest, closest))
+        {
+            chosen = weakest;
+            Debug.Log($"{Name()} smells blood and goes for {weakest.unitName}.");
+        }
+        return chosen;
+    }
+
+    static float HealthFraction(CombatUnit u) => u.maxHP > 0 ? (float)u.CurrentHP / u.maxHP : 1f;
+
+    // Lower HP % is weaker; on a tie, fewer HP left
+    static bool IsWeaker(CombatUnit a, CombatUnit b)
+    {
+        float fa = HealthFraction(a), fb = HealthFraction(b);
+        if (!Mathf.Approximately(fa, fb)) return fa < fb;
+        return a.CurrentHP < b.CurrentHP;
     }
 
     IEnumerator Attack(CombatUnit target, bool melee)

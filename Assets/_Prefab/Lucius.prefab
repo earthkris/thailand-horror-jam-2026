@@ -393,7 +393,7 @@ MonoBehaviour:
   team: 0
   size: 1
   tileSize: 1
-  maxHP: 10
+  maxHP: 25
   armorClass: 16
   dexModifier: 0
   attackBonus: 4

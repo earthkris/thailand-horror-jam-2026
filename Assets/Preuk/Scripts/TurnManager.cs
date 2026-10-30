@@ -47,6 +47,20 @@ public class TurnManager : MonoBehaviour
     int index;   // position in Order
     readonly Dictionary<(CombatUnit, CombatAction), int> usesLeft = new Dictionary<(CombatUnit, CombatAction), int>();
 
+    // Scripted fights (the tutorial): the next battle with 'fixedTrigger' in it uses these d20 rolls
+    CombatUnit fixedTrigger;
+    readonly Dictionary<CombatUnit, int> fixedRolls = new Dictionary<CombatUnit, int>();
+
+    // The next battle that has 'trigger' in it uses these d20 rolls instead of random ones.
+    // Used once, then forgotten. Units not listed still roll normally.
+    public void FixInitiativeFor(CombatUnit trigger, params (CombatUnit unit, int roll)[] rolls)
+    {
+        fixedTrigger = trigger;
+        fixedRolls.Clear();
+        foreach (var r in rolls)
+            if (r.unit != null) fixedRolls[r.unit] = Mathf.Clamp(r.roll, 1, 20);
+    }
+
     void Awake()
     {
         combat = GetComponent<CombatManager>();
@@ -66,10 +80,13 @@ public class TurnManager : MonoBehaviour
         everyone.AddRange(combat.Enemies);
         foreach (CombatUnit u in everyone) u.ClearBuffs();   // last fight's Bless is gone
 
+        // Is this the scripted fight? Then its rolls are fixed (once)
+        bool scripted = fixedTrigger != null && everyone.Contains(fixedTrigger);
+
         // Everyone rolls d20 + Dex
         foreach (CombatUnit u in everyone)
         {
-            int roll = DiceSimulator.Roll(20);
+            int roll = scripted && fixedRolls.TryGetValue(u, out int fixedRoll) ? fixedRoll : DiceSimulator.Roll(20);
             int total = roll + u.dexModifier;
             Order.Add(new Combatant { unit = u, roll = roll, initiative = total });
             Debug.Log($"{u.unitName} rolls initiative: d20 ({roll}) + {u.dexModifier} = {total}");
@@ -82,6 +99,12 @@ public class TurnManager : MonoBehaviour
             if (a.unit.dexModifier != b.unit.dexModifier) return b.unit.dexModifier.CompareTo(a.unit.dexModifier);
             return a.unit.team.CompareTo(b.unit.team);   // Party (0) before Enemy (1)
         });
+
+        if (scripted)
+        {
+            fixedTrigger = null;
+            fixedRolls.Clear();
+        }
 
         InBattle = true;
         ResolvingStatus = false;
