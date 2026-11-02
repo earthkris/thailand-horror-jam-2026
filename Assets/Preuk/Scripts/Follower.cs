@@ -9,11 +9,13 @@ public class Follower : MonoBehaviour
     public bool placeNextToLeaderOnStart = true;
 
     Vector3 targetPos;
+    CombatUnit unit;
 
     // As a prefab in a new scene: follow whoever the player walks with
     void Awake()
     {
         if (leader == null) leader = FindAnyObjectByType<PlayerMovement>();
+        unit = GetComponent<CombatUnit>();
     }
 
     void Start()
@@ -101,6 +103,8 @@ public class Follower : MonoBehaviour
     void Update()
     {
         if (leader == null) return;
+        // A body on the floor doesn't follow anyone (and doesn't slide off once it gets up)
+        if (unit != null && !unit.IsAlive) { targetPos = transform.position; return; }
 
         // Same speed as the leader, so we arrive at the same moment
         float speed = leader.moveSpeed * leader.tileSize;

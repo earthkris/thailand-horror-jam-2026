@@ -4708,6 +4708,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 4527888229690405670, guid: 9879cef38d0ba0449b16ad8794af15c8, type: 3}
+      propertyPath: actions.Array.size
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 4527888229690405670, guid: 9879cef38d0ba0449b16ad8794af15c8, type: 3}
+      propertyPath: 'actions.Array.data[2]'
+      value: 
+      objectReference: {fileID: 11400000, guid: ff0d29cc878bd5e4e9ce5976720ff039, type: 2}
     - target: {fileID: 5885084251305266077, guid: 9879cef38d0ba0449b16ad8794af15c8, type: 3}
       propertyPath: m_Name
       value: Lucius
@@ -10069,6 +10077,11 @@ PrefabInstance:
     - target: {fileID: 2091138532706719845, guid: 3c4fe30c43226c74eb75dc0b09058691, type: 3}
       propertyPath: m_Name
       value: Book - Divine Smite
+      objectReference: {fileID: 0}
+    - target: {fileID: 4182137546764031588, guid: 3c4fe30c43226c74eb75dc0b09058691, type: 3}
+      propertyPath: clue
+      value: Turn your back on a monster that still stands and it bites as you go.
+        Kill it first, or stun it.
       objectReference: {fileID: 0}
     - target: {fileID: 4182137546764031588, guid: 3c4fe30c43226c74eb75dc0b09058691, type: 3}
       propertyPath: learner
@@ -17565,6 +17578,14 @@ MonoBehaviour:
   stompDiceSides: 8
   stompBonus: 2
   jumpHeight: 3
+  hymnName: Unholy Hymn
+  hymnAtHealth: 0.6
+  hymnDamageDie: 4
+  hymnSaveBonus: 2
+  hymnAC: 2
+  hymnRegenTurns: 3
+  hymnRegenDiceCount: 2
+  hymnRegenDiceSides: 4
   saveDC: 13
   forcedDeathOnFirstRun: 1
   effectMaterial: {fileID: 2100000, guid: 46f24d11d5bd81042bfe5f9421d3772d, type: 2}
@@ -29627,6 +29648,11 @@ MonoBehaviour:
   promptHeight: 1.3
   teaches: {fileID: 11400000, guid: ae170ce7c37871948b064b12a2cf69f5, type: 2}
   learner: Kairos
+  clue: The great mouth sings when it bleeds. Its purple song hardens its hide and
+    closes its wounds. A stunned throat cannot sing.
+  pageName: Torn page
+  pageTint: {r: 0.55, g: 0.5, b: 0.45, a: 1}
+  replacement: {fileID: 0}
   visual: {fileID: 1481068250}
   bobHeight: 0.08
   bobSpeed: 2
@@ -53647,6 +53673,11 @@ MonoBehaviour:
   promptHeight: 1.3
   teaches: {fileID: 11400000, guid: 5fac463f0bc886e4fa567968dacfae7a, type: 2}
   learner: Lucius
+  clue: Fire does not stop at one. Strike where they crowd together, and let them
+    burn.
+  pageName: Torn page
+  pageTint: {r: 0.55, g: 0.5, b: 0.45, a: 1}
+  replacement: {fileID: 0}
   visual: {fileID: 187655627}
   bobHeight: 0.08
   bobSpeed: 2
@@ -70548,12 +70579,16 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8460631004899846965, guid: 14d51a6b6126bf04ba808b50e9296999, type: 3}
       propertyPath: actions.Array.size
-      value: 2
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 8460631004899846965, guid: 14d51a6b6126bf04ba808b50e9296999, type: 3}
       propertyPath: 'actions.Array.data[1]'
       value: 
       objectReference: {fileID: 11400000, guid: 2f0d6704fee7ab14d86c64472f02531c, type: 2}
+    - target: {fileID: 8460631004899846965, guid: 14d51a6b6126bf04ba808b50e9296999, type: 3}
+      propertyPath: 'actions.Array.data[2]'
+      value: 
+      objectReference: {fileID: 11400000, guid: ff0d29cc878bd5e4e9ce5976720ff039, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -79821,6 +79856,10 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.y
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 8107121534672451475, guid: 8d19c6f8daf97114c891770b2b334dee, type: 3}
+      propertyPath: m_text
+      value: BONUS ACTION
+      objectReference: {fileID: 0}
     - target: {fileID: 8220439316407891447, guid: 8d19c6f8daf97114c891770b2b334dee, type: 3}
       propertyPath: m_SizeDelta.x
       value: 330
@@ -88841,7 +88880,9 @@ MonoBehaviour:
   breatheFramesPerSecond: 5
   breatheFrom: 2
   heightScale: 1.25
-  alpha: 0.8
+  alpha: 0.45
+  enemyColor: {r: 0.65882355, g: 0.28235295, b: 1, a: 1}
+  enemyWidth: 0.7
 --- !u!4 &1944283968 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5611728130308194253, guid: 116ef67dac2f5134bbef03078ecb2057, type: 3}
@@ -94200,6 +94241,11 @@ PrefabInstance:
       value: Book - Lay on Hands
       objectReference: {fileID: 0}
     - target: {fileID: 4182137546764031588, guid: 3c4fe30c43226c74eb75dc0b09058691, type: 3}
+      propertyPath: clue
+      value: A friend on the floor needs no potion to rise. A hand or a healing word
+        will do. Every blow they take down there brings death closer.
+      objectReference: {fileID: 0}
+    - target: {fileID: 4182137546764031588, guid: 3c4fe30c43226c74eb75dc0b09058691, type: 3}
       propertyPath: learner
       value: Kairos
       objectReference: {fileID: 0}
@@ -94545,6 +94591,11 @@ PrefabInstance:
     - target: {fileID: 2091138532706719845, guid: 3c4fe30c43226c74eb75dc0b09058691, type: 3}
       propertyPath: m_Name
       value: Book - Bless
+      objectReference: {fileID: 0}
+    - target: {fileID: 4182137546764031588, guid: 3c4fe30c43226c74eb75dc0b09058691, type: 3}
+      propertyPath: clue
+      value: Two voices are louder than one. A blessing lasts the whole fight, so
+        speak it before the first blow, not after.
       objectReference: {fileID: 0}
     - target: {fileID: 4182137546764031588, guid: 3c4fe30c43226c74eb75dc0b09058691, type: 3}
       propertyPath: teaches

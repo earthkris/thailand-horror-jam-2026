@@ -188,7 +188,7 @@ public class TutorialCombat : MonoBehaviour
                (kb != null && (kb.eKey.wasPressedThisFrame || kb.spaceKey.wasPressedThisFrame || kb.enterKey.wasPressedThisFrame));
     }
 
-    static bool NextTo(CombatUnit a, CombatUnit b) => b.StepsTo(a.AnchorTile) <= 1;
+    static bool NextTo(CombatUnit a, CombatUnit b) => b.ReachTo(a.AnchorTile) <= 1;
 
     static RectTransform Ui(Component c) => c != null ? c.transform as RectTransform : null;
     static RectTransform Ui(GameObject g) => g != null ? g.transform as RectTransform : null;

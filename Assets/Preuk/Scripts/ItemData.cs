@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public enum ItemEffect { Heal, None }
+public enum ItemEffect { Heal, None, Book }   // Book = read it (outside a fight) to learn a move
 
 // One kind of item (Healing Potion, Holy Water...).
 // Make new ones: right-click in the Project window -> Create -> Game -> Item.
@@ -23,6 +23,12 @@ public class ItemData : ScriptableObject
     [Min(0)] public int diceCount = 2;
     [Min(1)] public int diceSides = 4;
     public int bonus = 2;
+
+    [Header("Book only")]
+    [Tooltip("The move reading it teaches.")]
+    public CombatAction teaches;
+    [Tooltip("Who learns it: the character's object name (Kairos, Lucius) or their Unit Name.")]
+    public string learner = "Lucius";
 
     public string DiceText => bonus != 0 ? $"{diceCount}d{diceSides}{(bonus > 0 ? "+" : "")}{bonus}" : $"{diceCount}d{diceSides}";
 

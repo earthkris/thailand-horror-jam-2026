@@ -7,7 +7,10 @@ using UnityEngine;
 public enum AttackStyle { Melee, Ranged, Both }
 
 // A monster's brain in combat. On its turn it walks (up to its speed), then attacks if it can.
-// Target: usually the nearest party member, but sometimes it smells blood and hunts the most hurt one.
+// Target: it weighs everyone up. Who can it reach this turn, how likely is it to hit (their AC),
+//   could it drop them, who keeps healing the others? A downed hero in reach is a feast:
+//   attacks on them have advantage and a bite costs them two death saves (D&D).
+// It also knows about opportunity attacks: it walks around the party's reach when it can.
 //   Melee:  goes for its target and hits them when standing right next to them.
 //   Ranged: keeps its distance, finds a spot with a clear shot, and fires a projectile.
 //   Both:   walks up and attacks in melee if it can get there this turn; if not, shoots instead.
@@ -29,10 +32,16 @@ public class EnemyAI : MonoBehaviour
     [Range(0f, 1f)] public float preferRangedChance = 0f;
 
     [Header("Picking a target")]
-    [Tooltip("Chance each turn that it goes for the most hurt party member (lowest HP %) instead of the closest.")]
-    [Range(0f, 1f)] public float focusWeakChance = 0.5f;
-    [Tooltip("It only goes after the hurt one if they're at most this many tiles further away than the closest.")]
-    [Min(0)] public int maxDetour = 6;
+    [Tooltip("How badly it wants to finish off a downed hero it can reach this turn. 0 = leaves them alone.")]
+    [Min(0f)] public float downedPriority = 5f;
+    [Tooltip("Extra wish to go for whoever can heal (Lucius).")]
+    [Min(0f)] public float healerPriority = 1.5f;
+    [Tooltip("A bit of luck in the choice, so it isn't fully predictable. 0 = always the 'best' target.")]
+    [Min(0f)] public float randomness = 1.5f;
+
+    [Header("Cunning")]
+    [Tooltip("How many extra tiles it will walk to avoid one opportunity attack.")]
+    [Min(0)] public int opportunityAttackDetour = 6;
 
     [Header("Projectile (Ranged / Both)")]
     [Tooltip("What flies at the target. Leave empty for a plain ball.")]
@@ -55,10 +64,11 @@ public class EnemyAI : MonoBehaviour
     CombatUnit unit;
     CombatManager combat;
     GridManager grid;
+    TurnManager turns;
 
     CombatUnit chosen;     // who we're after this turn
-    bool huntingWeak;      // this turn we go for whoever is most hurt
     int turnsTaken;        // for openWithRanged
+    Dictionary<Vector2Int, int> pathCost;   // from the last Flood: steps + opportunity attack detours
 
     void Awake() => unit = GetComponent<CombatUnit>();
 
@@ -74,6 +84,7 @@ public class EnemyAI : MonoBehaviour
     {
         combat = battle;
         grid = battle.grid;
+        turns = battle.GetComponent<TurnManager>();
 
         CombatUnit target = ChooseTarget();
         if (target == null) yield break;   // nobody left to fight
@@ -89,7 +100,17 @@ public class EnemyAI : MonoBehaviour
             style == AttackStyle.Ranged || shoot ? PlanRanged(target) :
             PlanBoth(target);
         foreach (Vector2Int tile in path)
+        {
+            // Walking out of a party member's reach: they get a free swing first
+            foreach (CombatUnit p in OpportunityAttack.Provokers(unit, grid.OriginTile + tile, combat, turns))
+                yield return OpportunityAttack.Resolve(p, unit, turns);
+            if (!unit.IsAlive)
+            {
+                turns.CheckForVictory();
+                yield break;
+            }
             yield return Step(tile);
+        }
 
         // 2. Attack whoever we can reach now (melee first, then a shot)
         CombatUnit victim = TargetInReach(out bool melee, shoot);
@@ -111,8 +132,9 @@ public class EnemyAI : MonoBehaviour
         foreach (var pair in dist)
         {
             int gap = Gap(pair.Key, target);
-            // Standing next to them beats everything; otherwise get as close as possible
-            int score = (gap <= 1 ? 0 : gap * 1000) + pair.Value;
+            // Standing next to them beats everything; otherwise get as close as possible.
+            // Getting there this turn beats a longer (safer) way round.
+            int score = (gap <= 1 ? 0 : gap * 1000) + (pair.Value > unit.MoveTiles ? 500 : 0) + pathCost[pair.Key];
             if (score < bestScore) { bestScore = score; best = pair.Key; }
         }
         return Trim(PathTo(best, cameFrom), unit.MoveTiles);
@@ -133,7 +155,7 @@ public class EnemyAI : MonoBehaviour
             int gap = Gap(pair.Key, target);
             if (gap > attackRange || !ClearShot(pair.Key, target)) continue;
 
-            int score = Mathf.Abs(gap - preferredDistance) * 10 + pair.Value;
+            int score = Mathf.Abs(gap - preferredDistance) * 10 + pathCost[pair.Key];
             if (NearestPartyGap(pair.Key) <= 1) score += 1000;   // don't shoot point-blank
             if (score < bestScore) { bestScore = score; best = pair.Key; found = true; }
         }
@@ -152,26 +174,50 @@ public class EnemyAI : MonoBehaviour
         return PlanRanged(target);
     }
 
-    // Spread out from 'start' over every tile we could stand on (walls, rocks and units block)
+    // Spread out from 'start' over every tile we could stand on (walls, rocks and units block).
+    // The cheapest way to each tile, where a step that provokes an opportunity attack counts as
+    // opportunityAttackDetour extra steps. 'dist' = steps along that way, pathCost = its cost.
     void Flood(Vector2Int start, out Dictionary<Vector2Int, int> dist, out Dictionary<Vector2Int, Vector2Int> cameFrom)
     {
         dist = new Dictionary<Vector2Int, int> { [start] = 0 };
         cameFrom = new Dictionary<Vector2Int, Vector2Int>();
-        var queue = new Queue<Vector2Int>();
-        queue.Enqueue(start);
+        pathCost = new Dictionary<Vector2Int, int> { [start] = 0 };
+        var open = new List<Vector2Int> { start };
+        var done = new HashSet<Vector2Int>();
 
-        while (queue.Count > 0)
+        while (open.Count > 0)
         {
-            Vector2Int t = queue.Dequeue();
+            int pick = 0;   // the cheapest open tile (grids are small, a list is fine)
+            for (int i = 1; i < open.Count; i++)
+                if (pathCost[open[i]] < pathCost[open[pick]]) pick = i;
+            Vector2Int t = open[pick];
+            open.RemoveAt(pick);
+            if (!done.Add(t)) continue;
+
             foreach (Vector2Int d in Dirs)
             {
                 Vector2Int n = t + d;
-                if (dist.ContainsKey(n) || !CanStand(n)) continue;
+                if (done.Contains(n) || !CanStand(n)) continue;
+                int cost = pathCost[t] + 1 + (Provokes(t, n) ? opportunityAttackDetour : 0);
+                if (pathCost.TryGetValue(n, out int old) && old <= cost) continue;
+                pathCost[n] = cost;
                 dist[n] = dist[t] + 1;
                 cameFrom[n] = t;
-                queue.Enqueue(n);
+                open.Add(n);
             }
         }
+    }
+
+    // Would stepping from 'from' to 'to' leave a party member's reach while they still have their reaction?
+    bool Provokes(Vector2Int from, Vector2Int to)
+    {
+        foreach (CombatUnit p in combat.Party)
+        {
+            if (p == null || !p.IsAlive || p.Has(StatusType.Paralyse)) continue;
+            if (turns != null && !turns.HasReaction(p)) continue;
+            if (Gap(from, p) <= 1 && Gap(to, p) > 1) return true;
+        }
+        return false;
     }
 
     static List<Vector2Int> PathTo(Vector2Int goal, Dictionary<Vector2Int, Vector2Int> cameFrom)
@@ -219,79 +265,111 @@ public class EnemyAI : MonoBehaviour
         return PickWhere(p => Gap(me, p) <= attackRange && ClearShot(me, p));
     }
 
-    // Of the party members we could hit: the one we came for, else the most hurt (when hunting)
-    // or the nearest
+    // Of the party members we could hit: the one we came for, else the one we'd most like to hit.
+    // A downed hero only if we came for them, or nobody standing is in reach.
     CombatUnit PickWhere(System.Func<CombatUnit, bool> ok)
     {
-        if (chosen != null && chosen.IsAlive && ok(chosen)) return chosen;
+        if (chosen != null && (chosen.IsAlive || chosen.IsDowned) && ok(chosen)) return chosen;
 
         CombatUnit best = null;
-        Vector2Int me = MyTile();
+        float bestScore = float.MinValue;
         foreach (CombatUnit p in combat.Party)
         {
-            if (p == null || !p.IsAlive || !ok(p)) continue;
-            bool better = best == null ||
-                          (huntingWeak ? IsWeaker(p, best) : Gap(me, p) < Gap(me, best));
-            if (better) best = p;
+            if (p == null || !ok(p)) continue;
+            if (!p.IsAlive && !(p.IsDowned && downedPriority > 0f)) continue;
+            float score = Worth(p, true, 0) - (p.IsAlive ? 0f : 100f);   // standing ones first here
+            if (score > bestScore) { bestScore = score; best = p; }
         }
         return best;
     }
 
     // ================= Picking a target =================
 
-    // Usually the closest party member. Sometimes (focusWeakChance) the most hurt one instead,
-    // if they're not too far out of the way.
+    // Everyone gets a score (Worth); the best one is who we go after this turn
     CombatUnit ChooseTarget()
     {
-        Vector2Int me = MyTile();
-        CombatUnit closest = ClosestPartyMember(me);
-        chosen = closest;
-        huntingWeak = false;
-        if (closest == null) return null;
+        chosen = null;
+        Flood(MyTile(), out var dist, out _);
 
-        huntingWeak = Random.value < focusWeakChance;
-        if (!huntingWeak) return closest;
-
-        int closestGap = Gap(me, closest);
-        CombatUnit weakest = null;
+        float bestScore = float.MinValue;
         foreach (CombatUnit p in combat.Party)
         {
-            if (p == null || !p.IsAlive) continue;
-            if (Gap(me, p) > closestGap + maxDetour) continue;   // too far out of the way
-            if (weakest == null || IsWeaker(p, weakest)) weakest = p;
+            if (p == null || p.IsDead || (!p.IsAlive && !p.IsDowned)) continue;
+            bool reach = CanReachThisTurn(p, dist, out int cost);
+            if (p.IsDowned && (!reach || downedPriority <= 0f)) continue;   // not worth a long walk
+            float score = Worth(p, reach, cost) + Random.Range(0f, randomness);
+            if (score > bestScore) { bestScore = score; chosen = p; }
         }
 
-        if (weakest != null && weakest != closest && IsWeaker(weakest, closest))
-        {
-            chosen = weakest;
-            Debug.Log($"{Name()} smells blood and goes for {weakest.unitName}.");
-        }
+        // Nobody worth it? Just go for the closest one standing
+        if (chosen == null) chosen = ClosestPartyMember(MyTile());
+        else if (chosen.IsDowned) Debug.Log($"{Name()} goes to finish off {chosen.unitName}.");
         return chosen;
+    }
+
+    // How much we want to attack 'p'. Roughly: the damage we expect to do, plus reasons to hurry.
+    float Worth(CombatUnit p, bool reach, int cost)
+    {
+        if (p.IsDowned) return downedPriority + 4f * p.DeathSaveFailures;
+
+        float average = unit.damageDiceCount * (unit.damageDiceSides + 1) * 0.5f + unit.damageBonus;
+        float score = HitChance(p) * average;
+        if (p.CurrentHP <= average) score += 4f;            // could drop them this turn
+        score += (1f - HealthFraction(p)) * 3f;             // already hurt
+        if (CanHeal(p)) score += healerPriority;            // take out the healer
+        if (!reach) score -= 3f;                            // can't hit them this turn anyway
+        score -= cost * 0.25f;                              // far away, or past someone's reach
+        return score;
+    }
+
+    float HitChance(CombatUnit p)
+    {
+        int need = p.ArmorClass - unit.attackBonus;          // d20 roll needed
+        return Mathf.Clamp((21 - need) / 20f, 0.05f, 0.95f);
+    }
+
+    static bool CanHeal(CombatUnit p) => p.actions.Exists(a => a != null && a.effect == ActionEffect.Heal);
+
+    // Is there a tile we can walk to this turn and attack 'p' from? 'cost' = the cheapest way there.
+    bool CanReachThisTurn(CombatUnit p, Dictionary<Vector2Int, int> dist, out int cost)
+    {
+        cost = int.MaxValue;
+        int closest = int.MaxValue;
+        foreach (var pair in dist)
+        {
+            int gap = Gap(pair.Key, p);
+            closest = Mathf.Min(closest, pathCost[pair.Key] + gap);
+            if (pair.Value > unit.MoveTiles) continue;
+            bool ok = (style != AttackStyle.Ranged && gap <= 1) ||
+                      (style != AttackStyle.Melee && gap <= attackRange && ClearShot(pair.Key, p));
+            if (ok) cost = Mathf.Min(cost, pathCost[pair.Key]);
+        }
+        if (cost != int.MaxValue) return true;
+        cost = closest == int.MaxValue ? 30 : closest;   // can't get there: how far it is instead
+        return false;
     }
 
     static float HealthFraction(CombatUnit u) => u.maxHP > 0 ? (float)u.CurrentHP / u.maxHP : 1f;
 
-    // Lower HP % is weaker; on a tie, fewer HP left
-    static bool IsWeaker(CombatUnit a, CombatUnit b)
-    {
-        float fa = HealthFraction(a), fb = HealthFraction(b);
-        if (!Mathf.Approximately(fa, fb)) return fa < fb;
-        return a.CurrentHP < b.CurrentHP;
-    }
-
     IEnumerator Attack(CombatUnit target, bool melee)
     {
-        // D&D: shooting with an enemy right next to you = disadvantage (roll twice, keep the lower)
-        bool disadvantage = !melee && NearestPartyGap(MyTile()) <= 1;
+        // D&D: shooting with an enemy right next to you = disadvantage (roll twice, keep the lower).
+        // Attacking someone who is down = advantage (roll twice, keep the higher). Both cancel out.
+        bool downed = target.IsDowned;
+        bool crowded = !melee && NearestPartyGap(MyTile()) <= 1;
+        bool disadvantage = crowded && !downed;
+        bool advantage = downed && !crowded;
         string verb = melee ? meleeVerb : rangedVerb;
 
         // Rolled on the real dice (DiceTray), or DiceSimulator if there's no dice in the scene
         int r1 = 0, r2 = 0;
-        yield return DiceTray.RollD20($"{Name()} {verb} {target.unitName}" + (disadvantage ? "   (disadvantage)" : ""), v => r1 = v);
+        yield return DiceTray.RollD20($"{Name()} {verb} {target.unitName}" + (disadvantage ? "   (disadvantage)" : advantage ? "   (advantage)" : ""), v => r1 = v);
         r2 = r1;
         if (disadvantage)
             yield return DiceTray.RollD20("Disadvantage  —  second roll", v => r2 = v);
-        int roll = Mathf.Min(r1, r2);
+        if (advantage)
+            yield return DiceTray.RollD20($"Advantage: {target.unitName} is down  —  second roll", v => r2 = v);
+        int roll = advantage ? Mathf.Max(r1, r2) : Mathf.Min(r1, r2);
 
         // Hit or miss? (worked out first, so a missed shot can fly wide)
         int total = roll + unit.attackBonus;
@@ -304,13 +382,26 @@ public class EnemyAI : MonoBehaviour
         if (melee) yield return Swing(target);
         else yield return Shoot(target, hit);
 
-        string rollText = disadvantage ? $"d20 ({r1}, {r2} -> {roll}, disadvantage)" : $"d20 ({roll})";
+        string rollText = disadvantage ? $"d20 ({r1}, {r2} -> {roll}, disadvantage)"
+                        : advantage ? $"d20 ({r1}, {r2} -> {roll}, advantage)" : $"d20 ({roll})";
         string attack = $"{Name()} {verb} {target.unitName}: {rollText} + {unit.attackBonus} = {total} vs AC {target.ArmorClass}";
 
         if (!hit)
         {
             Debug.Log($"{attack} — miss{(roll == 1 ? " (natural 1)" : "")}");
             yield return DiceTray.ShowOutcome(roll == 1 ? "NATURAL 1  —  MISS" : "MISS", true);   // good for you
+            yield break;
+        }
+
+        // Someone who is down: a hit costs a death save, a bite from right next to them costs two
+        if (downed)
+        {
+            target.TakeDamage(1);
+            if ((melee || crit) && !target.IsDead) target.AddDeathSaveFailures(1);
+            Debug.Log($"{attack} — hit! {target.unitName}: {target.DeathSaveText}");
+            string result = target.IsDead ? $"{target.unitName.ToUpper()} IS DEAD" : $"{target.unitName}: {target.DeathSaveFailures}/3 DEATH SAVES FAILED";
+            yield return DiceTray.ShowOutcome("HIT  —  " + result, false);
+            turns.NotifyChanged();
             yield break;
         }
 
@@ -431,7 +522,7 @@ public class EnemyAI : MonoBehaviour
 
                 Vector2Int world = grid.OriginTile + cell;
                 foreach (CombatUnit other in AllUnits())
-                    if (other != unit && other.IsAlive && other.Occupies(world)) return false;
+                    if (other != unit && !other.IsDead && other.Occupies(world)) return false;
             }
         return true;
     }
@@ -443,7 +534,7 @@ public class EnemyAI : MonoBehaviour
         Vector2Int b = other.AnchorTile;
         int dx = Mathf.Max(0, b.x - (a.x + unit.size - 1), a.x - (b.x + other.size - 1));
         int dy = Mathf.Max(0, b.y - (a.y + unit.size - 1), a.y - (b.y + other.size - 1));
-        return dx + dy;
+        return CombatUnit.Reach(dx, dy);
     }
 
     int NearestPartyGap(Vector2Int anchor)

@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
-// A pop-up list of choices (used for ACTION and USE ITEM).
+// A pop-up list of choices (used for ACTION and BONUS ACTION).
 // The look is all in the Hierarchy: restyle the panel, the Option template and the Back button freely.
 // The Option template needs a child text called "Label"; a child text called "Detail" is optional,
 // and so is a child Image called "Icon" (hidden when an option has no icon).

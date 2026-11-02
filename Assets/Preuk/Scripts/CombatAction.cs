@@ -1,7 +1,7 @@
 using UnityEngine;
 
 public enum ActionTarget { Enemy, Ally, Self }   // Ally = any party member, including yourself
-public enum ActionEffect { Damage, Heal, Buff }
+public enum ActionEffect { Damage, Heal, Buff, Help }   // Help = get a downed ally back up with 1 HP (Baldur's Gate)
 public enum ActionArea { Single, AroundTarget, AroundUser }   // AroundTarget = splash round who you hit, AroundUser = a sweep round you   // Buff = Bless, Shield of Faith... (lasts until the fight ends)
 
 // One thing a character can do with their action (Sword Strike, Holy Verse, Heal...).
@@ -15,6 +15,9 @@ public class CombatAction : ScriptableObject
     [TextArea(2, 4)] public string description = "";
     [Tooltip("Small type icon in front of the name (attack, heal, buff...).")]
     public Sprite typeIcon;
+
+    [Tooltip("On = it's in the BONUS ACTION menu and uses the bonus action, not the action (Baldur's Gate: Healing Word, Shield of Faith).")]
+    public bool bonusAction = false;
 
     [Header("Who and how far")]
     public ActionTarget target = ActionTarget.Enemy;
@@ -141,5 +144,6 @@ public class CombatAction : ScriptableObject
     }
 
     // What the menu shows next to the name: the amount, or what the buff gives
-    public string AmountText => effect == ActionEffect.Buff ? BuffText : RangeText;
+    public string AmountText => effect == ActionEffect.Buff ? BuffText
+                              : effect == ActionEffect.Help ? "up with 1 HP" : RangeText;
 }

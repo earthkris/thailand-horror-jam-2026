@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-// After picking something in the ACTION or USE ITEM menu: shows what it can reach,
+// After picking something in the ACTION or BONUS ACTION menu: shows what it can reach,
 // waits for you to click a target, then rolls and applies it.
 //   Attacks: d20 + bonus vs the target's AC, rolled on the real dice (DiceTray).
 //            Natural 20 = critical hit (damage dice twice). Natural 1 = always a miss.
@@ -157,10 +157,12 @@ public class CombatTargeting : MonoBehaviour
         if (item != null) yield return UseItem(target);
         else if (action.effect == ActionEffect.Damage) yield return Attack(target);
         else if (action.effect == ActionEffect.Buff) yield return Buff(target);
+        else if (action.effect == ActionEffect.Help) yield return Help(target);
         else yield return Heal(action.displayName, action.diceCount, action.diceSides, action.bonus, target);
 
         if (action != null) turns.SpendUse(user, action);
-        turns.MarkActed();
+        if (item != null || action.bonusAction) turns.MarkBonusUsed();   // potions and bonus spells
+        else turns.MarkActed();
         busy = false;
         if (movement != null) movement.Refresh();
         turns.CheckForVictory();
@@ -297,6 +299,15 @@ public class CombatTargeting : MonoBehaviour
         yield return DiceTray.ShowMessage(action.displayName, $"{names}   {action.BuffText}", true);
     }
 
+    // Help: no roll, a downed ally is back on their feet with 1 HP
+    IEnumerator Help(CombatUnit target)
+    {
+        target.Revive(1);
+        Debug.Log($"{user.unitName} helps {target.unitName} back up (1 HP)");
+        turns.NotifyChanged();
+        yield return DiceTray.ShowMessage(action.displayName, $"{target.unitName} is back on their feet  (1 HP)", true);
+    }
+
     IEnumerator UseItem(CombatUnit target)
     {
         if (inventory == null || !inventory.Remove(item))
@@ -323,8 +334,18 @@ public class CombatTargeting : MonoBehaviour
         if (Target == ActionTarget.Self) { yield return user; yield break; }
         var list = Target == ActionTarget.Enemy ? combat.Enemies : combat.Party;
         foreach (CombatUnit u in list)
-            if (u != null && u.IsAlive) yield return u;
+            if (u != null && CanTarget(u)) yield return u;
     }
+
+    // Help only reaches the downed; heals reach the standing and the downed; everything else the standing
+    bool CanTarget(CombatUnit u)
+    {
+        if (action != null && action.effect == ActionEffect.Help) return u.IsDowned;
+        if (Heals) return u.IsAlive || u.IsDowned;
+        return u.IsAlive;
+    }
+
+    bool Heals => item != null ? item.effect == ItemEffect.Heal : action.effect == ActionEffect.Heal;
 
     bool CanReach(CombatUnit t) => GapTo(t) <= Range && HasLineOfSight(t);
 
@@ -340,7 +361,7 @@ public class CombatTargeting : MonoBehaviour
         Vector2Int a = user.AnchorTile;
         int dx = Mathf.Max(0, worldTile.x - (a.x + user.size - 1), a.x - worldTile.x);
         int dy = Mathf.Max(0, worldTile.y - (a.y + user.size - 1), a.y - worldTile.y);
-        return dx + dy;
+        return CombatUnit.Reach(dx, dy);
     }
 
     int GapTo(CombatUnit t)
@@ -353,7 +374,7 @@ public class CombatTargeting : MonoBehaviour
     bool EnemyNextTo(CombatUnit u)
     {
         foreach (CombatUnit e in combat.Enemies)
-            if (e != null && e.IsAlive && e.StepsTo(u.AnchorTile) <= 1) return true;
+            if (e != null && e.IsAlive && e.ReachTo(u.AnchorTile) <= 1) return true;
         return false;
     }
 
@@ -376,7 +397,7 @@ public class CombatTargeting : MonoBehaviour
         Vector2Int pa = a.AnchorTile, pb = b.AnchorTile;
         int dx = Mathf.Max(0, pb.x - (pa.x + a.size - 1), pa.x - (pb.x + b.size - 1));
         int dy = Mathf.Max(0, pb.y - (pa.y + a.size - 1), pa.y - (pb.y + b.size - 1));
-        return dx + dy;
+        return CombatUnit.Reach(dx, dy);
     }
 
     // Divine Smite: the floating sword glows gold (tinted, a halo and a light) for a moment

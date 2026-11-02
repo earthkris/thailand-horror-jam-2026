@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -5,6 +6,7 @@ using UnityEngine.InputSystem;
 // Turn-based walking during your party's turns: click a lit tile, or use WASD / arrow keys.
 // A click walks the shortest way there, around walls, rocks and other units.
 // Each step = 1 tile = 5 ft of the unit's speed. You can split it up: walk, attack, walk again.
+// Stepping out of a monster's reach gives it an opportunity attack first (OpportunityAttack).
 // The tiles you can still reach glow dimly (MOVE button hides/shows them),
 // and hovering one lights up the path you would take.
 // Lives on the Combat object, next to TurnManager.
@@ -27,7 +29,10 @@ public class CombatMovement : MonoBehaviour
     GridManager Grid => combat.grid;
 
     bool stepping;
+    bool reacting;   // waiting for opportunity attacks before a step
     CombatUnit mover;
+
+    public bool IsReacting => reacting;
     Vector3 stepTarget;
     CombatUnit lastBump;   // so bumping into the same thing only logs once
 
@@ -75,6 +80,8 @@ public class CombatMovement : MonoBehaviour
 
     void Update()
     {
+        if (reacting) return;   // the dice are out for an opportunity attack
+
         // 1. Finish the step we're in
         if (stepping)
         {
@@ -117,7 +124,7 @@ public class CombatMovement : MonoBehaviour
 
     void OnMoveClicked(Vector2Int goal)
     {
-        if (!turns.InBattle || !turns.IsPartyTurn || turns.HasMoved) return;
+        if (!turns.InBattle || !turns.IsPartyTurn || turns.HasMoved || reacting) return;
         if (targeting != null && targeting.IsActive) return;
         if (PauseMenu.BlocksInput) return;
 
@@ -218,10 +225,43 @@ public class CombatMovement : MonoBehaviour
         }
 
         lastBump = null;
+
+        // Leaving a monster's reach? It gets a free swing first
+        List<CombatUnit> provokers = OpportunityAttack.Provokers(u, Grid.OriginTile + to, combat, turns);
+        if (provokers.Count > 0)
+        {
+            StartCoroutine(ReactThenStep(u, to, provokers));
+            return true;
+        }
+
+        BeginStep(u, to);
+        return true;
+    }
+
+    void BeginStep(CombatUnit u, Vector2Int to)
+    {
         mover = u;
         stepTarget = u.WorldPositionFor(Grid.OriginTile + to);
         stepping = true;
-        return true;
+    }
+
+    IEnumerator ReactThenStep(CombatUnit u, Vector2Int to, List<CombatUnit> provokers)
+    {
+        reacting = true;
+        RefreshRange();
+        foreach (CombatUnit p in provokers)
+            if (u.IsAlive) yield return OpportunityAttack.Resolve(p, u, turns);
+        reacting = false;
+
+        if (!u.IsAlive)
+        {
+            // Cut down on the way out: Kairos loops time, Lucius's turn is over
+            path.Clear();
+            turns.CheckForVictory();
+            if (turns.InBattle && turns.Current == u) turns.EndTurn();
+            yield break;
+        }
+        BeginStep(u, to);
     }
 
     // Could this unit's whole footprint stand with its bottom-left on grid tile 'anchor'?
@@ -238,7 +278,7 @@ public class CombatMovement : MonoBehaviour
                 Vector2Int world = Grid.OriginTile + cell;
                 foreach (CombatUnit other in AllUnits())
                 {
-                    if (other == u || !other.IsAlive || !other.Occupies(world)) continue;
+                    if (other == u || other.IsDead || !other.Occupies(world)) continue;
                     if (ignoreUnseen && !FogOfWar.CanSee(other)) continue;
                     blocker = other;
                     return false;
@@ -254,7 +294,7 @@ public class CombatMovement : MonoBehaviour
         if (Grid == null || !Grid.IsBuilt) return;
 
         bool show = turns.InBattle && turns.IsPartyTurn && !turns.HasMoved && turns.ShowMoveRange
-                    && (targeting == null || !targeting.IsActive);
+                    && (targeting == null || !targeting.IsActive) && !reacting;
         if (!show)
         {
             Grid.ClearRange();

@@ -46,6 +46,57 @@ public class CombatUnit : MonoBehaviour
 
     public int CurrentHP { get; private set; }
     public bool IsAlive => CurrentHP > 0;
+
+    // ---------- Downed (party only, Baldur's Gate style) ----------
+    // A party member at 0 HP is downed, not dead. On each of their turns they roll a death saving throw:
+    // d20 10+ = success, below 10 = failure, natural 20 = back up with 1 HP, natural 1 = two failures.
+    // 3 successes = stable (no more rolls), 3 failures = dead for good (until the loop).
+    // Any heal or an ally's Help gets them up; after a won fight they get up with 1 HP.
+    // Monsters at 0 HP are simply dead.
+    public bool IsDead { get; private set; }
+    public bool IsDowned => !IsAlive && !IsDead;
+    public int DeathSaveSuccesses { get; private set; }
+    public int DeathSaveFailures { get; private set; }
+    public bool IsStable => IsDowned && DeathSaveSuccesses >= 3;
+
+    // For the turn panel: "DOWNED  saves 1/3  fails 2/3"
+    public string DeathSaveText => IsDead ? "DEAD" : IsStable ? "DOWNED  (stable)"
+                                 : $"DOWNED  saves {DeathSaveSuccesses}/3  fails {DeathSaveFailures}/3";
+
+    // Roll the d20 yourself (on the dice tray) and hand the number in here
+    public void ApplyDeathSave(int roll)
+    {
+        if (!IsDowned || IsStable) return;
+        if (roll == 20)
+        {
+            Debug.Log($"{unitName} rolls a natural 20 on the death save and gets back up!");
+            Revive(1);
+            return;
+        }
+        if (roll >= 10)
+        {
+            DeathSaveSuccesses++;
+            Debug.Log($"{unitName} death save: {roll}, success ({DeathSaveSuccesses}/3)" + (IsStable ? ". Stable." : ""));
+        }
+        else AddDeathSaveFailures(roll == 1 ? 2 : 1);
+    }
+
+    public void AddDeathSaveFailures(int count)
+    {
+        DeathSaveFailures = Mathf.Min(DeathSaveFailures + count, 3);
+        Debug.Log($"{unitName} death save failure ({DeathSaveFailures}/3)");
+        if (DeathSaveFailures >= 3)
+        {
+            IsDead = true;
+            Debug.Log($"{unitName} is dead.");
+        }
+    }
+
+    void ResetDeathSaves()
+    {
+        DeathSaveSuccesses = 0;
+        DeathSaveFailures = 0;
+    }
     public int MoveTiles => speedFeet / 5;
     public string DamageText => $"{damageDiceCount}d{damageDiceSides}+{damageBonus}";
 
@@ -141,6 +192,7 @@ public class CombatUnit : MonoBehaviour
     {
         CurrentHP = maxHP;
         SnapToGrid();
+        if (team == Team.Party && !TryGetComponent<DownedPose>(out _)) gameObject.AddComponent<DownedPose>();   // lie down when downed
     }
 
     // ---------- Footprint (which tiles we cover) ----------
@@ -181,6 +233,18 @@ public class CombatUnit : MonoBehaviour
         return dx + dy;
     }
 
+    // Like StepsTo, but for fighting: a diagonal neighbour counts as next to us (melee hits diagonally)
+    public int ReachTo(Vector2Int tile)
+    {
+        Vector2Int a = AnchorTile;
+        int dx = Mathf.Max(a.x - tile.x, 0, tile.x - (a.x + size - 1));
+        int dy = Mathf.Max(a.y - tile.y, 0, tile.y - (a.y + size - 1));
+        return Reach(dx, dy);
+    }
+
+    // Steps from a gap of dx, dy tiles: one step diagonally is still 1, anything further adds up as usual
+    public static int Reach(int dx, int dy) => dx == 1 && dy == 1 ? 1 : dx + dy;
+
     // Where the root should be if our bottom-left tile is 'anchor'
     public Vector3 WorldPositionFor(Vector2Int anchor)
     {
@@ -208,7 +272,15 @@ public class CombatUnit : MonoBehaviour
 
     public void TakeDamage(int amount)
     {
-        if (!IsAlive) return;
+        if (IsDead) return;
+
+        // Hitting someone who is downed costs them a death save
+        if (IsDowned)
+        {
+            OnAnyDamaged?.Invoke(this, amount);
+            AddDeathSaveFailures(1);
+            return;
+        }
 
         CurrentHP = Mathf.Max(CurrentHP - amount, cannotDie ? 1 : 0);
         Debug.Log($"{unitName} takes {amount} damage ({CurrentHP}/{maxHP} HP)");
@@ -217,22 +289,29 @@ public class CombatUnit : MonoBehaviour
         if (CurrentHP == 0)
         {
             ClearStatuses();
-            Debug.Log($"{unitName} is down!");
+            ResetDeathSaves();
+            if (team == Team.Enemy) IsDead = true;
+            Debug.Log($"{unitName} is {(IsDead ? "dead" : "down")}!");
             OnDied?.Invoke(this);
         }
     }
 
+    // Healing someone who is downed gets them back up (Baldur's Gate rule). The dead stay dead.
     public void Heal(int amount)
     {
+        if (IsDowned) { Revive(amount); return; }
         if (!IsAlive) return;
         CurrentHP = Mathf.Min(CurrentHP + amount, maxHP);
         OnAnyHealed?.Invoke(this, amount);
     }
 
-    // Back on their feet (a story heal after a fight). Undoes the grey "down" look.
+    // Back on their feet (a heal, Help, or a story heal after a fight). Undoes the grey "down" look.
+    // Story scripts may call this on the dead too.
     public void Revive(int hp)
     {
         if (IsAlive) { Heal(hp); return; }
+        IsDead = false;
+        ResetDeathSaves();
         CurrentHP = Mathf.Clamp(hp, 1, maxHP);
         foreach (SpriteRenderer sr in GetComponentsInChildren<SpriteRenderer>(true)) sr.color = Color.white;
         OnAnyHealed?.Invoke(this, CurrentHP);

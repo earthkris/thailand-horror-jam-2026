@@ -18,13 +18,19 @@ public class BlessAura : MonoBehaviour
     public int breatheFrom = 2;
     [Tooltip("Aura height compared to the character's sprite.")]
     public float heightScale = 1.25f;
-    [Range(0f, 1f)] public float alpha = 0.8f;
-
+    [Range(0f, 1f)] public float alpha = 0.45f;
+    [Tooltip("Monsters' blessings (the boss's Unholy Hymn) glow in this colour instead of gold.")]
+    public Color enemyColor = new Color32(168, 72, 255, 255);
+    [Tooltip("Monsters only: the aura is at least this wide compared to their body, so a wide body doesn't hide it.")]
+    [Range(0f, 1.5f)] public float enemyWidth = 0.7f;
     class Aura
     {
         public SpriteRenderer sr;
         public float age;
+        public bool enemy;
     }
+
+    Sprite[] enemyFrames;   // the frames recoloured purple, made the first time a monster is blessed
 
     readonly Dictionary<CombatUnit, Aura> auras = new Dictionary<CombatUnit, Aura>();
     readonly List<CombatUnit> units = new List<CombatUnit>();
@@ -64,7 +70,7 @@ public class BlessAura : MonoBehaviour
                 if (a != null) { if (a.sr != null) Destroy(a.sr.gameObject); auras.Remove(u); }
                 continue;
             }
-            if (a == null) auras[u] = a = Make(body);
+            if (a == null) auras[u] = a = Make(body, u.team == Team.Enemy);
             a.age += Time.deltaTime;
             Place(a, body);
         }
@@ -75,12 +81,56 @@ public class BlessAura : MonoBehaviour
         foreach (CombatUnit u in gone) { if (auras[u].sr != null) Destroy(auras[u].sr.gameObject); auras.Remove(u); }
     }
 
-    Aura Make(SpriteRenderer body)
+    Aura Make(SpriteRenderer body, bool enemy)
     {
-        var go = new GameObject("Bless Aura", typeof(SpriteRenderer));
+        var go = new GameObject(enemy ? "Unholy Aura" : "Bless Aura", typeof(SpriteRenderer));
         var sr = go.GetComponent<SpriteRenderer>();
         if (material != null) sr.sharedMaterial = material;
-        return new Aura { sr = sr };
+        if (enemy && enemyFrames == null) enemyFrames = Recolor(frames, enemyColor);
+        return new Aura { sr = sr, enemy = enemy };
+    }
+
+    // Copies the gold frames and paints them in 'color', keeping how bright each pixel is
+    // (the brightest cores stay near white). Works on textures that aren't readable too.
+    static Sprite[] Recolor(Sprite[] source, Color color)
+    {
+        var textures = new Dictionary<Texture2D, Texture2D>();
+        var result = new Sprite[source.Length];
+        for (int i = 0; i < source.Length; i++)
+        {
+            Sprite s = source[i];
+            if (s == null) continue;
+            if (!textures.TryGetValue(s.texture, out Texture2D tex))
+                textures[s.texture] = tex = RecolorTexture(s.texture, color);
+            result[i] = Sprite.Create(tex, s.rect, new Vector2(s.pivot.x / s.rect.width, s.pivot.y / s.rect.height), s.pixelsPerUnit);
+        }
+        return result;
+    }
+
+    static Texture2D RecolorTexture(Texture2D src, Color color)
+    {
+        RenderTexture rt = RenderTexture.GetTemporary(src.width, src.height, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
+        Graphics.Blit(src, rt);
+        RenderTexture previous = RenderTexture.active;
+        RenderTexture.active = rt;
+        var tex = new Texture2D(src.width, src.height, TextureFormat.RGBA32, false);
+        tex.ReadPixels(new Rect(0, 0, src.width, src.height), 0, 0);
+        RenderTexture.active = previous;
+        RenderTexture.ReleaseTemporary(rt);
+
+        Color[] pixels = tex.GetPixels();
+        for (int i = 0; i < pixels.Length; i++)
+        {
+            Color p = pixels[i];
+            float light = Mathf.Max(p.r, Mathf.Max(p.g, p.b));
+            Color tinted = Color.Lerp(color * light, Color.white * light, Mathf.Clamp01((light - 0.92f) * 6f));
+            pixels[i] = new Color(tinted.r, tinted.g, tinted.b, p.a);
+        }
+        tex.SetPixels(pixels);
+        tex.filterMode = src.filterMode;
+        tex.wrapMode = src.wrapMode;
+        tex.Apply();
+        return tex;
     }
 
     void Place(Aura a, SpriteRenderer body)
@@ -98,14 +148,17 @@ public class BlessAura : MonoBehaviour
                 index = from + (step <= span ? step : span * 2 - step);
             }
         }
-        Sprite s = frames[index];
+        Sprite s = a.enemy && enemyFrames != null && enemyFrames[index] != null ? enemyFrames[index] : frames[index];
         a.sr.sprite = s;
 
         // Standing behind the character, feet together, a bit taller than them
+        // (monsters' also a bit wider: a wide body like the boss's would hide it otherwise)
         Bounds b = body.bounds;
         float spriteHeight = s.rect.height / s.pixelsPerUnit;
-        float height = b.size.y * heightScale;
-        float scale = height / Mathf.Max(spriteHeight, 0.01f);
+        float spriteWidth = s.rect.width / s.pixelsPerUnit;
+        float scale = b.size.y * heightScale / Mathf.Max(spriteHeight, 0.01f);
+        if (a.enemy) scale = Mathf.Max(scale, Mathf.Max(b.size.x, b.size.z) * enemyWidth / Mathf.Max(spriteWidth, 0.01f));
+        float height = spriteHeight * scale;
         a.sr.transform.rotation = body.transform.rotation;
         a.sr.transform.localScale = Vector3.one * scale;
         a.sr.transform.position = new Vector3(b.center.x, b.min.y + height * 0.42f, b.center.z) + Vector3.forward * 0.08f;

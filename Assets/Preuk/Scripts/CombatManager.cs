@@ -98,7 +98,15 @@ public class CombatManager : MonoBehaviour
 
         grid.ClearGrid();
         foreach (CombatUnit u in Party)
+        {
+            // Baldur's Gate: whoever is only downed gets back up when the fight is won. The dead stay down.
+            if (u.IsDowned)
+            {
+                u.Revive(1);
+                Debug.Log($"{u.unitName} gets back up after the fight (1 HP)");
+            }
             if (u.IsAlive) SetExplorationMovement(u, true);
+        }
 
         GameState.Current = GameMode.Exploring;
         if (cameraController != null && Party.Count > 0)

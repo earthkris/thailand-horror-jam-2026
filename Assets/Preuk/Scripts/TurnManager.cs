@@ -27,6 +27,12 @@ public class TurnManager : MonoBehaviour
     public int MovesLeft { get; private set; }
     public bool HasMoved => MovesLeft <= 0;   // no tiles of movement left
     public bool HasActed { get; private set; }
+    public bool HasUsedBonus { get; private set; }   // the bonus action (potions, Healing Word...)
+
+    // Reactions (opportunity attacks): one per round, back at the start of your own turn
+    readonly HashSet<CombatUnit> reacted = new HashSet<CombatUnit>();
+    public bool HasReaction(CombatUnit u) => !reacted.Contains(u);
+    public void UseReaction(CombatUnit u) => reacted.Add(u);
 
     // Is the "where can I walk" highlight on? (MOVE button toggles it)
     public bool ShowMoveRange { get; private set; } = true;
@@ -44,6 +50,7 @@ public class TurnManager : MonoBehaviour
 
     CombatManager combat;
     CombatTargeting targeting;
+    CombatMovement movement;
     int index;   // position in Order
     readonly Dictionary<(CombatUnit, CombatAction), int> usesLeft = new Dictionary<(CombatUnit, CombatAction), int>();
 
@@ -65,6 +72,7 @@ public class TurnManager : MonoBehaviour
     {
         combat = GetComponent<CombatManager>();
         targeting = GetComponent<CombatTargeting>();
+        movement = GetComponent<CombatMovement>();
     }
     void OnEnable() => combat.OnBattleReady += BeginBattle;
     void OnDisable() => combat.OnBattleReady -= BeginBattle;
@@ -75,6 +83,7 @@ public class TurnManager : MonoBehaviour
     {
         Order.Clear();
         usesLeft.Clear();   // every action gets its full uses again each fight
+        reacted.Clear();
 
         var everyone = new List<CombatUnit>(combat.Party);
         everyone.AddRange(combat.Enemies);
@@ -131,9 +140,9 @@ public class TurnManager : MonoBehaviour
             return;
         }
 
-        // Skip anyone who is down
+        // Skip the dead and the stable. The downed still get a turn: their death save.
         int skipped = 0;
-        while (!Order[index].unit.IsAlive)
+        while (!TakesTurn(Order[index].unit))
         {
             Advance();
             if (++skipped > Order.Count)
@@ -146,12 +155,21 @@ public class TurnManager : MonoBehaviour
         Current = Order[index].unit;
         MovesLeft = Current.MoveTiles;
         HasActed = false;
+        HasUsedBonus = false;
+        reacted.Remove(Current);
 
         // Don't point the camera at an enemy hiding in the dark (that would give it away)
         if (combat.cameraController != null && FogOfWar.CanSee(Current))
             combat.cameraController.FocusOn(Current.transform);
 
         Debug.Log($"Round {Round}: {Current.unitName}'s turn{(FogOfWar.CanSee(Current) ? "" : " (unseen, in the dark)")}");
+        // Downed: the whole turn is a death saving throw
+        if (Current.IsDowned)
+        {
+            StartCoroutine(DeathSaveTurn(Current));
+            return;
+        }
+
         // Burning or paralysed? That happens before they can act
         if (Current.HasAnyStatus)
         {
@@ -209,6 +227,37 @@ public class TurnManager : MonoBehaviour
 
         OnChanged?.Invoke();
         if (!IsPartyTurn) StartCoroutine(EnemyTurn());
+    }
+
+    bool TakesTurn(CombatUnit u) => u.IsAlive || (u.IsDowned && !u.IsStable);
+
+    // Downed: roll d20 on the tray. A natural 20 gets them up, and the rest of the turn is theirs.
+    IEnumerator DeathSaveTurn(CombatUnit me)
+    {
+        ResolvingStatus = true;
+        OnChanged?.Invoke();
+        yield return new WaitForSeconds(0.3f);
+
+        int roll = 0;
+        yield return DiceTray.RollD20($"{me.unitName}'s death saving throw  —  need 10+", v => roll = v);
+        me.ApplyDeathSave(roll);
+
+        string text = roll == 20 ? "NATURAL 20  —  BACK ON THEIR FEET"
+                    : me.IsDead ? "THIRD FAILURE  —  DEAD"
+                    : me.IsStable ? "THIRD SUCCESS  —  STABLE"
+                    : roll == 1 ? "NATURAL 1  —  TWO FAILURES"
+                    : roll >= 10 ? "SUCCESS" : "FAILURE";
+        if (me.IsDowned) text += $"   ({me.DeathSaveSuccesses}/3 saves, {me.DeathSaveFailures}/3 fails)";
+        yield return DiceTray.ShowOutcome(text, roll >= 10);
+        ResolvingStatus = false;
+
+        if (me.IsAlive)
+        {
+            OnChanged?.Invoke();   // up again: move and act as normal
+            yield break;
+        }
+        CheckForVictory();
+        if (InBattle && Current == me) EndTurn();
     }
 
     void FinishBattle(bool won)
@@ -286,6 +335,10 @@ public class TurnManager : MonoBehaviour
     }
 
     public void MarkActed() { HasActed = true; OnChanged?.Invoke(); }
+    public void MarkBonusUsed() { HasUsedBonus = true; OnChanged?.Invoke(); }
+
+    // Has this unit still got what 'action' costs this turn?
+    public bool CanAfford(CombatAction action) => action.bonusAction ? !HasUsedBonus : !HasActed;
 
     // Something else changed what the UI should show (e.g. aiming started or stopped)
     public void NotifyChanged() => OnChanged?.Invoke();
@@ -304,16 +357,16 @@ public class TurnManager : MonoBehaviour
     // ACTION menu -> an option was picked: now choose who it's aimed at (CombatTargeting)
     public void ChooseAction(CombatAction action)
     {
-        if (!IsPartyTurn || HasActed || action == null) return;
+        if (!IsPartyTurn || action == null || !CanAfford(action)) return;
         if (UsesLeft(Current, action) == 0) return;
         if (targeting != null) targeting.BeginAction(Current, action);
         else Debug.LogWarning("Add a CombatTargeting component to the Combat object.");
     }
 
-    // USE ITEM menu -> an item was picked. Using an item takes your action (D&D rule).
+    // BONUS ACTION menu -> an item was picked. Drinking a potion is a bonus action (Baldur's Gate rule).
     public void ChooseItem(ItemData item)
     {
-        if (!IsPartyTurn || HasActed || item == null) return;
+        if (!IsPartyTurn || HasUsedBonus || item == null) return;
         if (targeting != null) targeting.BeginItem(Current, item);
         else Debug.LogWarning("Add a CombatTargeting component to the Combat object.");
     }
@@ -344,6 +397,7 @@ public class TurnManager : MonoBehaviour
     {
         if (!IsPartyTurn) return;
         if (targeting != null && targeting.IsBusy) return;   // wait for the dice
+        if (movement != null && movement.IsReacting) return;   // an opportunity attack is being rolled
         EndTurn();
     }
 }

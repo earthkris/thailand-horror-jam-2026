@@ -55,6 +55,19 @@ public class BossAI : MonoBehaviour
     [Tooltip("How high it jumps, in tiles.")]
     public float jumpHeight = 3f;
 
+    [Header("Unholy Hymn (buff, once per fight)")]
+    public string hymnName = "Unholy Hymn";
+    [Tooltip("Sings it the first time its HP drops to this share of max, or on a turn when nobody is in reach.")]
+    [Range(0f, 1f)] public float hymnAtHealth = 0.6f;
+    [Tooltip("Extra damage die on every hit for the rest of the fight. 4 = +1d4.")]
+    [Min(0)] public int hymnDamageDie = 4;
+    [Tooltip("Added to its save DC: harder to dodge.")]
+    public int hymnSaveBonus = 2;
+    public int hymnAC = 2;
+    [Tooltip("Regenerates (count)d(sides) at the start of its turns, for this many turns. 0 = none.")]
+    [Min(0)] public int hymnRegenTurns = 3;
+    [Min(1)] public int hymnRegenDiceCount = 2, hymnRegenDiceSides = 4;
+
     [Header("Rules")]
     [Tooltip("DEX save the party must reach to take half damage.")]
     public int saveDC = 13;
@@ -196,6 +209,14 @@ public class BossAI : MonoBehaviour
         }
         int tongueScore = Score(tongueHits, focus), stompScore = Score(stompHits, focus);
 
+        // Once a fight (the blessing lasts until it ends): when hurt, or when there's nobody to hit anyway
+        bool hurt = unit.CurrentHP <= unit.maxHP * hymnAtHealth;
+        if (!unit.IsBlessed && (hurt || (tongueScore == 0 && stompScore == 0)))
+        {
+            yield return Hymn();
+            yield break;
+        }
+
         bool tongue = tongueScore > 0 && (tongueScore > stompScore || (tongueScore == stompScore && lastWasStomp));
         lastWasStomp = !tongue;
         if (tongue) yield return Tongue(me, dir, tongueHits);
@@ -205,6 +226,35 @@ public class BossAI : MonoBehaviour
     // More people hit = better. In the forced fight, hitting Lucius beats everything.
     static int Score(List<CombatUnit> hits, CombatUnit focus) =>
         hits.Count * 10 + (focus != null && hits.Contains(focus) ? 100 : 0);
+
+    // ================= Unholy Hymn =================
+
+    // Swells up, the purple aura (BlessAura) blooms behind it, and it's stronger until the fight ends
+    IEnumerator Hymn()
+    {
+        if (body != null)
+        {
+            Vector3 size = body.localScale;
+            yield return Shape(0.35f, t => Scale(size, 1f + 0.15f * t, 1f + 0.1f * t));
+            unit.AddBuff(hymnDamageDie, hymnAC, hymnSaveBonus);
+            var cam = FindAnyObjectByType<CameraController>();
+            if (cam != null) cam.Shake(0.25f, 0.25f);
+            yield return Shape(0.3f, t => Scale(size, 1.15f - 0.15f * t, 1.1f - 0.1f * t));
+            body.localScale = size;
+        }
+        else unit.AddBuff(hymnDamageDie, hymnAC, hymnSaveBonus);
+
+        if (hymnRegenTurns > 0) unit.AddStatus(StatusType.Regen, hymnRegenTurns, hymnRegenDiceCount, hymnRegenDiceSides);
+        if (turns != null) turns.NotifyChanged();
+
+        string what = $"+1d{hymnDamageDie} damage   DC {SaveDC}   AC {unit.ArmorClass}"
+                    + (hymnRegenTurns > 0 ? $"   regenerates {hymnRegenDiceCount}d{hymnRegenDiceSides} for {hymnRegenTurns} turns" : "");
+        Debug.Log($"{unit.unitName} sings {hymnName}: {what}");
+        yield return DiceTray.ShowMessage($"{Name()}: {hymnName.ToUpper()}", what, false);
+    }
+
+    // The save the party must reach (the hymn makes it harder)
+    int SaveDC => saveDC + unit.BlessBonus;
 
     // ================= Tongue =================
 
@@ -494,11 +544,11 @@ public class BossAI : MonoBehaviour
         foreach (CombatUnit v in victims)
         {
             int roll = 0;
-            yield return DiceTray.RollD20($"{v.unitName}: DEX save vs {move}  (DC {saveDC})", x => roll = x);
+            yield return DiceTray.RollD20($"{v.unitName}: DEX save vs {move}  (DC {SaveDC})", x => roll = x);
             int total = roll + v.dexModifier + v.BlessBonus;
-            bool ok = roll == 20 || (roll != 1 && total >= saveDC);
+            bool ok = roll == 20 || (roll != 1 && total >= SaveDC);
             saved.Add(ok);
-            Debug.Log($"{v.unitName} DEX save vs {move}: d20 ({roll}) + {v.dexModifier} = {total} vs DC {saveDC} — {(ok ? "half damage" : "full damage")}");
+            Debug.Log($"{v.unitName} DEX save vs {move}: d20 ({roll}) + {v.dexModifier} = {total} vs DC {SaveDC} — {(ok ? "half damage" : "full damage")}");
         }
     }
 
@@ -506,6 +556,8 @@ public class BossAI : MonoBehaviour
     IEnumerator Damage(List<CombatUnit> victims, List<bool> saved, string move, int count, int sides, int bonus)
     {
         int damage = Mathf.Max(DiceSimulator.Roll(count, sides) + bonus, 1);
+        int hymn = unit.BlessDie > 0 ? DiceSimulator.Roll(unit.BlessDie) : 0;   // Unholy Hymn: +1d4
+        damage += hymn;
         string text = "";
         // Lucius first, so Kairos stays protected until that hit has landed
         var order = new List<int>();
@@ -523,7 +575,7 @@ public class BossAI : MonoBehaviour
             if (text.Length > 0) text += "     ";
             text += $"{v.unitName} {dealt}{(half ? " (half)" : "")}" + (v.IsAlive ? "" : " DOWN");
         }
-        string dice = DiceFormat.Faint($"{count}d{sides}+{bonus} = {damage}");
+        string dice = DiceFormat.Faint($"{count}d{sides}+{bonus}" + (hymn > 0 ? $" +1d{unit.BlessDie}" : "") + $" = {damage}");
         yield return DiceTray.ShowMessage($"{Name()}: {move.ToUpper()}", text + "   " + dice, false);
     }
 
@@ -553,9 +605,9 @@ public class BossAI : MonoBehaviour
                 if (!grid.IsWalkable(cell.x, cell.y)) return false;
                 Vector2Int world = grid.OriginTile + cell;
                 foreach (CombatUnit other in combat.Party)
-                    if (other != null && other.IsAlive && other.Occupies(world)) return false;
+                    if (other != null && !other.IsDead && other.Occupies(world)) return false;
                 foreach (CombatUnit other in combat.Enemies)
-                    if (other != null && other != unit && other.IsAlive && other.Occupies(world)) return false;
+                    if (other != null && other != unit && !other.IsDead && other.Occupies(world)) return false;
             }
         return true;
     }
@@ -566,7 +618,7 @@ public class BossAI : MonoBehaviour
         Vector2Int b = other.AnchorTile;
         int dx = Mathf.Max(0, b.x - (a.x + unit.size - 1), a.x - (b.x + other.size - 1));
         int dy = Mathf.Max(0, b.y - (a.y + unit.size - 1), a.y - (b.y + other.size - 1));
-        return dx + dy;
+        return CombatUnit.Reach(dx, dy);
     }
 
     CombatUnit Closest(Vector2Int anchor)

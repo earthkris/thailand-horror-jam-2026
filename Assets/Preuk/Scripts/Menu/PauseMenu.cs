@@ -164,7 +164,7 @@ public class PauseMenu : MonoBehaviour
         Open();
     }
 
-    // Esc already means "cancel" while aiming or while the ACTION / USE ITEM list is up
+    // Esc already means "cancel" while aiming or while the ACTION / BONUS ACTION list is up
     bool SomethingElseWantsEsc()
     {
         if (targeting != null && targeting.IsAiming) return true;
@@ -240,7 +240,7 @@ public class PauseMenu : MonoBehaviour
     void ShowItems()
     {
         bool inBattle = turns != null && turns.InBattle;
-        bool canUse = !inBattle || (turns.IsPartyTurn && !turns.HasActed && (targeting == null || !targeting.IsBusy));
+        bool canUse = !inBattle || (turns.IsPartyTurn && !turns.HasUsedBonus && (targeting == null || !targeting.IsBusy));
 
         var options = new List<Row>();
         if (inventory != null)
@@ -248,6 +248,21 @@ public class PauseMenu : MonoBehaviour
             {
                 if (s.item == null || s.count <= 0) continue;
                 ItemData picked = s.item;
+                if (picked.effect == ItemEffect.Book)
+                {
+                    // Books: read once per loop, outside a fight. They stay in the bag.
+                    bool read = SpellBook.HasRead(picked);
+                    options.Add(new Row
+                    {
+                        label = picked.displayName,
+                        detail = read ? "read" : "READ",
+                        description = read ? $"Already read. {picked.description}"
+                                    : inBattle ? "There's no time to read in a fight." : picked.description,
+                        enabled = !read && !inBattle,
+                        onPick = () => ReadBook(picked)
+                    });
+                    continue;
+                }
                 options.Add(new Row
                 {
                     label = s.item.displayName,
@@ -260,16 +275,23 @@ public class PauseMenu : MonoBehaviour
 
         string info = options.Count == 0 ? "The bag is empty."
                     : !canUse ? "In a fight, items can only be used on your own turn, before your action."
-                    : inBattle ? "Using an item takes your action. Pick one, then click who gets it."
+                    : inBattle ? "Using an item takes your bonus action. Pick one, then click who gets it."
                     : options[0].description;
         ShowList("ITEMS", options, info, ShowMain);
+    }
+
+    void ReadBook(ItemData book)
+    {
+        string what = SpellBook.Read(book);
+        ShowItems();
+        listInfo.text = what;
     }
 
     void PickItem(ItemData item)
     {
         if (turns != null && turns.InBattle)
         {
-            // In a fight it works like the battle menu's USE ITEM: close, then click who gets it
+            // In a fight it works like the battle menu's BONUS ACTION items: close, then click who gets it
             Close();
             turns.ChooseItem(item);
             return;

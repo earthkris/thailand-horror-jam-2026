@@ -38,7 +38,7 @@ public class TurnPanel : MonoBehaviour
     public Button moveButton;
     [FormerlySerializedAs("attackButton")]
     public Button actionButton;
-    [Tooltip("Optional. Leave empty if you don't have a Use Item button yet.")]
+    [Tooltip("The BONUS ACTION button: bonus moves (Heal, Shield of Faith) and items. Optional.")]
     public Button itemButton;
     public Button endTurnButton;
 
@@ -52,7 +52,7 @@ public class TurnPanel : MonoBehaviour
     public string aimFormat = "{0}  -  choose a target";
 
     [Header("Menus")]
-    [Tooltip("The pop-up list ACTION and USE ITEM open.")]
+    [Tooltip("The pop-up list ACTION and BONUS ACTION open.")]
     public ChoiceMenu menu;
     [Tooltip("The party's bag. Leave empty to find it automatically.")]
     public PartyInventory inventory;
@@ -71,6 +71,7 @@ public class TurnPanel : MonoBehaviour
 
     readonly List<TextMeshProUGUI> rows = new List<TextMeshProUGUI>();
     CombatTargeting targeting;
+    bool bonusMenu;   // the open menu is the BONUS ACTION one
     FontStyles rowStyle;
     bool ready;
 
@@ -101,7 +102,7 @@ public class TurnPanel : MonoBehaviour
 
         moveButton.onClick.AddListener(turns.ChooseMove);
         actionButton.onClick.AddListener(OpenActions);
-        if (itemButton != null) itemButton.onClick.AddListener(OpenItems);
+        if (itemButton != null) itemButton.onClick.AddListener(OpenBonus);
         endTurnButton.onClick.AddListener(turns.EndTurnButton);
     }
 
@@ -131,8 +132,9 @@ public class TurnPanel : MonoBehaviour
         if (aimPanel != null) aimPanel.SetActive(aiming);
         if (aiming && aimText != null) aimText.text = string.Format(aimFormat, targeting.AimingName);
 
-        // Close the menu when it's no longer our turn, or our action is used up
-        if (menu != null && menu.IsOpen && (!show || !turns.IsPartyTurn || turns.HasActed)) menu.Close();
+        // Close the menu when it's no longer our turn, or what it spends is used up
+        bool spent = bonusMenu ? turns.HasUsedBonus : turns.HasActed;
+        if (menu != null && menu.IsOpen && (!show || !turns.IsPartyTurn || spent)) menu.Close();
         if (!show) return;
 
         if (roundText != null) roundText.text = $"Round {turns.Round}";
@@ -165,7 +167,7 @@ public class TurnPanel : MonoBehaviour
             if (!c.unit.IsAlive)
             {
                 row.color = downColor;
-                row.fontStyle |= FontStyles.Strikethrough;
+                if (c.unit.IsDead) row.fontStyle |= FontStyles.Strikethrough;   // downed can still get up
             }
             else if (!seen) row.color = unseenColor;
             else if (isCurrent) row.color = currentColor;
@@ -193,12 +195,15 @@ public class TurnPanel : MonoBehaviour
         bool mine = turns.IsPartyTurn;
         SetButton(moveButton, mine && !turns.HasMoved);
         SetButton(actionButton, mine && !turns.HasActed);
-        if (itemButton != null) SetButton(itemButton, mine && !turns.HasActed);   // items use your action too
+        if (itemButton != null) SetButton(itemButton, mine && !turns.HasUsedBonus);
         SetButton(endTurnButton, mine);
     }
 
-    // HP and AC, with the icons when there are some
-    string Hp(CombatUnit u) => (icons != null ? $"<sprite name=\"{hpIcon}\">" : "HP ") + $"{u.CurrentHP}/{u.maxHP}";
+    bool AnyAllyDowned() => turns.Order.Exists(c => c.unit != null && c.unit.team == Team.Party && c.unit.IsDowned);
+
+    // HP and AC, with the icons when there are some. Downed party members show their death saves instead.
+    string Hp(CombatUnit u) => u.IsDowned || (u.IsDead && u.team == Team.Party) ? u.DeathSaveText
+                             : (icons != null ? $"<sprite name=\"{hpIcon}\">" : "HP ") + $"{u.CurrentHP}/{u.maxHP}";
     string Ac(CombatUnit u) => (icons != null ? $"<sprite name=\"{acIcon}\">" : "AC ") + u.ArmorClass;
 
     // The round is shown above the initiative list; only falls back into the info text without a Round Text
@@ -210,37 +215,21 @@ public class TurnPanel : MonoBehaviour
     {
         if (menu == null || !turns.IsPartyTurn || turns.HasActed) return;
         CombatUnit u = turns.Current;
-
-        var options = new List<ChoiceMenu.Option>();
-        foreach (CombatAction a in u.actions)
-        {
-            if (a == null) continue;
-            int left = turns.UsesLeft(u, a);
-            string uses = left < 0 ? "" : $"   {left}/{a.usesPerBattle}";
-            string range = a.range > 1 ? $"{a.range} tiles" : a.effect == ActionEffect.Damage ? "melee" : "touch";
-            CombatAction picked = a;
-            options.Add(new ChoiceMenu.Option
-            {
-                icon = a.typeIcon,
-                label = a.displayName,
-                detail = $"{a.AmountText}   {range}{uses}",
-                description = a.description,
-                enabled = left != 0,
-                onPick = () => { menu.Close(); turns.ChooseAction(picked); }
-            });
-        }
+        var options = ActionOptions(u, bonus: false);
+        bonusMenu = false;
         menu.Open($"{u.unitName}  —  ACTIONS", options);
     }
 
-    void OpenItems()
+    // Bonus moves first, then the bag
+    void OpenBonus()
     {
-        if (menu == null || !turns.IsPartyTurn || turns.HasActed) return;
-
-        var options = new List<ChoiceMenu.Option>();
+        if (menu == null || !turns.IsPartyTurn || turns.HasUsedBonus) return;
+        CombatUnit u = turns.Current;
+        var options = ActionOptions(u, bonus: true);
         if (inventory != null)
             foreach (PartyInventory.ItemStack s in inventory.items)
             {
-                if (s.item == null || s.count <= 0) continue;
+                if (s.item == null || s.count <= 0 || s.item.effect == ItemEffect.Book) continue;   // no reading in a fight
                 ItemData picked = s.item;
                 options.Add(new ChoiceMenu.Option
                 {
@@ -251,7 +240,34 @@ public class TurnPanel : MonoBehaviour
                     onPick = () => { menu.Close(); turns.ChooseItem(picked); }
                 });
             }
-        menu.Open("ITEMS", options);
+        bonusMenu = true;
+        menu.Open($"{u.unitName}  —  BONUS ACTIONS", options);
+    }
+
+    List<ChoiceMenu.Option> ActionOptions(CombatUnit u, bool bonus)
+    {
+        var options = new List<ChoiceMenu.Option>();
+        // Help always at the top, the rest in the order they're listed on the unit
+        var list = new List<CombatAction>(u.actions.FindAll(a => a != null && a.effect == ActionEffect.Help));
+        list.AddRange(u.actions.FindAll(a => a != null && a.effect != ActionEffect.Help));
+        foreach (CombatAction a in list)
+        {
+            if (a == null || a.bonusAction != bonus) continue;
+            int left = turns.UsesLeft(u, a);
+            string uses = left < 0 ? "" : $"   {left}/{a.usesPerBattle}";
+            string range = a.range > 1 ? $"{a.range} tiles" : a.effect == ActionEffect.Damage ? "melee" : "touch";
+            CombatAction picked = a;
+            options.Add(new ChoiceMenu.Option
+            {
+                icon = a.typeIcon,
+                label = a.displayName,
+                detail = $"{a.AmountText}   {range}{uses}",
+                description = a.description,
+                enabled = left != 0 && (a.effect != ActionEffect.Help || AnyAllyDowned()),
+                onPick = () => { menu.Close(); turns.ChooseAction(picked); }
+            });
+        }
+        return options;
     }
 
     void CancelAim()
