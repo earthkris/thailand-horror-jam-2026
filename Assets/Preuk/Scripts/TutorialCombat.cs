@@ -6,9 +6,13 @@ using UnityEngine.UI;
 
 // The first fight (the forest spider) as a tutorial.
 //   1. Initiative is fixed: Kairos first, Lucius second, the monster last.
-//   2. A hint box at the top of the screen and a bobbing arrow walk you through one round:
-//      initiative list -> walk up -> ACTION -> click the monster -> END TURN -> Lucius -> the monster's turn.
-//   3. After the win: a short talk, Lucius heals the party, then "let's go open the chest".
+//   2. The camera shows the monster hiding in the dark, then a hint box and a bobbing arrow teach two rounds:
+//      the monster -> initiative -> HP and AC -> what a turn holds -> walk -> ACTION -> aim -> the bonus action
+//      -> END TURN -> Lucius (attack, then heal as a bonus action) -> the monster's turn -> moving the camera
+//      -> finish it off.
+//   3. Nobody can die until the lesson is over: the heroes and the monster stop at 1 HP. Only at
+//      "finish it off" can the monster fall, so the fight never ends in the middle of the lesson.
+//   4. After the win: a short talk, Lucius heals the party, then "let's go open the chest".
 // Put it on any GameObject in the scene and drag in the tutorial monster and the two heroes.
 // The hint UI builds itself when the game starts.
 public class TutorialCombat : MonoBehaviour
@@ -24,13 +28,20 @@ public class TutorialCombat : MonoBehaviour
     [Range(1, 20)] public int enemyRoll = 4;
 
     [Header("Hints ({enemy} = the monster's name)")]
-    [TextArea(2, 4)] public string initiativeHint = "Every battle, each character rolls a dice to decide who starts first.";
-    [TextArea(2, 4)] public string walkHint = "Walk up to a target.\nClick a lit tile, or use WASD.";
-    [TextArea(2, 4)] public string actionHint = "Press ACTION and pick an attack.";
-    [TextArea(2, 4)] public string aimHint = "Click the {enemy} to attack.\nRoll high on the d20 to hit!";
+    [TextArea(2, 4)] public string spotHint = "A {enemy}, under the old lamp post.\nMonsters in the light are easy to see. Out in the dark they show only as shadows, and they're harder to hit.";
+    [TextArea(2, 4)] public string initiativeHint = "Every battle, each character rolls a d20 to decide who goes first.\nThis list shows the order.";
+    [TextArea(2, 4)] public string statsHint = "Heart = health (HP). Shield = armour (AC).\nAn attack has to roll at least the target's AC to hit.";
+    [TextArea(2, 4)] public string turnHint = "On your turn you can MOVE, take one ACTION and one BONUS ACTION, in any order.\nNobody can die in this first fight, so try things out.";
+    [TextArea(2, 4)] public string walkHint = "Walk up to the {enemy}.\nClick a lit tile, or use WASD. Each lit tile is one step.";
+    [TextArea(2, 4)] public string actionHint = "Press ACTION and pick Sword Strike.";
+    [TextArea(2, 4)] public string aimHint = "Click the {enemy}.\nYou roll a d20 and add your bonus. Reach its AC to hit; a natural 20 is a critical hit.";
+    [TextArea(2, 4)] public string bonusHint = "The BONUS ACTION is for quick things, like drinking a potion.\nNobody's hurt yet, so press END TURN.";
     [TextArea(2, 4)] public string endTurnHint = "Done for this turn? Press END TURN.";
-    [TextArea(2, 4)] public string luciusHint = "Now it's Lucius's turn.\nHoly Fireball hits from afar, Heal patches up a friend.";
-    [TextArea(2, 4)] public string enemyHint = "Now the {enemy} takes its turn. Watch out for its web!";
+    [TextArea(2, 4)] public string luciusHint = "Lucius's turn. He fights from a distance:\nHoly Fireball can set the {enemy} burning. Press ACTION.";
+    [TextArea(2, 4)] public string luciusBonusHint = "Heal is Lucius's BONUS ACTION, so he can attack and heal in one turn.\nTry it on Kairos, or press END TURN.";
+    [TextArea(2, 4)] public string enemyHint = "The {enemy}'s turn. It bites up close and spits web from afar.";
+    [TextArea(2, 4)] public string cameraHint = "Tip: press MOVE to switch walking off, then WASD moves the camera to look around.\nC snaps it back.";
+    [TextArea(2, 4)] public string finishHint = "The {enemy} is barely standing. Finish it off!";
     public string continueHint = "Click or press E to continue";
 
     [Header("After the fight")]
@@ -99,10 +110,13 @@ public class TutorialCombat : MonoBehaviour
 
         while (!(turns.InBattle && InTutorialFight())) yield return null;
 
-        // 2. Hints for the first round, then wait for the fight to end
+        // 2. The lesson (nobody can die during it), then wait for the fight to end
+        SetSafe(true);
         yield return FightHints();
+        tutorialEnemy.cannotDie = false;   // the lesson is over: the monster can fall
         Hide();
         while (turns.InBattle) yield return null;
+        SetSafe(false);                    // the heroes stay safe until this first fight is over
 
         // 3. Won? (If the party fell, the death screen takes over.)
         if (!tutorialEnemy.IsAlive && (kairos.IsAlive || lucius.IsAlive))
@@ -110,6 +124,14 @@ public class TutorialCombat : MonoBehaviour
     }
 
     void OnDestroy() => BlocksInput = false;
+
+    // While the lesson runs, the heroes and the monster stop at 1 HP (the heroes for the whole first fight)
+    void SetSafe(bool on)
+    {
+        tutorialEnemy.cannotDie = on;
+        kairos.cannotDie = on;
+        lucius.cannotDie = on;
+    }
 
     bool InTutorialFight()
     {
@@ -124,10 +146,18 @@ public class TutorialCombat : MonoBehaviour
     {
         yield return null;   // let the turn panel draw the initiative list first
 
-        Show(initiativeHint, Ui(panel != null ? panel.initiativePanel : null), null, true);
-        yield return WaitForContinue();
-        Hide();
+        // 1. Show the monster: it starts out of sight in the dark
+        CameraController cam = CameraController.Main;
+        if (cam != null) cam.FocusOn(tutorialEnemy.transform);
+        yield return Explain(spotHint, null, tutorialEnemy.transform);
+        if (cam != null && turns.Current != null) cam.FocusOn(turns.Current.transform);
 
+        // 2. How a fight works
+        yield return Explain(initiativeHint, Ui(panel != null ? panel.initiativePanel : null), null);
+        yield return Explain(statsHint, Ui(panel != null ? panel.turnTitle : null), null);
+        yield return Explain(turnHint, Ui(panel != null ? panel.actionPanel : null), null);
+
+        // 3. Round one: each of the three turns, hinted as it happens
         bool kairosStarted = false, kairosDone = false;
         bool luciusStarted = false, luciusDone = false;
         bool enemyStarted = false, enemyDone = false;
@@ -151,7 +181,7 @@ public class TutorialCombat : MonoBehaviour
 
                 if (rolling) Hide();
                 else if (!walked) Show(walkHint, null, tutorialEnemy.transform);
-                else if (turns.HasActed) Show(endTurnHint, Ui(panel != null ? panel.endTurnButton : null), null);
+                else if (turns.HasActed) Show(bonusHint, Ui(panel != null ? panel.endTurnButton : null), null);
                 else if (aiming) Show(aimHint, null, tutorialEnemy.transform);
                 else Show(actionHint, Ui(panel != null ? panel.actionButton : null), null);
             }
@@ -159,7 +189,8 @@ public class TutorialCombat : MonoBehaviour
             {
                 luciusStarted = true;
                 if (rolling || aiming) Hide();
-                else if (turns.HasActed) Show(endTurnHint, Ui(panel != null ? panel.endTurnButton : null), null);
+                else if (turns.HasActed && turns.HasUsedBonus) Show(endTurnHint, Ui(panel != null ? panel.endTurnButton : null), null);
+                else if (turns.HasActed) Show(luciusBonusHint, Ui(panel != null ? panel.itemButton : null), null);
                 else Show(luciusHint, Ui(panel != null ? panel.actionButton : null), null);
             }
             else if (cur == tutorialEnemy && !enemyDone)
@@ -171,6 +202,28 @@ public class TutorialCombat : MonoBehaviour
 
             yield return null;
         }
+
+        // 4. Round two: a tip for looking around, then the monster can fall
+        while (turns.InBattle && !turns.IsPartyTurn) yield return null;
+        if (!turns.InBattle) yield break;
+        yield return Explain(cameraHint, Ui(panel != null ? panel.moveButton : null), null);
+        tutorialEnemy.cannotDie = false;
+        CombatUnit finisher = turns.Current;
+        while (turns.InBattle && turns.Current == finisher && !turns.HasActed)
+        {
+            bool busy = targeting != null && (targeting.IsBusy || targeting.IsAiming);
+            if (busy) Hide();
+            else Show(finishHint, null, tutorialEnemy.transform);
+            yield return null;
+        }
+    }
+
+    // A hint that waits for the player to click on (the game waits too)
+    IEnumerator Explain(string text, RectTransform ui, Transform world)
+    {
+        Show(text, ui, world, true);
+        yield return WaitForContinue();
+        Hide();
     }
 
     IEnumerator WaitForContinue()
@@ -312,6 +365,15 @@ public class TutorialCombat : MonoBehaviour
         {
             SetArrow(arrowUp);      // below it, pointing up
             arrow.position = new Vector2(c.x, r.yMin - gap - arrow.sizeDelta.y * 0.5f * s);
+        }
+
+        // A tall monster's head can reach the hint box: keep the arrow below the box, never over its text
+        if (isWorld)
+        {
+            var corners = new Vector3[4];
+            box.GetWorldCorners(corners);
+            float limit = corners[0].y - (arrow.sizeDelta.y * 0.5f + 6f) * s;
+            if (arrow.position.y > limit) arrow.position = new Vector2(arrow.position.x, limit);
         }
     }
 
