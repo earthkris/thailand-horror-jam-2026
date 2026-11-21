@@ -119,15 +119,6 @@ public class CutsceneSkip : MonoBehaviour
         colors.normalColor = Color.white;
         colors.highlightedColor = new Color(1.2f, 1.1f, 0.9f);
         button.colors = colors;
-        var hover = btn.AddComponent<UnityEngine.EventSystems.EventTrigger>();
-        AddHover(hover, UnityEngine.EventSystems.EventTriggerType.PointerEnter, t, hoverColor);
-        AddHover(hover, UnityEngine.EventSystems.EventTriggerType.PointerExit, t, textColor);
-    }
-
-    static void AddHover(UnityEngine.EventSystems.EventTrigger trigger, UnityEngine.EventSystems.EventTriggerType type, TextMeshProUGUI text, Color color)
-    {
-        var entry = new UnityEngine.EventSystems.EventTrigger.Entry { eventID = type };
-        entry.callback.AddListener(_ => text.color = color);
-        trigger.triggers.Add(entry);
+        UIBuilder.AddHover(btn, () => t.color = hoverColor, () => t.color = textColor);
     }
 }

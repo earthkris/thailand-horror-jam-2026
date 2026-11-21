@@ -12,10 +12,13 @@ public class PartyInventory : MonoBehaviour
         [Min(0)] public int count = 1;
 
         // The small text next to the item's name in menus: "4–10 2d4+2   x3"
-        public string DetailText => $"{item.RangeText}   x{count}";
+        public string DetailText => $"{item.AmountText}   x{count}";
     }
 
     public List<ItemStack> items = new List<ItemStack>();
+
+    [Tooltip("The bag holds at most this many of one item (books don't count). Keeps loot from piling up.")]
+    [Min(1)] public int maxPerItem = 4;
 
     // Spell books stay in the bag through a loop: the party wakes up with them, but has to read them again.
     // Static, so it survives the scene reloading. A fresh run (Play, START OVER) forgets them.
@@ -47,15 +50,20 @@ public class PartyInventory : MonoBehaviour
         return 0;
     }
 
-    public void Add(ItemData item, int amount = 1)
+    // Puts up to 'amount' in the bag. Returns how many fitted (the rest is left behind: the bag is full).
+    public int Add(ItemData item, int amount = 1)
     {
+        int cap = item.effect == ItemEffect.Book ? int.MaxValue : maxPerItem;
+        int fits = Mathf.Clamp(cap - Count(item), 0, amount);
+        if (fits == 0) return 0;
         foreach (ItemStack s in items)
             if (s.item == item)
             {
-                s.count += amount;
-                return;
+                s.count += fits;
+                return fits;
             }
-        items.Add(new ItemStack { item = item, count = amount });
+        items.Add(new ItemStack { item = item, count = fits });
+        return fits;
     }
 
     // Uses up one. False if we don't have any.

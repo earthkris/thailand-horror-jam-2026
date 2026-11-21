@@ -15,6 +15,14 @@ public static class StoryDialogue
         while (DialogueBox.Instance != null && DialogueBox.Instance.IsContentOpen) yield return null;
     }
 
+    // Cutscenes: the lines, then a short pause before the next thing happens (real time, so it works while frozen)
+    public static IEnumerator Talk(DialogueScriptableObject lines, float pause = 0.25f)
+    {
+        if (lines == null || DialogueBox.Instance == null) yield break;
+        yield return Play(lines);
+        yield return new WaitForSecondsRealtime(pause);
+    }
+
     // Every dialogue box moves on the same way: E (Earth's Interactor), a left click, Space or Enter.
     // Before, only the goddess scene took clicks; now the dialogue in the world does too.
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]

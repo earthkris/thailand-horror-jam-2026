@@ -36,8 +36,11 @@ public class CombatTargeting : MonoBehaviour
     GridManager Grid => combat.grid;
 
     CombatUnit user;
-    CombatAction action;   // one of these two is set
-    ItemData item;
+    CombatAction action;   // a move, or the move an Action item performs (then 'item' is set too)
+    ItemData item;         // set when an item is used
+
+    // Heal / Cure items follow the item's own rules; everything else follows 'action'
+    bool ItemRules => item != null && action == null;
     bool aiming;
     bool busy;
 
@@ -68,7 +71,8 @@ public class CombatTargeting : MonoBehaviour
     {
         if (busy) return;
         Cancel();
-        user = who; action = null; item = what;
+        user = who; item = what;
+        action = what.effect == ItemEffect.Action ? what.actsAs : null;   // a thrown flask aims like a spell
         StartAiming();
     }
 
@@ -142,7 +146,15 @@ public class CombatTargeting : MonoBehaviour
         if (movement != null) movement.Refresh();
 
         if (item != null) Sfx.Play("bag", 0.8f);
-        else Sfx.ForAction(action);
+        if (action != null) Sfx.ForAction(action);
+
+        // An Action item is used up as it's thrown (a Heal / Cure item in UseItem)
+        if (item != null && !ItemRules && (inventory == null || !inventory.Remove(item)))
+        {
+            Debug.Log($"No {item.displayName} left.");
+            busy = false;
+            yield break;
+        }
 
         // Casting flourish (sparkles round the priest...), a moment before the dice
         if (action != null && action.castEffect != null)
@@ -153,13 +165,13 @@ public class CombatTargeting : MonoBehaviour
             yield return new WaitForSeconds(0.3f);
         }
 
-        if (item != null) yield return UseItem(target);
+        if (ItemRules) yield return UseItem(target);
         else if (action.effect == ActionEffect.Damage) yield return Attack(target);
         else if (action.effect == ActionEffect.Buff) yield return Buff(target);
         else if (action.effect == ActionEffect.Help) yield return Help(target);
         else yield return Heal(action.displayName, action.diceCount, action.diceSides, action.bonus, target);
 
-        if (action != null) turns.SpendUse(user, action);
+        if (action != null && item == null) turns.SpendUse(user, action);   // an item's move has no uses to count
         if (item != null || action.bonusAction) turns.MarkBonusUsed();   // potions and bonus spells
         else turns.MarkActed();
         busy = false;
@@ -222,9 +234,8 @@ public class CombatTargeting : MonoBehaviour
         string killed = target.IsAlive ? "" : "  —  IT FALLS";
 
         // 5. Burn / paralyse (Holy Fireball, Divine Smite)
-        if (target.IsAlive && action.inflicts != StatusType.None && Random.Range(0, 100) < action.statusChance)
+        if (target.TryAddStatus(action.inflicts, action.statusTurns, action.statusChance, action.statusDiceCount, action.statusDiceSides))
         {
-            target.AddStatus(action.inflicts, action.statusTurns, action.statusDiceCount, action.statusDiceSides);
             killed = "  —  " + StatusInfo.Word(action.inflicts).ToUpper();
             Debug.Log($"{tName} is {StatusInfo.Word(action.inflicts)} for {action.statusTurns} turn(s)");
         }
@@ -236,8 +247,7 @@ public class CombatTargeting : MonoBehaviour
                 if (!roll.Hits(total, other.ArmorClass)) continue;
                 int d = Mathf.Max(damage * action.areaDamagePercent / 100, 1);
                 other.TakeDamage(d);
-                if (other.IsAlive && action.inflicts != StatusType.None && Random.Range(0, 100) < action.statusChance)
-                    other.AddStatus(action.inflicts, action.statusTurns, action.statusDiceCount, action.statusDiceSides);
+                other.TryAddStatus(action.inflicts, action.statusTurns, action.statusChance, action.statusDiceCount, action.statusDiceSides);
                 extra += $"   +{TargetName(other)} {d}";
                 Debug.Log($"{action.displayName} also hits {other.unitName} for {d}");
             }
@@ -307,16 +317,18 @@ public class CombatTargeting : MonoBehaviour
         }
         if (item.effect == ItemEffect.Heal)
             yield return Heal(item.displayName, item.diceCount, item.diceSides, item.bonus, target);
+        else if (item.effect == ItemEffect.Cure)
+            yield return DiceTray.ShowMessage(item.displayName, item.ApplyTo(target), true);
         else
             Debug.Log($"{user.unitName} uses {item.displayName}.");
     }
 
     // ================= Rules =================
 
-    ActionTarget Target => item != null ? item.target : action.target;
-    int Range => item != null ? item.range : action.range;
+    ActionTarget Target => ItemRules ? item.target : action.target;
+    int Range => ItemRules ? item.range : action.range;
     string Name => item != null ? item.displayName : action.displayName;
-    bool NeedsSight => item == null && action.needsLineOfSight;
+    bool NeedsSight => !ItemRules && action.needsLineOfSight;
 
     // Who could this be aimed at at all?
     IEnumerable<CombatUnit> Candidates()
@@ -335,7 +347,7 @@ public class CombatTargeting : MonoBehaviour
         return u.IsAlive;
     }
 
-    bool Heals => item != null ? item.effect == ItemEffect.Heal : action.effect == ActionEffect.Heal;
+    bool Heals => ItemRules ? item.effect == ItemEffect.Heal || item.effect == ItemEffect.Cure : action.effect == ActionEffect.Heal;
 
     bool CanReach(CombatUnit t) => user.ReachTo(t) <= Range && HasLineOfSight(t);
 

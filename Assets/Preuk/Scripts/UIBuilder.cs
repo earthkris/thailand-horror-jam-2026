@@ -79,6 +79,21 @@ public static class UIBuilder
     }
 
     // Fill the whole parent
+    // Run 'onEnter' when the mouse goes over 'target' and 'onExit' when it leaves (button hover colours)
+    public static void AddHover(GameObject target, System.Action onEnter, System.Action onExit)
+    {
+        var trigger = target.GetComponent<UnityEngine.EventSystems.EventTrigger>();
+        if (trigger == null) trigger = target.AddComponent<UnityEngine.EventSystems.EventTrigger>();
+        void On(UnityEngine.EventSystems.EventTriggerType type, System.Action act)
+        {
+            var e = new UnityEngine.EventSystems.EventTrigger.Entry { eventID = type };
+            e.callback.AddListener(_ => act());
+            trigger.triggers.Add(e);
+        }
+        On(UnityEngine.EventSystems.EventTriggerType.PointerEnter, onEnter);
+        On(UnityEngine.EventSystems.EventTriggerType.PointerExit, onExit);
+    }
+
     public static void Stretch(RectTransform rt)
     {
         rt.anchorMin = Vector2.zero;

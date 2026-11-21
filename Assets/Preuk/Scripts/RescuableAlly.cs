@@ -29,11 +29,11 @@ public class RescuableAlly : Interactable
     Transform visual;
     bool freeing;
 
-    protected override string Prompt => "Cut " + allyName + " free";
+    protected override string Prompt => promptText + " " + allyName;   // "Cut free Theron"
 
     protected override void Start()
     {
-        if (string.IsNullOrEmpty(promptText) || promptText == "Pick up") promptText = "Cut free";
+        if (promptText == "Pick up") promptText = "Cut free";   // the base class default doesn't fit a cocoon
         if (ally != null) ally.SetActive(false);
         BuildVisual();
         base.Start();

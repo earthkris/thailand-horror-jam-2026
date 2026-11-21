@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3ecbf2fa05240cc499f0bd28077f5bad, type: 3}
+  m_Name: Crate
+  m_EditorClassIdentifier: Assembly-CSharp::LootTable
+  entries:
+  - item: {fileID: 11400000, guid: 6449c17b83466494aa9c25993efe3e37, type: 2}
+    weight: 40
+    min: 1
+    max: 1
+  - item: {fileID: 11400000, guid: c0bacf81c8d408744bb1eca23884dd69, type: 2}
+    weight: 25
+    min: 1
+    max: 1
+  - item: {fileID: 11400000, guid: c5a1f4914b78e1549b8793cea2f273a3, type: 2}
+    weight: 15
+    min: 1
+    max: 1
+  - item: {fileID: 11400000, guid: 997ff3c53c843ca49a9b0aaefe141cdc, type: 2}
+    weight: 10
+    min: 1
+    max: 2
+  - item: {fileID: 11400000, guid: 0ef58b428a5c43d4aa8fc794139404a9, type: 2}
+    weight: 10
+    min: 1
+    max: 1
+  emptyChance: 0.75
+  minDraws: 1
+  maxDraws: 1
+  emptyLines:
+  - Nothing but rot.
+  - Rat droppings and splinters.
+  - Empty. Someone got here first.
+  - Old rags. Nothing you can use.
+  - A nest of spider eggs, long hatched.
+  - Mouldy grain.
