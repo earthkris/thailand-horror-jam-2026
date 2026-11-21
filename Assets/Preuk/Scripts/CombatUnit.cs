@@ -329,13 +329,6 @@ public class CombatUnit : MonoBehaviour
         }
     }
 
-    // A new maximum, at full health (the boss grows to match a bigger party before the fight)
-    public void SetMaxHP(int hp)
-    {
-        maxHP = Mathf.Max(1, hp);
-        CurrentHP = maxHP;
-    }
-
     // Healing someone who is downed gets them back up (Baldur's Gate rule). The dead stay dead.
     public void Heal(int amount)
     {

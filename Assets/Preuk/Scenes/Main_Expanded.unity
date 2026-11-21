@@ -14596,6 +14596,55 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 4, y: 0.1, z: 4}
   m_Center: {x: 2, y: -0.05, z: -2}
+--- !u!1 &206065561
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 206065563}
+  - component: {fileID: 206065562}
+  m_Layer: 0
+  m_Name: Boss Door Warning
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &206065562
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 206065561}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0b49183f5171a8f4188c12199a03e9aa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DialogueZone
+  size: {x: 4, y: 7}
+  dialogueByLoop:
+  - {fileID: 0}
+  - {fileID: 11400000, guid: 06a3018f9fb865d40b0f59809ab03577, type: 2}
+  - {fileID: 11400000, guid: 1f78fccc5a5a2484789cef8f7f91eab0, type: 2}
+--- !u!4 &206065563
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 206065561}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 6, y: 0, z: -9}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &208190709 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 18909760996641151, guid: c863f656782d099438e2f1ba789301c8, type: 3}
@@ -21397,6 +21446,7 @@ GameObject:
   - component: {fileID: 316594277}
   - component: {fileID: 316594279}
   - component: {fileID: 316594278}
+  - component: {fileID: 316594280}
   m_Layer: 0
   m_Name: Lamp
   m_TagString: Untagged
@@ -21498,6 +21548,35 @@ Light:
   m_LightUnit: 1
   m_LuxAtDistance: 1
   m_EnableSpotReflector: 1
+--- !u!114 &316594280
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 316594276}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
 --- !u!1001 &317564289
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -29049,7 +29128,7 @@ MonoBehaviour:
   minionPrefab: {fileID: 1628139225934128270, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
   summonName: Call the Brood
   summonEvery: 3
-  minionsPerCall: 1
+  minionsPerCall: 2
   maxMinions: 4
   minion:
     name: Brood Spawn
@@ -29060,8 +29139,6 @@ MonoBehaviour:
     damageBonus: 1
     tint: {r: 0.75, g: 0.55, b: 0.85, a: 1}
     spriteScale: 0.7
-  baseHP: 80
-  hpPerAlly: 25
   saveDC: 13
   forcedDeathOnFirstRun: 1
   effectMaterial: {fileID: 2100000, guid: 46f24d11d5bd81042bfe5f9421d3772d, type: 2}
@@ -29096,7 +29173,7 @@ MonoBehaviour:
   team: 1
   size: 3
   tileSize: 1
-  maxHP: 80
+  maxHP: 130
   armorClass: 13
   dexModifier: 0
   attackBonus: 5
@@ -54777,6 +54854,7 @@ GameObject:
   - component: {fileID: 750027702}
   - component: {fileID: 750027704}
   - component: {fileID: 750027703}
+  - component: {fileID: 750027705}
   m_Layer: 0
   m_Name: Lamp
   m_TagString: Untagged
@@ -54878,6 +54956,35 @@ Light:
   m_LightUnit: 1
   m_LuxAtDistance: 1
   m_EnableSpotReflector: 1
+--- !u!114 &750027705
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 750027701}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
 --- !u!1001 &752281820
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -149654,6 +149761,7 @@ GameObject:
   - component: {fileID: 2044499638}
   - component: {fileID: 2044499640}
   - component: {fileID: 2044499639}
+  - component: {fileID: 2044499641}
   m_Layer: 0
   m_Name: Lamp
   m_TagString: Untagged
@@ -149755,6 +149863,35 @@ Light:
   m_LightUnit: 1
   m_LuxAtDistance: 1
   m_EnableSpotReflector: 1
+--- !u!114 &2044499641
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2044499637}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
 --- !u!1001 &2044764310
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -158560,3 +158697,4 @@ SceneRoots:
   - {fileID: 2143826664}
   - {fileID: 411058667}
   - {fileID: 87418516}
+  - {fileID: 206065563}

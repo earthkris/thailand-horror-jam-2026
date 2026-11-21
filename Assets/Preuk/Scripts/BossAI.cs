@@ -74,8 +74,7 @@ public class BossAI : CombatBrain
     public string summonName = "Call the Brood";
     [Tooltip("Its 2nd turn, then every this many turns.")]
     [Min(2)] public int summonEvery = 3;
-    [Tooltip("Minions per call with just Kairos and Lucius. Each rescued ally adds one.")]
-    [Min(1)] public int minionsPerCall = 1;
+    [Min(1)] public int minionsPerCall = 2;
     [Tooltip("Never more than this many of its minions alive at once.")]
     [Min(1)] public int maxMinions = 4;
     [Tooltip("The minions' stats (they are weaker than a normal spider).")]
@@ -84,12 +83,6 @@ public class BossAI : CombatBrain
         name = "Brood Spawn", hp = 7, armorClass = 11, attackBonus = 3, diceSides = 4, damageBonus = 1,
         tint = new Color(0.75f, 0.55f, 0.85f), spriteScale = 0.7f
     };
-
-    [Header("Scaling with the party")]
-    [Tooltip("HP with just Kairos and Lucius.")]
-    [Min(1)] public int baseHP = 80;
-    [Tooltip("Extra HP for each rescued ally (Theron, Magnus) standing in the fight.")]
-    [Min(0)] public int hpPerAlly = 25;
 
     [Header("Rules")]
     [Tooltip("DEX save the party must reach to take half damage.")]
@@ -106,8 +99,6 @@ public class BossAI : CombatBrain
 
     bool lastWasStomp;
     int bossTurns;
-    int extraAllies;   // party members beyond Kairos and Lucius in this fight
-    CombatManager battle;
     readonly List<CombatUnit> minions = new List<CombatUnit>();
 
     public bool ForcedFight => forcedDeathOnFirstRun && LoopManager.LoopsUsed == 0;
@@ -123,22 +114,6 @@ public class BossAI : CombatBrain
         // The frames are played from here, so the old Animator would only fight it
         Animator old = GetComponentInChildren<Animator>(true);
         if (old != null && idleFrames != null && idleFrames.Length > 0) old.enabled = false;
-        battle = FindAnyObjectByType<CombatManager>();
-    }
-
-    void OnEnable() { if (battle != null) battle.OnBattleReady += MatchParty; }
-    void OnDisable() { if (battle != null) battle.OnBattleReady -= MatchParty; }
-
-    // The fight starts: a bigger party (rescued allies) meets a tougher boss with a bigger brood
-    void MatchParty()
-    {
-        if (!battle.Enemies.Contains(unit)) return;
-        extraAllies = 0;
-        foreach (CombatUnit p in battle.Party)
-            if (p != null && p.IsAlive) extraAllies++;
-        extraAllies = Mathf.Max(0, extraAllies - 2);
-        unit.SetMaxHP(baseHP + hpPerAlly * extraAllies);
-        Debug.Log($"{unit.unitName} faces {extraAllies + 2}: {unit.maxHP} HP, {minionsPerCall + extraAllies} minions per call");
     }
 
     // ================= Animation =================
@@ -294,7 +269,7 @@ public class BossAI : CombatBrain
         }
 
         int made = 0;
-        int count = Mathf.Min(minionsPerCall + extraAllies, maxMinions - minions.Count);
+        int count = Mathf.Min(minionsPerCall, maxMinions - minions.Count);
         Vector2Int me = MyTile();
         for (int i = 0; i < count; i++)
         {
