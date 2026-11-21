@@ -24,7 +24,7 @@ public class BossVictory : MonoBehaviour
     public DialogueScriptableObject[] exitByLoop;
 
     [Header("Exit circle")]
-    public Color circleColor = new Color32(232, 190, 99, 255);   // candle gold
+    public Color circleColor = Palette.CandleGold;
     [Tooltip("Tiles across.")]
     public float circleSize = 3f;
 
@@ -84,10 +84,10 @@ public class BossVictory : MonoBehaviour
 
         // 2. The way out opens where the boss fell
         float ts = player.tileSize;
-        Vector3 b = boss.transform.position;
-        Vector3 centre = new Vector3(Mathf.Round(b.x / ts) * ts, FloorY(b) + 0.03f, Mathf.Round(b.z / ts) * ts);
+        Vector3 centre = TileMath.Snap(boss.transform.position, ts);
+        centre.y = TileMath.FloorY(boss.transform.position) + 0.03f;
         GameObject circle = MakeCircle(centre, out SpriteRenderer ring, out Light glow);
-        var cam = FindAnyObjectByType<CameraController>();
+        CameraController cam = CameraController.Main;
         if (cam != null) cam.FocusOn(circle.transform);
         for (float t = 0f; t < 1f; t += Time.deltaTime / 0.8f)
         {
@@ -123,9 +123,8 @@ public class BossVictory : MonoBehaviour
         yield return new WaitForSecondsRealtime(0.3f);
 
         // Outside
-        player.Teleport(outsideSpot);
-        foreach (Follower f in FindObjectsByType<Follower>(FindObjectsSortMode.None)) f.SnapNextToLeader();
-        if (cam != null) { cam.FocusOn(player.transform); cam.SnapToTarget(); }
+        if (cam != null) cam.FocusOn(player.transform);
+        player.TeleportParty(outsideSpot);
         GameState.InDungeon = false;   // no more looping
         Destroy(circle);
         yield return new WaitForSecondsRealtime(0.8f);
@@ -135,8 +134,7 @@ public class BossVictory : MonoBehaviour
         yield return Brighten();
 
         // 5. What it cost
-        if (exitByLoop != null && exitByLoop.Length > 0)
-            yield return Talk(exitByLoop[Mathf.Clamp(LoopManager.LoopsUsed - 1, 0, exitByLoop.Length - 1)]);
+        yield return Talk(StoryDialogue.Pick(exitByLoop, LoopManager.LoopsUsed - 1));
         yield return new WaitForSeconds(0.6f);
 
         // 6. The goddess has the last word
@@ -165,37 +163,22 @@ public class BossVictory : MonoBehaviour
             RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
         if (camera != null && camera.clearFlags == CameraClearFlags.Skybox) camera.clearFlags = CameraClearFlags.SolidColor;
 
-        for (float t = 0f; t < 1f; t += Time.unscaledDeltaTime / Mathf.Max(brightenTime, 0.01f))
+        yield return Tween.Over(brightenTime, k =>
         {
-            float k = t * t * (3f - 2f * t);
             RenderSettings.ambientLight = Color.Lerp(ambient0, ambient, k);
             RenderSettings.fogColor = Color.Lerp(fog0, skyColor, k);
             sun.color = Color.Lerp(sun0, sunColor, k);
             sun.intensity = Mathf.Lerp(sunI0, sunIntensity, k);
             if (camera != null) camera.backgroundColor = Color.Lerp(sky0, skyColor, k);
-            yield return null;
-        }
-        RenderSettings.ambientLight = ambient;
+        }, unscaled: true, smooth: true);
         RenderSettings.fog = false;
-        sun.color = sunColor;
-        sun.intensity = sunIntensity;
-        if (camera != null) camera.backgroundColor = skyColor;
     }
 
     static IEnumerator Talk(DialogueScriptableObject lines)
     {
         if (lines == null || DialogueBox.Instance == null) yield break;
-        DialogueBox.Instance.StartDialogue(lines);
-        yield return null;
-        while (DialogueBox.Instance != null && DialogueBox.Instance.IsContentOpen) yield return null;
+        yield return StoryDialogue.Play(lines);
         yield return new WaitForSeconds(0.2f);
-    }
-
-    float FloorY(Vector3 p)
-    {
-        if (Physics.Raycast(p + Vector3.up, Vector3.down, out RaycastHit hit, 10f, ~0, QueryTriggerInteraction.Ignore))
-            return hit.point.y;
-        return p.y - 1f;
     }
 
     // The trap chest's magic circle art, lying flat, golden this time
@@ -205,55 +188,31 @@ public class BossVictory : MonoBehaviour
         go.transform.position = centre;
         ring = null;
 
-        Sprite[] open = trapChest != null ? trapChest.circleOpenFrames : null;
         Sprite[] loop = trapChest != null ? trapChest.circleLoopFrames : null;
         if (loop != null && loop.Length > 0)
         {
-            var ringGo = new GameObject("Ring", typeof(SpriteRenderer));
-            ringGo.transform.SetParent(go.transform, false);
-            ringGo.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
-            Rect r = loop[0].rect;
-            float across = circleSize * player.tileSize / (r.width / loop[0].pixelsPerUnit);
-            ringGo.transform.localScale = new Vector3(across, across * r.width / r.height, 1f);
-            ring = ringGo.GetComponent<SpriteRenderer>();
+            ring = TrapChest.AddRing(go.transform, loop[0], circleSize * player.tileSize, trapChest.circleMaterial);
             ring.color = circleColor;
-            if (trapChest.circleMaterial != null) ring.sharedMaterial = trapChest.circleMaterial;
-            StartCoroutine(Animate(ring, open, loop, trapChest.circleFramesPerSecond));
+            if (trapChest.circleOpenFrames != null && trapChest.circleOpenFrames.Length > 0) ring.sprite = trapChest.circleOpenFrames[0];
+            StartCoroutine(Animate(ring));
         }
 
-        var lightGo = new GameObject("Glow", typeof(Light));
-        lightGo.transform.SetParent(go.transform, false);
-        lightGo.transform.localPosition = Vector3.up * 0.6f;
-        glow = lightGo.GetComponent<Light>();
-        glow.type = LightType.Point;
-        glow.color = circleColor;
-        glow.range = circleSize + 2f;
-        glow.intensity = 0f;
+        glow = TrapChest.AddGlow(go.transform, circleColor, circleSize);
         return go;
     }
 
     // Opens once, then keeps cycling its last frames so it stays alive while you walk over
-    static IEnumerator Animate(SpriteRenderer sr, Sprite[] open, Sprite[] loop, float fps)
+    IEnumerator Animate(SpriteRenderer sr)
     {
-        float wait = 1f / Mathf.Max(fps, 1f);
-        if (open != null)
-            foreach (Sprite f in open)
-            {
-                if (sr == null) yield break;
-                sr.sprite = f;
-                yield return new WaitForSeconds(wait);
-            }
-        foreach (Sprite f in loop)
-        {
-            if (sr == null) yield break;
-            sr.sprite = f;
-            yield return new WaitForSeconds(wait);
-        }
+        yield return trapChest.PlayCircleFrames(sr);
+
+        Sprite[] loop = trapChest.circleLoopFrames;
+        float wait = 1.5f / Mathf.Max(trapChest.circleFramesPerSecond, 1f);
         int tail = Mathf.Min(3, loop.Length);
         for (int i = 0; sr != null; i++)
         {
             sr.sprite = loop[loop.Length - tail + i % tail];
-            yield return new WaitForSeconds(wait * 1.5f);
+            yield return new WaitForSeconds(wait);
         }
     }
 }

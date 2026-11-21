@@ -27,10 +27,10 @@ public class GridManager : MonoBehaviour
     public float floorOffset = 0.06f;
 
     [Header("Colors")]
-    public Color hoverColor = new Color32(217, 203, 176, 255);    // bone
-    public Color selectedColor = new Color32(232, 190, 99, 255);  // candle gold
+    public Color hoverColor = Palette.Bone;
+    public Color selectedColor = Palette.CandleGold;
     [Tooltip("Tiles the current unit can still walk to.")]
-    public Color rangeColor = new Color32(232, 190, 99, 255);     // candle gold, but dimmer
+    public Color rangeColor = Palette.CandleGold;   // but dimmer (Range Strength)
     [Range(0f, 1f)] public float rangeStrength = 0.18f;
 
     Tile[,] tiles;          // null where there's no floor in the room
@@ -43,7 +43,6 @@ public class GridManager : MonoBehaviour
     public event System.Action<Vector2Int> OnTileClicked;
     // Left-click on a floor tile while nobody is aiming. CombatMovement walks there.
     public event System.Action<Vector2Int> OnMoveClicked;
-    Material glowMaterial;
     float floorY;
 
     public bool IsBuilt => tiles != null;
@@ -62,9 +61,7 @@ public class GridManager : MonoBehaviour
 
     void Awake()
     {
-        // Assets/Preuk/Resources/TileGlow.mat (transparent, additive = looks like light)
-        glowMaterial = Resources.Load<Material>("TileGlow");
-        if (glowMaterial == null)
+        if (Tile.GlowMaterial == null)
             Debug.LogError("TileGlow material not found in a Resources folder!");
     }
 
@@ -82,7 +79,7 @@ public class GridManager : MonoBehaviour
             RefreshColors();
         }
 
-        if (Mouse.current.leftButton.wasPressedThisFrame && hovered != null)
+        if (Mouse.current.leftButton.wasPressedThisFrame && hovered != null && !GameState.DialogueOpen)
         {
             if (OnTileClicked != null)
             {
@@ -108,7 +105,7 @@ public class GridManager : MonoBehaviour
         if (IsBuilt) ClearGrid();
 
         floorY = FindFloorHeight(center);
-        Vector2Int start = WorldTileOf(center);
+        Vector2Int start = TileMath.TileOf(center, tileSize);
 
         // 1. Flood fill: spread out from the fight, one tile at a time,
         //    through tiles that have floor. Walls get added (as blocked) but we don't spread past them.
@@ -117,7 +114,6 @@ public class GridManager : MonoBehaviour
         found[start] = !HasObstacle(start);
         queue.Enqueue(start);
 
-        Vector2Int[] dirs = { Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right };
         int half = maxRoomSize / 2;
 
         while (queue.Count > 0)
@@ -125,7 +121,7 @@ public class GridManager : MonoBehaviour
             Vector2Int t = queue.Dequeue();
             if (!found[t]) continue;   // blocked tile: don't spread from it
 
-            foreach (Vector2Int d in dirs)
+            foreach (Vector2Int d in TileMath.Directions)
             {
                 Vector2Int n = t + d;
                 if (found.ContainsKey(n)) continue;
@@ -164,22 +160,12 @@ public class GridManager : MonoBehaviour
         Debug.Log($"Battle grid: {Width}x{Height}, {found.Count} tiles{(room != null ? $" (room '{room.name}')" : "")}");
     }
 
-    // A flat square lying on the floor (no collider, no shadows)
+    // The tile's hidden glow, just above the floor
     GameObject CreateGlow(int x, int y)
     {
-        GameObject go = GameObject.CreatePrimitive(PrimitiveType.Quad);
-        go.name = $"Tile {x},{y}";
-        Destroy(go.GetComponent<Collider>());
-
+        GameObject go = Tile.CreateGlow($"Tile {x},{y}", tileSize * tileInset);
         go.transform.position = TileToWorld(x, y) + Vector3.up * floorOffset;
-        go.transform.rotation = Quaternion.Euler(90f, 0f, 0f);   // lie flat, facing up
-        go.transform.localScale = Vector3.one * tileSize * tileInset;
         go.transform.SetParent(transform, true);
-
-        var r = go.GetComponent<MeshRenderer>();
-        r.sharedMaterial = glowMaterial;
-        r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-        r.receiveShadows = false;
         return go;
     }
 
@@ -187,7 +173,7 @@ public class GridManager : MonoBehaviour
     {
         if (!IsBuilt) return;
         foreach (Tile t in tiles)
-            if (t != null && t.visual != null) Destroy(t.visual);
+            if (t != null) t.Destroy();
         tiles = null;
         hovered = null;
         selected = null;
@@ -259,13 +245,7 @@ public class GridManager : MonoBehaviour
     {
         // Same tall box the player uses, at character height
         Vector3 center = WorldOf(worldTile) + Vector3.up * tileSize;
-        Vector3 halfSize = new Vector3(0.4f, 1f, 0.4f) * tileSize;
-        return Physics.CheckBox(center, halfSize, Quaternion.identity, obstacleLayers, QueryTriggerInteraction.Ignore);
-    }
-
-    Vector2Int WorldTileOf(Vector3 pos)
-    {
-        return new Vector2Int(Mathf.RoundToInt(pos.x / tileSize), Mathf.RoundToInt(pos.z / tileSize));
+        return TileMath.IsBlocked(center, tileSize, obstacleLayers, QueryTriggerInteraction.Ignore);
     }
 
     Vector3 WorldOf(Vector2Int worldTile)
@@ -282,7 +262,7 @@ public class GridManager : MonoBehaviour
 
     public bool WorldToTile(Vector3 world, out int x, out int y)
     {
-        Vector2Int t = WorldTileOf(world) - OriginTile;
+        Vector2Int t = TileMath.TileOf(world, tileSize) - OriginTile;
         x = t.x;
         y = t.y;
         return InBounds(x, y);
@@ -349,4 +329,4 @@ public class GridManager : MonoBehaviour
             Gizmos.DrawWireCube(TileToWorld(t.x, t.y), new Vector3(tileSize * 0.9f, 0.01f, tileSize * 0.9f));
         }
     }
-}
+}

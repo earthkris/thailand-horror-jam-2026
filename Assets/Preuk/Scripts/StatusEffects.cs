@@ -52,11 +52,13 @@ public class StatusEffects : MonoBehaviour
         public bool spark;
     }
 
+    // The statuses that show something
+    static readonly StatusType[] Shown = { StatusType.Burn, StatusType.Paralyse, StatusType.Regen };
+
     readonly List<Particle> particles = new List<Particle>();
     readonly List<CombatUnit> afflicted = new List<CombatUnit>();
-    readonly Dictionary<CombatUnit, float> burnClock = new Dictionary<CombatUnit, float>();
-    readonly Dictionary<CombatUnit, float> sparkClock = new Dictionary<CombatUnit, float>();
-    readonly Dictionary<CombatUnit, float> regenClock = new Dictionary<CombatUnit, float>();
+    // Seconds until the next particle, for each unit and status
+    readonly Dictionary<(CombatUnit, StatusType), float> clocks = new Dictionary<(CombatUnit, StatusType), float>();
 
     void OnEnable() => CombatUnit.OnAnyStatusChanged += OnStatusChanged;
 
@@ -67,6 +69,7 @@ public class StatusEffects : MonoBehaviour
             if (p.t != null) Destroy(p.t.gameObject);
         particles.Clear();
         afflicted.Clear();
+        clocks.Clear();
     }
 
     void OnStatusChanged(CombatUnit u)
@@ -86,12 +89,11 @@ public class StatusEffects : MonoBehaviour
         {
             CombatUnit u = afflicted[i];
             if (u == null || !u.IsAlive || !u.HasAnyStatus) { afflicted.RemoveAt(i); continue; }
-            SpriteRenderer body = u.GetComponentInChildren<SpriteRenderer>();
-            if (body == null || !body.enabled || !body.gameObject.activeInHierarchy || !FogOfWar.CanSee(u)) continue;
+            SpriteRenderer body = u.VisibleSprite();
+            if (body == null || !FogOfWar.CanSee(u)) continue;
 
-            if (u.Has(StatusType.Burn) && Due(burnClock, u, burnEvery, dt)) Spawn(body, cam, false);
-            if (u.Has(StatusType.Paralyse) && Due(sparkClock, u, sparkEvery, dt)) Spawn(body, cam, true);
-            if (u.Has(StatusType.Regen) && Due(regenClock, u, regenEvery, dt)) SpawnRegen(body, cam);
+            foreach (StatusType status in Shown)
+                if (u.Has(status) && Due(u, status, dt)) Spawn(status, body, cam);
         }
 
         // 2. Move, fade, face the camera
@@ -127,72 +129,63 @@ public class StatusEffects : MonoBehaviour
         }
     }
 
-    // Time for the next flame / spark on this unit?
-    static bool Due(Dictionary<CombatUnit, float> clock, CombatUnit u, float every, float dt)
+    // Time for the next flame / spark / + on this unit?
+    bool Due(CombatUnit u, StatusType status, float dt)
     {
-        clock.TryGetValue(u, out float wait);
-        if (wait > 0f) { clock[u] = wait - dt; return false; }
-        clock[u] = Mathf.Max(every, 0.02f) * Random.Range(0.7f, 1.3f);
+        var key = (u, status);
+        clocks.TryGetValue(key, out float wait);
+        if (wait > 0f) { clocks[key] = wait - dt; return false; }
+
+        float every = status == StatusType.Burn ? burnEvery : status == StatusType.Paralyse ? sparkEvery : regenEvery;
+        clocks[key] = Mathf.Max(every, 0.02f) * Random.Range(0.7f, 1.3f);
         return true;
     }
 
-    // A green + floating up off a regenerating unit
-    void SpawnRegen(SpriteRenderer body, Camera cam)
+    // One particle on 'body': a flame rising off it (burn), a spark crackling in place (paralyse),
+    // or a green + floating up (regen)
+    void Spawn(StatusType status, SpriteRenderer body, Camera cam)
     {
-        if (regenSprite == null) return;
-        Bounds b = body.bounds;
-        Vector3 right = cam.transform.right;
-        float halfWidth = Mathf.Max(b.extents.x, b.extents.z) * 0.7f;
-        Vector3 pos = new Vector3(b.center.x, b.min.y, b.center.z) + right * Random.Range(-halfWidth, halfWidth)
-                    + Vector3.up * b.size.y * Random.Range(0.1f, 0.6f) - cam.transform.forward * 0.15f;
-        float size = Random.Range(regenSize.x, regenSize.y);
-        var go = new GameObject("Regen", typeof(SpriteRenderer));
-        go.transform.SetPositionAndRotation(pos, cam.transform.rotation);
-        go.transform.localScale = Vector3.one * size;
-        var sr = go.GetComponent<SpriteRenderer>();
-        sr.sprite = regenSprite;
-        if (material != null) sr.sharedMaterial = material;
-        sr.color = regenColor;
-        sr.sortingOrder = body.sortingOrder + 1;
-        particles.Add(new Particle { t = go.transform, sr = sr, life = regenLife * Random.Range(0.8f, 1.2f), size = size, angle = 0f,
-            velocity = Vector3.up * regenRise * Random.Range(0.7f, 1.2f), spark = false });
-    }
-
-    void Spawn(SpriteRenderer body, Camera cam, bool spark)
-    {
-        Sprite sprite = spark ? paralyseSprite : burnSprite;
+        bool spark = status == StatusType.Paralyse, regen = status == StatusType.Regen;
+        Sprite sprite = spark ? paralyseSprite : regen ? regenSprite : burnSprite;
         if (sprite == null) return;
 
+        // Somewhere over the body, just in front of it
         Bounds b = body.bounds;
         Vector3 right = cam.transform.right;
-        float halfWidth = Mathf.Max(b.extents.x, b.extents.z) * 0.6f;
-        float height = b.size.y * (spark ? Random.Range(0.15f, 0.85f) : Random.Range(0f, 0.5f));
+        float halfWidth = Mathf.Max(b.extents.x, b.extents.z) * (regen ? 0.7f : 0.6f);
+        float height = b.size.y * (spark ? Random.Range(0.15f, 0.85f) : regen ? Random.Range(0.1f, 0.6f) : Random.Range(0f, 0.5f));
         Vector3 pos = new Vector3(b.center.x, b.min.y, b.center.z)
                     + right * Random.Range(-halfWidth, halfWidth)
                     + Vector3.up * height
-                    - cam.transform.forward * 0.15f;   // just in front of the body
+                    - cam.transform.forward * 0.15f;
 
-        Vector2 range = spark ? sparkSize : burnSize;
+        Vector2 range = spark ? sparkSize : regen ? regenSize : burnSize;
         float size = Random.Range(range.x, range.y);
-        float angle = spark ? Random.Range(0f, 360f) : Random.Range(-10f, 10f);
+        float angle = spark ? Random.Range(0f, 360f) : regen ? 0f : Random.Range(-10f, 10f);
 
-        var go = new GameObject(spark ? "Spark" : "Flame", typeof(SpriteRenderer));
+        var go = new GameObject(spark ? "Spark" : regen ? "Regen" : "Flame", typeof(SpriteRenderer));
         go.transform.SetPositionAndRotation(pos, cam.transform.rotation * Quaternion.Euler(0f, 0f, angle));
         go.transform.localScale = Vector3.one * size;
         var sr = go.GetComponent<SpriteRenderer>();
         sr.sprite = sprite;
         if (material != null) sr.sharedMaterial = material;
         sr.sortingOrder = body.sortingOrder + 1;
-        sr.flipX = Random.value < 0.5f;
+        if (regen) sr.color = regenColor;
+        else sr.flipX = Random.value < 0.5f;
+
+        // Sparks stay put and are gone in a blink; flames and + signs rise (flames drift sideways a little)
+        Vector3 velocity = spark ? Vector3.zero
+                         : regen ? Vector3.up * regenRise * Random.Range(0.7f, 1.2f)
+                         : Vector3.up * burnRise * Random.Range(0.7f, 1.2f) + right * Random.Range(-0.15f, 0.15f);
 
         particles.Add(new Particle
         {
             t = go.transform,
             sr = sr,
-            life = spark ? sparkLife : burnLife * Random.Range(0.8f, 1.2f),
+            life = spark ? sparkLife : (regen ? regenLife : burnLife) * Random.Range(0.8f, 1.2f),
             size = size,
             angle = angle,
-            velocity = spark ? Vector3.zero : Vector3.up * burnRise * Random.Range(0.7f, 1.2f) + right * Random.Range(-0.15f, 0.15f),
+            velocity = velocity,
             spark = spark,
         });
     }

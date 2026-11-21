@@ -29,6 +29,7 @@ public class BossIntro : MonoBehaviour
     public int walkIn = 2;
 
     PlayerMovement player;
+    CombatUnit bossUnit;
     bool played;
     GameObject shadow;
     GameObject door;
@@ -37,6 +38,7 @@ public class BossIntro : MonoBehaviour
     {
         player = FindAnyObjectByType<PlayerMovement>();
         if (boss == null) { Debug.LogWarning("BossIntro: drag in the boss.", this); enabled = false; return; }
+        bossUnit = boss.GetComponent<CombatUnit>();
         boss.HideBody();
         if (boss.TryGetComponent(out EnemyEncounter enc)) enc.enabled = false;   // no touching an invisible boss
     }
@@ -44,7 +46,7 @@ public class BossIntro : MonoBehaviour
     void Update()
     {
         if (played || player == null || GameState.Current != GameMode.Exploring) return;
-        if (!Inside(player.CurrentTile)) return;
+        if (!ZoneBox.Contains(transform.position, size, player.CurrentTile)) return;
         played = true;
         StartCoroutine(Play());
     }
@@ -58,42 +60,33 @@ public class BossIntro : MonoBehaviour
         // 0. Both of them step in, then the door slams shut behind them
         Vector3 into = boss.transform.position - player.CurrentTile;
         into = Mathf.Abs(into.x) >= Mathf.Abs(into.z) ? new Vector3(Mathf.Sign(into.x), 0f, 0f) : new Vector3(0f, 0f, Mathf.Sign(into.z));
-        if (walkIn > 0 && player.WalkToScripted(player.CurrentTile + into * walkIn * boss.GetComponent<CombatUnit>().tileSize))
+        if (walkIn > 0 && player.WalkToScripted(player.CurrentTile + into * walkIn * bossUnit.tileSize))
             while (player.IsWalking) yield return null;
         yield return new WaitForSeconds(0.35f);   // Lucius finishes his step
         yield return CloseDoor();
 
         // 1. Something big is coming
-        var cam = FindAnyObjectByType<CameraController>();
+        CameraController cam = CameraController.Main;
         bool talking = true;
         StartCoroutine(GrowShadow(() => talking));
         if (cam != null) cam.Shake(0.08f, 0.8f);
         yield return new WaitForSeconds(0.6f);
 
         // 2. Dialogue
-        if (dialogueByLoop != null && dialogueByLoop.Length > 0 && DialogueBox.Instance != null)
-        {
-            DialogueScriptableObject lines = dialogueByLoop[Mathf.Clamp(LoopManager.LoopsUsed, 0, dialogueByLoop.Length - 1)];
-            if (lines != null)
-            {
-                DialogueBox.Instance.StartDialogue(lines);
-                yield return null;
-                while (DialogueBox.Instance != null && DialogueBox.Instance.IsContentOpen) yield return null;
-            }
-        }
+        yield return StoryDialogue.Play(StoryDialogue.Pick(dialogueByLoop, LoopManager.LoopsUsed));
 
         // 3. It drops in (the camera looks at it, then back)
         if (cam != null) cam.FocusOn(boss.transform);
         yield return new WaitForSeconds(0.5f);
         talking = false;
-        yield return boss.DropIn(dropHeight * boss.GetComponent<CombatUnit>().tileSize);
+        yield return boss.DropIn(dropHeight * bossUnit.tileSize);
         if (shadow != null) Destroy(shadow);
         yield return new WaitForSeconds(0.7f);
         if (cam != null) cam.FocusOn(player.transform);
 
         // 4. Fight (first run: the party can't win this one)
         boss.UpdateForcedRules();
-        boss.GetComponent<CombatUnit>().OnDied += _ => StartCoroutine(OpenDoor());
+        bossUnit.OnDied += _ => StartCoroutine(OpenDoor());
         if (boss.TryGetComponent(out EnemyEncounter enc))
         {
             enc.enabled = true;
@@ -119,7 +112,9 @@ public class BossIntro : MonoBehaviour
             yield return null;
         }
         door.transform.position = doorPosition;
-        var cam = FindAnyObjectByType<CameraController>();
+        Sfx.Play("door", 1f, 0.7f);
+        Sfx.Boom(0.6f);
+        CameraController cam = CameraController.Main;
         if (cam != null) cam.Shake(0.15f, 0.3f);
         yield return new WaitForSeconds(0.3f);
     }
@@ -129,6 +124,7 @@ public class BossIntro : MonoBehaviour
         yield return new WaitForSeconds(1f);
         if (door == null) yield break;
         Vector3 up = door.transform.position, down = up + Vector3.down * doorDepth;
+        Sfx.Play("door_open", 1f, 0.7f);
         for (float t = 0f; t < 1f; t += Time.deltaTime / 1.2f)
         {
             door.transform.position = Vector3.Lerp(up, down, t);
@@ -140,28 +136,16 @@ public class BossIntro : MonoBehaviour
     // A dark round shadow on the boss's spot, growing while it is up there
     IEnumerator GrowShadow(System.Func<bool> stillUp)
     {
-        const int res = 64;
-        var px = new Color32[res * res];
-        for (int y = 0; y < res; y++)
-            for (int x = 0; x < res; x++)
-            {
-                float dx = (x + 0.5f) / res * 2f - 1f, dy = (y + 0.5f) / res * 2f - 1f;
-                float r = Mathf.Sqrt(dx * dx + dy * dy);
-                px[y * res + x] = new Color32(0, 0, 0, (byte)(Mathf.Clamp01((1f - r) * 2.5f) * 255f));
-            }
-        var tex = new Texture2D(res, res, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
-        tex.SetPixels32(px);
-        tex.Apply();
-
+        const int res = 64;   // black, solid in the middle and soft at the edge, 1 unit across
         shadow = new GameObject("Boss Shadow", typeof(SpriteRenderer));
         var sr = shadow.GetComponent<SpriteRenderer>();
-        sr.sprite = Sprite.Create(tex, new Rect(0, 0, res, res), new Vector2(0.5f, 0.5f), res);   // 1 unit across
+        sr.sprite = ProceduralSprite.Create(res, res,
+            (dx, dy) => ProceduralSprite.Pixel(0, (1f - Mathf.Sqrt(dx * dx + dy * dy)) * 2.5f), FilterMode.Bilinear, res);
         Vector3 p = boss.transform.position;
-        float floor = Physics.Raycast(p + Vector3.up, Vector3.down, out RaycastHit hit, 10f, ~0, QueryTriggerInteraction.Ignore) ? hit.point.y : p.y - 1f;
-        shadow.transform.position = new Vector3(p.x, floor + 0.07f, p.z);
+        shadow.transform.position = new Vector3(p.x, TileMath.FloorY(p) + 0.07f, p.z);
         shadow.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
 
-        float full = boss.GetComponent<CombatUnit>().size * boss.GetComponent<CombatUnit>().tileSize * 1.4f;
+        float full = bossUnit.size * bossUnit.tileSize * 1.4f;
         float t = 0f;
         while (shadow != null)
         {
@@ -174,15 +158,5 @@ public class BossIntro : MonoBehaviour
         }
     }
 
-    bool Inside(Vector3 p)
-    {
-        Vector3 c = transform.position;
-        return Mathf.Abs(p.x - c.x) <= size.x * 0.5f + 0.01f && Mathf.Abs(p.z - c.z) <= size.y * 0.5f + 0.01f;
-    }
-
-    void OnDrawGizmos()
-    {
-        Gizmos.color = new Color(1f, 0.85f, 0.2f, 0.9f);
-        Gizmos.DrawWireCube(transform.position + Vector3.up * 0.1f, new Vector3(size.x, 0.2f, size.y));
-    }
+    void OnDrawGizmos() => ZoneBox.DrawGizmo(transform.position, size);
 }

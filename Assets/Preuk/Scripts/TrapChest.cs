@@ -3,7 +3,7 @@ using UnityEngine;
 
 // The trap chest (storyboard scene 6). Open it (E or click) and a magic circle flares up,
 // the party is teleported into the dungeon, and the game fades back in (scene 7).
-// The magic circle is a placeholder drawn in code until there's real art for it.
+// Without circle frames set, a placeholder circle is drawn in code instead.
 public class TrapChest : Interactable
 {
     [Header("Teleport")]
@@ -23,7 +23,7 @@ public class TrapChest : Interactable
     public Sprite[] circleLoopFrames;
     public float circleFramesPerSecond = 12f;
     [Tooltip("Colour of the glow (and of the placeholder circle).")]
-    public Color circleColor = new Color32(194, 59, 59, 255);   // blood
+    public Color circleColor = Palette.Blood;
     [Tooltip("Tiles across.")]
     public float circleSize = 3f;
     [Tooltip("Where the circle's centre is, from the chest, in tiles. (-1, 0, 0) = one tile to the left, where the player walks up.")]
@@ -54,6 +54,9 @@ public class TrapChest : Interactable
         player.StopWalking();
         while (player.IsStepping) yield return null;
 
+        Sfx.Play("chest_open");
+        Sfx.Play("trap", 0.9f);
+
         // 1. The circle opens up under the chest and keeps turning
         GameObject circle = MakeCircle();
         Light glow = circle.GetComponentInChildren<Light>();
@@ -62,7 +65,7 @@ public class TrapChest : Interactable
         Transform ringT = ring.transform;
         Vector3 fullSize = ringT.localScale;   // set by MakeCircle
         ringT.localScale = Vector3.zero;
-        if (HasArt) StartCoroutine(Animate(ring, () => spinning));
+        if (HasArt) StartCoroutine(PlayCircleFrames(ring, () => spinning));
         else StartCoroutine(Spin(ringT, () => spinning));   // the placeholder just turns
         for (float t = 0f; t < 1f; t += Time.deltaTime / 0.6f)
         {
@@ -74,10 +77,10 @@ public class TrapChest : Interactable
         }
 
         // 2. 'Huh, why is there a magic circle?!' / 'It's a trap!'
-        yield return PlayDialogue(trapDialogue);
+        yield return StoryDialogue.Play(trapDialogue);
 
         // 3. It flares: shake, brighter, then black
-        var cam = FindAnyObjectByType<CameraController>();
+        CameraController cam = CameraController.Main;
         if (cam != null) cam.Shake(0.15f, 0.8f);
         ScreenFade.FadeOut(0.6f);
         Color startColor = ring.color;
@@ -90,10 +93,8 @@ public class TrapChest : Interactable
         }
 
         // 4. Teleport while the screen is black
-        player.Teleport(LandingSpot());
+        player.TeleportParty(LandingSpot());
         GameState.InDungeon = true;   // the menu's LOOP unlocks
-        foreach (Follower f in FindObjectsByType<Follower>(FindObjectsSortMode.None)) f.SnapNextToLeader();
-        if (cam != null) cam.SnapToTarget();
         spinning = false;
         Destroy(circle);
         yield return new WaitForSecondsRealtime(0.6f);
@@ -102,7 +103,7 @@ public class TrapChest : Interactable
         ScreenFade.FadeIn(1.4f, 0.2f);
         yield return new WaitForSecondsRealtime(0.8f);
         GameState.Current = GameMode.Exploring;
-        yield return PlayDialogue(arrivalDialogue);
+        yield return StoryDialogue.Play(arrivalDialogue);
     }
 
     // The middle of the destination's picture (a 4x4 floor tile's pivot is at its corner), on the grid
@@ -112,45 +113,38 @@ public class TrapChest : Interactable
         Vector3 p = r != null ? r.bounds.center : destination.position;
         if (player == null) player = FindAnyObjectByType<PlayerMovement>();
         float ts = player != null ? player.tileSize : 1f;
-        return new Vector3(Mathf.Round(p.x / ts) * ts, p.y, Mathf.Round(p.z / ts) * ts);
-    }
-
-    static IEnumerator PlayDialogue(DialogueScriptableObject lines)
-    {
-        if (lines == null || DialogueBox.Instance == null) yield break;
-        DialogueBox.Instance.StartDialogue(lines);
-        yield return null;
-        while (DialogueBox.Instance != null && DialogueBox.Instance.IsContentOpen) yield return null;
+        return TileMath.Snap(p, ts);
     }
 
     // Beside the chest (Circle Offset), just above the floor, on the grid
     Vector3 CircleCentre()
     {
         float ts = player != null ? player.tileSize : 1f;
-        Vector3 p = transform.position + circleOffset * ts;
-        return new Vector3(Mathf.Round(p.x / ts) * ts, transform.position.y + 0.03f, Mathf.Round(p.z / ts) * ts);
+        Vector3 centre = TileMath.Snap(transform.position + circleOffset * ts, ts);
+        centre.y = transform.position.y + 0.03f;
+        return centre;
     }
 
     bool HasArt => circleLoopFrames != null && circleLoopFrames.Length > 0;
 
-    // Every frame once (open, then the rest), then it stays on the last frame
-    IEnumerator Animate(SpriteRenderer sr, System.Func<bool> keepGoing)
+    // The circle art, every frame once (open, then the rest); it stays on the last frame.
+    // Stops early when 'keepGoing' says no. BossVictory plays its exit circle with this too.
+    public IEnumerator PlayCircleFrames(SpriteRenderer sr, System.Func<bool> keepGoing = null)
     {
         float wait = 1f / Mathf.Max(circleFramesPerSecond, 1f);
         if (circleOpenFrames != null)
             foreach (Sprite f in circleOpenFrames)
             {
-                if (sr == null || !keepGoing()) yield break;
+                if (sr == null || (keepGoing != null && !keepGoing())) yield break;
                 sr.sprite = f;
                 yield return new WaitForSeconds(wait);
             }
         foreach (Sprite f in circleLoopFrames)
         {
-            if (sr == null || !keepGoing()) yield break;
+            if (sr == null || (keepGoing != null && !keepGoing())) yield break;
             sr.sprite = f;
             yield return new WaitForSeconds(wait);
         }
-        // stays on the last frame
     }
 
     IEnumerator Spin(Transform t, System.Func<bool> keepGoing)
@@ -164,83 +158,68 @@ public class TrapChest : Interactable
         }
     }
 
-    // ---------- The magic circle from Magic_circle.PNG ----------
+    // ---------- The magic circle ----------
 
-    // The art is drawn as seen from the camera (squashed). Lying flat on the floor and stretched back
-    // into a true circle, it looks exactly like the drawing on screen, and characters stand on it.
-    GameObject MakeArtCircle()
+    // A root at normal scale with two children: the ring lying on the floor (it grows, animates or spins)
+    // and a glow above it that stays put.
+    GameObject MakeCircle()
     {
-        var go = new GameObject("Magic Circle");
+        var go = new GameObject(HasArt ? "Magic Circle" : "Magic Circle (placeholder)");
         go.transform.position = CircleCentre();
-        var ringGo = new GameObject("Ring", typeof(SpriteRenderer));
-        ringGo.transform.SetParent(go.transform, false);
-        ringGo.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
 
-        Sprite full = circleLoopFrames[0];
-        Rect r = full.rect;
-        float across = circleSize / (r.width / full.pixelsPerUnit);
-        ringGo.transform.localScale = new Vector3(across, across * r.width / r.height, 1f);
+        if (HasArt)
+        {
+            // Magic_circle.PNG: sized by its full frame, starting on the first opening frame
+            SpriteRenderer ring = AddRing(go.transform, circleLoopFrames[0], circleSize, circleMaterial);
+            if (circleOpenFrames != null && circleOpenFrames.Length > 0) ring.sprite = circleOpenFrames[0];
+        }
+        else AddRing(go.transform, PlaceholderCircle(), circleSize, circleMaterial).color = circleColor;
 
-        var sr = ringGo.GetComponent<SpriteRenderer>();
-        sr.sprite = circleOpenFrames != null && circleOpenFrames.Length > 0 ? circleOpenFrames[0] : full;
-        if (circleMaterial != null) sr.sharedMaterial = circleMaterial;
-
-        var lightGo = new GameObject("Glow", typeof(Light));
-        lightGo.transform.SetParent(go.transform, false);
-        lightGo.transform.localPosition = Vector3.up * 0.6f;
-        var light = lightGo.GetComponent<Light>();
-        light.type = LightType.Point;
-        light.color = circleColor;
-        light.range = circleSize + 2f;
-        light.intensity = 0f;
+        AddGlow(go.transform, circleColor, circleSize);
         return go;
     }
 
-    // ---------- Placeholder magic circle: rings and rune ticks drawn into a texture ----------
-
-    GameObject MakeCircle()
+    // A sprite lying flat on the floor under 'parent', 'across' wide and as deep as it is wide.
+    // Circle art is drawn as seen from the camera (squashed). Lying flat and stretched back into a true
+    // circle, it looks exactly like the drawing on screen, and characters stand on it.
+    public static SpriteRenderer AddRing(Transform parent, Sprite shape, float across, Material material)
     {
-        if (HasArt) return MakeArtCircle();
+        var go = new GameObject("Ring", typeof(SpriteRenderer));
+        go.transform.SetParent(parent, false);
+        go.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+        Rect r = shape.rect;
+        float scale = across / (r.width / shape.pixelsPerUnit);
+        go.transform.localScale = new Vector3(scale, scale * r.width / r.height, 1f);
+
+        var sr = go.GetComponent<SpriteRenderer>();
+        sr.sprite = shape;
+        if (material != null) sr.sharedMaterial = material;
+        return sr;
+    }
+
+    // The light over a circle 'circleSize' tiles across. Dark until its intensity is raised.
+    public static Light AddGlow(Transform parent, Color color, float circleSize)
+    {
+        Light glow = SceneLights.NewGlow("Glow", parent, color, circleSize + 2f);
+        glow.transform.localPosition = Vector3.up * 0.6f;
+        return glow;
+    }
+
+    // Placeholder magic circle: rings and rune ticks painted in code (1 unit across)
+    static Sprite PlaceholderCircle()
+    {
         const int size = 256;
-        var tex = new Texture2D(size, size, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp };
-        var px = new Color32[size * size];
-        for (int y = 0; y < size; y++)
-            for (int x = 0; x < size; x++)
-            {
-                float dx = (x + 0.5f) / size * 2f - 1f, dy = (y + 0.5f) / size * 2f - 1f;
-                float r = Mathf.Sqrt(dx * dx + dy * dy);
-                float a = Mathf.Atan2(dy, dx) * Mathf.Rad2Deg + 180f;
-                bool on =
-                    (r > 0.90f && r < 0.97f) ||                                   // outer ring
-                    (r > 0.62f && r < 0.66f) ||                                   // inner ring
-                    (r > 0.68f && r < 0.86f && Mathf.Repeat(a, 30f) < 3.5f) ||    // rune ticks
-                    (r < 0.62f && Mathf.Abs(Mathf.Repeat(a + 15f, 60f) - 30f) < 1.2f && r > 0.15f) ||   // star spokes
-                    (r < 0.12f);                                                  // centre
-                px[y * size + x] = on ? new Color32(255, 255, 255, 255) : new Color32(0, 0, 0, 0);
-            }
-        tex.SetPixels32(px);
-        tex.Apply();
-
-        // Root at normal scale; the ring child grows and spins, the light stays put
-        var go = new GameObject("Magic Circle (placeholder)");
-        go.transform.position = CircleCentre();
-        var ringGo = new GameObject("Ring", typeof(SpriteRenderer));
-        ringGo.transform.SetParent(go.transform, false);
-        ringGo.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
-        ringGo.transform.localScale = Vector3.zero;
-        var sr = ringGo.GetComponent<SpriteRenderer>();
-        sr.sprite = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);   // 1 unit across
-        sr.color = circleColor;
-        if (circleMaterial != null) sr.sharedMaterial = circleMaterial;
-
-        var lightGo = new GameObject("Glow", typeof(Light));
-        lightGo.transform.SetParent(go.transform, false);
-        lightGo.transform.localPosition = Vector3.up * 0.6f;
-        var light = lightGo.GetComponent<Light>();
-        light.type = LightType.Point;
-        light.color = circleColor;
-        light.range = circleSize + 2f;
-        light.intensity = 0f;
-        return go;
+        return ProceduralSprite.Create(size, size, (dx, dy) =>
+        {
+            float r = Mathf.Sqrt(dx * dx + dy * dy);
+            float a = Mathf.Atan2(dy, dx) * Mathf.Rad2Deg + 180f;
+            bool on =
+                (r > 0.90f && r < 0.97f) ||                                   // outer ring
+                (r > 0.62f && r < 0.66f) ||                                   // inner ring
+                (r > 0.68f && r < 0.86f && Mathf.Repeat(a, 30f) < 3.5f) ||    // rune ticks
+                (r < 0.62f && Mathf.Abs(Mathf.Repeat(a + 15f, 60f) - 30f) < 1.2f && r > 0.15f) ||   // star spokes
+                (r < 0.12f);                                                  // centre
+            return on ? new Color32(255, 255, 255, 255) : new Color32(0, 0, 0, 0);
+        }, FilterMode.Point, size);
     }
 }

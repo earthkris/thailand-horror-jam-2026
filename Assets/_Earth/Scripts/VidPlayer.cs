@@ -1,4 +1,3 @@
-using System;
 using UnityEngine;
 using UnityEngine.Video;
 
@@ -8,33 +7,24 @@ public class VidPlayer : MonoBehaviour
 
     [SerializeField] GameObject videoCanvas;
     [SerializeField] string videoFileName;
-    VideoPlayer videoPlayer;
 
     void Start()
     {
-        videoPlayer = GetComponent<VideoPlayer>();
-        PlayVideo();   
-    }
-
-    private void PlayVideo(){
-
         GameState.Current = GameMode.Cutscene;
 
         VideoPlayer videoPlayer = GetComponent<VideoPlayer>();
-
-        if (videoPlayer)
-        {
-            videoPlayer.url = System.IO.Path.Combine (Application.streamingAssetsPath, videoFileName); 
-            videoPlayer.Play();
-            videoPlayer.loopPointReached += OnCutsceneFinished;
-        }
+        videoPlayer.url = System.IO.Path.Combine(Application.streamingAssetsPath, videoFileName);
+        videoPlayer.Play();
+        videoPlayer.loopPointReached += _ => Finish();
     }
 
-    void OnCutsceneFinished(VideoPlayer vp)
+    // The cutscene is over (it played to its end, or CutsceneSkip skipped it):
+    // back to the game, and the first dialogue starts.
+    public void Finish()
     {
         GameState.Current = GameMode.Exploring;
-        videoCanvas.SetActive(false);
-        dialogueManager.Instance.TriggerDialogue(0);
-        gameObject.SetActive(false); 
+        if (videoCanvas != null) videoCanvas.SetActive(false);
+        if (dialogueManager.Instance != null) dialogueManager.Instance.TriggerDialogue(0);
+        gameObject.SetActive(false);
     }
 }

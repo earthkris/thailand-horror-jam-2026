@@ -27,6 +27,9 @@ public class FogOfWar : MonoBehaviour
     // Can the party see who this is? (Party members are always visible.)
     public static bool CanSee(CombatUnit u) => u != null && !hidden.Contains(u);
 
+    // What the battle log and banners call a unit: its name, or nothing more than a hint if it's hidden
+    public static string NameOf(CombatUnit u) => CanSee(u) ? u.unitName : "Something in the dark";
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void ResetStatics()
     {
@@ -37,7 +40,6 @@ public class FogOfWar : MonoBehaviour
     readonly List<CombatUnit> enemies = new List<CombatUnit>();
     readonly Dictionary<CombatUnit, List<SpriteRenderer>> bodies = new Dictionary<CombatUnit, List<SpriteRenderer>>();
     readonly Dictionary<SpriteRenderer, Material> normalMaterial = new Dictionary<SpriteRenderer, Material>();
-    Light[] lights;
     float nextRefresh;
     float nextCheck;
 
@@ -52,14 +54,12 @@ public class FogOfWar : MonoBehaviour
         if (Time.time < nextCheck) return;
         nextCheck = Time.time + checkInterval;
 
-        // Look for lights and enemies twice a second (torches can be lit, enemies can spawn)
-        if (lights == null || Time.time >= nextRefresh)
+        // Look for enemies twice a second (they can spawn). The lights come from SceneLights, just as often.
+        if (Time.time >= nextRefresh)
         {
             nextRefresh = Time.time + 0.5f;
-            lights = FindObjectsByType<Light>(FindObjectsSortMode.None);
             enemies.Clear();
-            foreach (CombatUnit u in FindObjectsByType<CombatUnit>(FindObjectsSortMode.None))
-                if (u.team == Team.Enemy) enemies.Add(u);
+            enemies.AddRange(CombatUnit.OnTeam(Team.Enemy));
         }
 
         bool changed = false;
@@ -85,10 +85,9 @@ public class FogOfWar : MonoBehaviour
     {
         Vector3 body = u.transform.position;   // the root sits at chest height
 
-        foreach (Light light in lights)
+        foreach (Light light in SceneLights.All)
         {
-            if (light == null || !light.isActiveAndEnabled || light.intensity <= 0f) continue;
-            if (light.type != LightType.Point && light.type != LightType.Spot) continue;
+            if (!SceneLights.IsLamp(light) || light.intensity <= 0f) continue;
 
             // Carrying a torch? Then you're lit, wherever you are.
             if (light.transform.IsChildOf(u.transform)) return true;

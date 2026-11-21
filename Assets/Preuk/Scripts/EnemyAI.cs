@@ -18,7 +18,7 @@ public enum AttackStyle { Melee, Ranged, Both }
 // Monsters always know where the party is, even in the dark.
 // The hit roll and damage come from the CombatUnit's "Attack" stats (the same for melee and shots).
 [RequireComponent(typeof(CombatUnit))]
-public class EnemyAI : MonoBehaviour
+public class EnemyAI : CombatBrain
 {
     [Header("Fighting Style")]
     public AttackStyle style = AttackStyle.Melee;
@@ -51,6 +51,29 @@ public class EnemyAI : MonoBehaviour
     [Tooltip("Tiles per second.")]
     public float projectileSpeed = 10f;
 
+    [Header("On every hit (optional)")]
+    [Tooltip("Burn = acid or venom eating in. Paralyse = webbed, loses its turns.")]
+    public StatusType inflicts = StatusType.None;
+    [Min(1)] public int statusTurns = 2;
+    [Range(0, 100)] public int statusChance = 35;
+    [Min(1)] public int statusDiceCount = 1;
+    [Min(1)] public int statusDiceSides = 4;
+
+    [Header("Special move (optional)")]
+    [Tooltip("Empty = none. Its 2nd turn, then every 'Special Every' turns, the attack is this instead.")]
+    public string specialName = "";
+    [Min(2)] public int specialEvery = 3;
+    [Min(1)] public int specialDiceCount = 2;
+    [Min(1)] public int specialDiceSides = 6;
+    public int specialBonus = 2;
+    public StatusType specialInflicts = StatusType.None;
+    [Min(1)] public int specialStatusTurns = 1;
+    [Range(0, 100)] public int specialStatusChance = 100;
+    [Min(1)] public int specialStatusDiceCount = 1;
+    [Min(1)] public int specialStatusDiceSides = 6;
+    [Tooltip("Party members this many tiles from the target are caught too (half damage). 0 = only the target.")]
+    [Min(0)] public int specialSplash = 0;
+
     [Header("Words (battle log and dice banner)")]
     public string meleeVerb = "attacks";
     public string rangedVerb = "shoots at";
@@ -59,18 +82,9 @@ public class EnemyAI : MonoBehaviour
     [Tooltip("Tiles per second while walking.")]
     public float stepSpeed = 4f;
 
-    static readonly Vector2Int[] Dirs = { Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right };
-
-    CombatUnit unit;
-    CombatManager combat;
-    GridManager grid;
-    TurnManager turns;
-
     CombatUnit chosen;     // who we're after this turn
     int turnsTaken;        // for openWithRanged
     Dictionary<Vector2Int, int> pathCost;   // from the last Flood: steps + opportunity attack detours
-
-    void Awake() => unit = GetComponent<CombatUnit>();
 
     // Keeps the Inspector honest: melee can only hit right next to it
     void OnValidate()
@@ -80,12 +94,8 @@ public class EnemyAI : MonoBehaviour
 
     // ================= The turn =================
 
-    public IEnumerator TakeTurn(CombatManager battle)
+    protected override IEnumerator Act()
     {
-        combat = battle;
-        grid = battle.grid;
-        turns = battle.GetComponent<TurnManager>();
-
         CombatUnit target = ChooseTarget();
         if (target == null) yield break;   // nobody left to fight
 
@@ -93,6 +103,7 @@ public class EnemyAI : MonoBehaviour
         bool shoot = style == AttackStyle.Both &&
                      ((openWithRanged && turnsTaken == 0) || Random.value < preferRangedChance);
         turnsTaken++;
+        bool special = !string.IsNullOrEmpty(specialName) && turnsTaken >= 2 && (turnsTaken - 2) % specialEvery == 0;
 
         // 1. Walk
         List<Vector2Int> path =
@@ -115,7 +126,7 @@ public class EnemyAI : MonoBehaviour
         // 2. Attack whoever we can reach now (melee first, then a shot)
         CombatUnit victim = TargetInReach(out bool melee, shoot);
         if (victim != null)
-            yield return Attack(victim, melee);
+            yield return Attack(victim, melee, special);
         else
             Debug.Log($"{Name()} can't reach anyone this turn.");
     }
@@ -194,7 +205,7 @@ public class EnemyAI : MonoBehaviour
             open.RemoveAt(pick);
             if (!done.Add(t)) continue;
 
-            foreach (Vector2Int d in Dirs)
+            foreach (Vector2Int d in TileMath.Directions)
             {
                 Vector2Int n = t + d;
                 if (done.Contains(n) || !CanStand(n)) continue;
@@ -209,16 +220,8 @@ public class EnemyAI : MonoBehaviour
     }
 
     // Would stepping from 'from' to 'to' leave a party member's reach while they still have their reaction?
-    bool Provokes(Vector2Int from, Vector2Int to)
-    {
-        foreach (CombatUnit p in combat.Party)
-        {
-            if (p == null || !p.IsAlive || p.Has(StatusType.Paralyse)) continue;
-            if (turns != null && !turns.HasReaction(p)) continue;
-            if (Gap(from, p) <= 1 && Gap(to, p) > 1) return true;
-        }
-        return false;
-    }
+    bool Provokes(Vector2Int from, Vector2Int to) =>
+        OpportunityAttack.Provokes(unit, grid.OriginTile + from, grid.OriginTile + to, combat, turns);
 
     static List<Vector2Int> PathTo(Vector2Int goal, Dictionary<Vector2Int, Vector2Int> cameFrom)
     {
@@ -351,45 +354,40 @@ public class EnemyAI : MonoBehaviour
 
     static float HealthFraction(CombatUnit u) => u.maxHP > 0 ? (float)u.CurrentHP / u.maxHP : 1f;
 
-    IEnumerator Attack(CombatUnit target, bool melee)
+    IEnumerator Attack(CombatUnit target, bool melee, bool special = false)
     {
         // D&D: shooting with an enemy right next to you = disadvantage (roll twice, keep the lower).
         // Attacking someone who is down = advantage (roll twice, keep the higher). Both cancel out.
         bool downed = target.IsDowned;
         bool crowded = !melee && NearestPartyGap(MyTile()) <= 1;
-        bool disadvantage = crowded && !downed;
-        bool advantage = downed && !crowded;
-        string verb = melee ? meleeVerb : rangedVerb;
+        RollMode mode = downed == crowded ? RollMode.Normal
+                      : crowded ? RollMode.Disadvantage : RollMode.Advantage;
+        string verb = special ? "uses " + specialName + " on" : melee ? meleeVerb : rangedVerb;
+        if (special) Sfx.Play("roar", 0.55f, 1.6f);
 
         // Rolled on the real dice (DiceTray), or DiceSimulator if there's no dice in the scene
-        int r1 = 0, r2 = 0;
-        yield return DiceTray.RollD20($"{Name()} {verb} {target.unitName}" + (disadvantage ? "   (disadvantage)" : advantage ? "   (advantage)" : ""), v => r1 = v);
-        r2 = r1;
-        if (disadvantage)
-            yield return DiceTray.RollD20("Disadvantage  —  second roll", v => r2 = v);
-        if (advantage)
-            yield return DiceTray.RollD20($"Advantage: {target.unitName} is down  —  second roll", v => r2 = v);
-        int roll = advantage ? Mathf.Max(r1, r2) : Mathf.Min(r1, r2);
+        var roll = new AttackRoll();
+        yield return roll.Throw(
+            $"{Name()} {verb} {target.unitName}" + (mode == RollMode.Disadvantage ? "   (disadvantage)" : mode == RollMode.Advantage ? "   (advantage)" : ""),
+            mode,
+            mode == RollMode.Disadvantage ? "Disadvantage  —  second roll" : $"Advantage: {target.unitName} is down  —  second roll");
 
         // Hit or miss? (worked out first, so a missed shot can fly wide)
-        int total = roll + unit.attackBonus;
-        bool crit = roll == 20;
-        bool hit = crit || (roll != 1 && total >= target.ArmorClass);
+        int total = roll.Value + unit.attackBonus;
+        bool hit = roll.Hits(total, target.ArmorClass);
 
         // Show it
         SpriteAnimator facer = GetComponentInChildren<SpriteAnimator>();   // look at who we attack
         if (facer != null) facer.FaceToward(target.transform.position - transform.position);
-        if (melee) yield return Swing(target);
-        else yield return Shoot(target, hit);
+        if (melee) { Sfx.Play("bite", 0.7f, unit.size > 1 ? 0.7f : 1f); yield return CombatAnimation.Swing(unit, target); }
+        else { Sfx.Play("spit", 0.8f); yield return Shoot(target, hit); }
 
-        string rollText = disadvantage ? $"d20 ({r1}, {r2} -> {roll}, disadvantage)"
-                        : advantage ? $"d20 ({r1}, {r2} -> {roll}, advantage)" : $"d20 ({roll})";
-        string attack = $"{Name()} {verb} {target.unitName}: {rollText} + {unit.attackBonus} = {total} vs AC {target.ArmorClass}";
+        string attack = $"{Name()} {verb} {target.unitName}: {roll.Text} + {unit.attackBonus} = {total} vs AC {target.ArmorClass}";
 
         if (!hit)
         {
-            Debug.Log($"{attack} — miss{(roll == 1 ? " (natural 1)" : "")}");
-            yield return DiceTray.ShowOutcome(roll == 1 ? "NATURAL 1  —  MISS" : "MISS", true);   // good for you
+            Debug.Log($"{attack} — miss{(roll.Value == 1 ? " (natural 1)" : "")}");
+            yield return DiceTray.ShowOutcome(roll.MissText, true);   // good for you
             yield break;
         }
 
@@ -397,7 +395,7 @@ public class EnemyAI : MonoBehaviour
         if (downed)
         {
             target.TakeDamage(1);
-            if ((melee || crit) && !target.IsDead) target.AddDeathSaveFailures(1);
+            if ((melee || roll.IsCrit) && !target.IsDead) target.AddDeathSaveFailures(1);
             Debug.Log($"{attack} — hit! {target.unitName}: {target.DeathSaveText}");
             string result = target.IsDead ? $"{target.unitName.ToUpper()} IS DEAD" : $"{target.unitName}: {target.DeathSaveFailures}/3 DEATH SAVES FAILED";
             yield return DiceTray.ShowOutcome("HIT  —  " + result, false);
@@ -406,93 +404,53 @@ public class EnemyAI : MonoBehaviour
         }
 
         // A critical hit rolls the damage dice twice
-        int dice = DiceSimulator.Roll(unit.damageDiceCount * (crit ? 2 : 1), unit.damageDiceSides);
-        int damage = Mathf.Max(dice + unit.damageBonus, 1);
-        Debug.Log($"{attack} — {(crit ? "CRITICAL HIT" : "hit")}! {damage} damage");
+        int count = special ? specialDiceCount : unit.damageDiceCount;
+        int sides = special ? specialDiceSides : unit.damageDiceSides;
+        int bonus = special ? specialBonus : unit.damageBonus;
+        int dice = DiceSimulator.Roll(count * roll.DiceTimes, sides);
+        int damage = Mathf.Max(dice + bonus, 1);
+        Debug.Log($"{attack} — {(roll.IsCrit ? "CRITICAL HIT" : "hit")}! {damage} damage");
         target.TakeDamage(damage);
+        string extra = Afflict(target, special);
+
+        // A special with splash also catches whoever stands next to the target
+        if (special && specialSplash > 0)
+            foreach (CombatUnit other in combat.Party)
+            {
+                if (other == null || other == target || !other.IsAlive || other.ReachTo(target) > specialSplash) continue;
+                if (!roll.Hits(total, other.ArmorClass)) continue;
+                int d = Mathf.Max(damage / 2, 1);
+                other.TakeDamage(d);
+                extra += $"   +{other.unitName} {d}" + Afflict(other, true);
+            }
+
         string down = target.IsAlive ? "" : $"  —  {target.unitName.ToUpper()} IS DOWN";
-        yield return DiceTray.ShowOutcome((crit ? $"CRITICAL!  {damage} damage" : $"HIT  —  {damage} damage") + down, false);
+        yield return DiceTray.ShowOutcome(roll.HitText(damage) + down + extra, false);
+        turns.NotifyChanged();
     }
 
-    // Play the attack frames (if any), lunge on the last one (the hit), then finish the swing
-    IEnumerator Swing(CombatUnit target)
+    // Venom, acid, webs: a status on whoever got hit. Returns a few words for the banner.
+    string Afflict(CombatUnit who, bool special)
     {
-        SpriteAnimator body = GetComponentInChildren<SpriteAnimator>();
-        if (body == null || !body.HasAttackFrames)
-        {
-            yield return Lunge(target);
-            yield break;
-        }
-
-        body.PlayAttack(target.transform.position);
-        while (body.IsAttacking && !body.OnLastAttackFrame) yield return null;   // wind-up
-        yield return Lunge(target);                                              // the hit
-        while (body.IsAttacking) yield return null;                              // follow-through
+        StatusType s = special ? specialInflicts : inflicts;
+        int chance = special ? specialStatusChance : statusChance;
+        if (s == StatusType.None || who == null || !who.IsAlive || Random.Range(0, 100) >= chance) return "";
+        int turnsFor = special ? specialStatusTurns : statusTurns;
+        who.AddStatus(s, turnsFor, special ? specialStatusDiceCount : statusDiceCount, special ? specialStatusDiceSides : statusDiceSides);
+        Sfx.Play(s == StatusType.Paralyse ? "paralyse" : "burn", 0.7f);
+        return s == StatusType.Paralyse ? "  (webbed)" : s == StatusType.Burn ? "  (burning)" : "";
     }
 
-    // Quick jab toward the target and back. Facing is held so sliding back doesn't turn us around.
-    IEnumerator Lunge(CombatUnit target)
-    {
-        SpriteAnimator body = GetComponentInChildren<SpriteAnimator>();
-        Vector3 home = transform.position;
-        Vector3 toward = target.transform.position - home;
-        toward.y = 0f;
-        Vector3 hitPos = home + toward.normalized * 0.35f * unit.tileSize;
-
-        for (float t = 0f; t < 1f; t += Time.deltaTime / 0.1f)
-        {
-            transform.position = Vector3.Lerp(home, hitPos, t);
-            if (body != null) body.HoldFacing(0.1f);
-            yield return null;
-        }
-        for (float t = 0f; t < 1f; t += Time.deltaTime / 0.15f)
-        {
-            transform.position = Vector3.Lerp(hitPos, home, t);
-            if (body != null) body.HoldFacing(0.1f);
-            yield return null;
-        }
-        transform.position = home;
-        if (body != null) body.HoldFacing(0.1f);
-    }
-
-    // Fly a projectile from us to the target. A miss flies wide and lands beside them.
+    // Fly a projectile from us to the target (CombatAnimation). A miss flies wide and lands beside them.
     IEnumerator Shoot(CombatUnit target, bool hit)
     {
         Vector3 from = transform.position;
-        Vector3 to = target.transform.position;
-        Vector3 flat = to - from;
-        flat.y = 0f;
-        if (!hit && flat.sqrMagnitude > 0.0001f)
-        {
-            Vector3 side = Vector3.Cross(Vector3.up, flat).normalized * (Random.value < 0.5f ? -0.7f : 0.7f);
-            to += (side + flat.normalized * 0.4f) * unit.tileSize;
-        }
-
-        GameObject p = projectilePrefab != null ? Instantiate(projectilePrefab) : MakePlaceholderBall();
-        p.transform.position = from;
-        if (to != from) p.transform.rotation = Quaternion.LookRotation(to - from);   // point it at the target (for arrows)
-        if (p.TryGetComponent(out SpriteFlipbook flipbook)) flipbook.travelDirection = to - from;   // sprites: turn on screen instead
-
-        float time = Vector3.Distance(from, to) / Mathf.Max(projectileSpeed * unit.tileSize, 0.1f);
-        for (float t = 0f; t < 1f; t += Time.deltaTime / Mathf.Max(time, 0.01f))
-        {
-            p.transform.position = Vector3.Lerp(from, to, t);
-            yield return null;
-        }
-        Destroy(p);
+        Vector3 to = CombatAnimation.ShotEnd(from, target.transform.position, hit, unit.tileSize);
+        yield return CombatAnimation.Fly(projectilePrefab, from, to, projectileSpeed * unit.tileSize);
 
         // On the target, or on the floor beside them after a miss
         if (impactPrefab != null)
             Instantiate(impactPrefab, hit ? to : to + Vector3.down * 0.6f * unit.tileSize, Quaternion.identity);
-    }
-
-    static GameObject MakePlaceholderBall()
-    {
-        GameObject ball = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-        ball.name = "Projectile (placeholder)";
-        Destroy(ball.GetComponent<Collider>());
-        ball.transform.localScale = Vector3.one * 0.2f;
-        return ball;
     }
 
     // ================= Moving =================
@@ -500,6 +458,7 @@ public class EnemyAI : MonoBehaviour
     IEnumerator Step(Vector2Int gridTile)
     {
         Vector3 target = unit.WorldPositionFor(grid.OriginTile + gridTile);
+        Sfx.Step(transform, 0.25f);
         while (transform.position != target)
         {
             transform.position = Vector3.MoveTowards(transform.position, target, stepSpeed * unit.tileSize * Time.deltaTime);
@@ -507,35 +466,7 @@ public class EnemyAI : MonoBehaviour
         }
     }
 
-    // ================= Helpers =================
-
-    Vector2Int MyTile() => unit.AnchorTile - grid.OriginTile;
-
-    // Could our whole footprint stand with its bottom-left on this grid tile?
-    bool CanStand(Vector2Int anchor)
-    {
-        for (int x = 0; x < unit.size; x++)
-            for (int y = 0; y < unit.size; y++)
-            {
-                Vector2Int cell = anchor + new Vector2Int(x, y);
-                if (!grid.IsWalkable(cell.x, cell.y)) return false;
-
-                Vector2Int world = grid.OriginTile + cell;
-                foreach (CombatUnit other in AllUnits())
-                    if (other != unit && !other.IsDead && other.Occupies(world)) return false;
-            }
-        return true;
-    }
-
-    // Steps between our footprint (if standing at 'anchor') and theirs. 1 = right next to each other.
-    int Gap(Vector2Int anchor, CombatUnit other)
-    {
-        Vector2Int a = grid.OriginTile + anchor;
-        Vector2Int b = other.AnchorTile;
-        int dx = Mathf.Max(0, b.x - (a.x + unit.size - 1), a.x - (b.x + other.size - 1));
-        int dy = Mathf.Max(0, b.y - (a.y + unit.size - 1), a.y - (b.y + other.size - 1));
-        return CombatUnit.Reach(dx, dy);
-    }
+    // ================= Helpers (MyTile, CanStand, Gap, ClosestPartyMember and Name are in CombatBrain) =================
 
     int NearestPartyGap(Vector2Int anchor)
     {
@@ -545,32 +476,10 @@ public class EnemyAI : MonoBehaviour
         return best;
     }
 
-    CombatUnit ClosestPartyMember(Vector2Int anchor)
-    {
-        CombatUnit best = null;
-        int bestGap = int.MaxValue;
-        foreach (CombatUnit p in combat.Party)
-        {
-            if (p == null || !p.IsAlive) continue;
-            int gap = Gap(anchor, p);
-            if (gap < bestGap) { bestGap = gap; best = p; }
-        }
-        return best;
-    }
-
     // Nothing on the Obstacles layer between us (standing at 'anchor') and the target
     bool ClearShot(Vector2Int anchor, CombatUnit target)
     {
         Vector3 from = unit.WorldPositionFor(grid.OriginTile + anchor);
         return !Physics.Linecast(from, target.transform.position, grid.obstacleLayers, QueryTriggerInteraction.Ignore);
     }
-
-    IEnumerable<CombatUnit> AllUnits()
-    {
-        foreach (CombatUnit u in combat.Party) yield return u;
-        foreach (CombatUnit u in combat.Enemies) yield return u;
-    }
-
-    // What the log calls us (hidden monsters stay mysterious)
-    string Name() => FogOfWar.CanSee(unit) ? unit.unitName : "Something in the dark";
 }

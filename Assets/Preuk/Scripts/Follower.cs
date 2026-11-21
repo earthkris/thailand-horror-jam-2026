@@ -3,6 +3,11 @@ using UnityEngine;
 public class Follower : MonoBehaviour
 {
     public PlayerMovement leader;     // who to follow
+    [Tooltip("Optional: walk behind this follower instead of right behind the leader (a line of allies).")]
+    public Follower ahead;
+
+    // "I'm leaving this tile" (the next one in line walks onto it)
+    public event System.Action<Vector3> OnStepStarted;
 
     [Header("Start position")]
     [Tooltip("On start, move to a free tile next to the leader instead of staying where you were placed.")]
@@ -28,13 +33,30 @@ public class Follower : MonoBehaviour
 
     void OnEnable()
     {
-        if (leader != null) leader.OnStepStarted += FollowTo;   // start listening
+        Listen(true);
         targetPos = transform.position;   // after combat: stay put until the leader moves
     }
 
-    void OnDisable()
+    void OnDisable() => Listen(false);
+
+    void Listen(bool on)
     {
-        if (leader != null) leader.OnStepStarted -= FollowTo;   // stop listening
+        if (ahead != null && ahead != this)
+        {
+            if (on) ahead.OnStepStarted += FollowTo; else ahead.OnStepStarted -= FollowTo;
+        }
+        else if (leader != null)
+        {
+            if (on) leader.OnStepStarted += FollowTo; else leader.OnStepStarted -= FollowTo;
+        }
+    }
+
+    // Join the end of the line behind 'who' (a rescued ally)
+    public void FollowBehind(Follower who)
+    {
+        Listen(false);
+        ahead = who;
+        if (isActiveAndEnabled) Listen(true);
     }
 
     // Find the first free tile around the leader and stand there
@@ -43,11 +65,8 @@ public class Follower : MonoBehaviour
         float t = leader.tileSize;
 
         // The leader's tile, rounded to the grid (the leader may not have snapped itself yet)
-        Vector3 lp = leader.transform.position;
-        Vector3 leaderTile = new Vector3(
-            Mathf.Round(lp.x / t) * t,
-            transform.position.y,          // keep our own height
-            Mathf.Round(lp.z / t) * t);
+        Vector3 leaderTile = TileMath.Snap(leader.transform.position, t);
+        leaderTile.y = transform.position.y;   // keep our own height
 
         // Order matters: the first free one wins
         Vector3[] offsets =
@@ -73,17 +92,18 @@ public class Follower : MonoBehaviour
         Debug.LogWarning("Follower: no free tile next to the leader, starting on the leader's tile.");
     }
 
+    // No wall here (the same check the player moves by), ground under it, and no one else of the party on it
     bool IsFree(Vector3 tile)
     {
-        // 1. No wall here (same box check the player uses for movement)
-        Vector3 halfSize = new Vector3(0.4f, 1f, 0.4f) * leader.tileSize;
-        if (Physics.CheckBox(tile, halfSize, Quaternion.identity, leader.obstacleLayers))
-            return false;
-
-        // 2. There is ground under it (don't spawn off the edge of the map)
-        Vector3 rayStart = new Vector3(tile.x, tile.y + 1f, tile.z);
-        return Physics.Raycast(rayStart, Vector3.down, 5f, ~leader.obstacleLayers);
+        if (!TileMath.IsOpenGround(tile, leader.tileSize, leader.obstacleLayers)) return false;
+        if (Flat(leader.transform.position, tile)) return false;
+        foreach (Follower f in FindObjectsByType<Follower>(FindObjectsSortMode.None))
+            if (f != this && Flat(f.transform.position, tile)) return false;
+        return true;
     }
+
+    bool Flat(Vector3 a, Vector3 b) =>
+        Mathf.Abs(a.x - b.x) < leader.tileSize * 0.5f && Mathf.Abs(a.z - b.z) < leader.tileSize * 0.5f;
 
     // After the leader teleports: stand next to them right away (no sliding across the map)
     public void SnapNextToLeader()
@@ -96,8 +116,10 @@ public class Follower : MonoBehaviour
     // Runs every time the leader starts a step
     void FollowTo(Vector3 tile)
     {
-        // Keep our own height, take the leader's old X and Z
+        // Keep our own height, take the leader's old X and Z. Whoever walks behind us takes ours.
+        Vector3 old = targetPos;
         targetPos = new Vector3(tile.x, transform.position.y, tile.z);
+        OnStepStarted?.Invoke(old);
     }
 
     void Update()

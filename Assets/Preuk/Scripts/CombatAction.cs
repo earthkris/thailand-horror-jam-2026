@@ -1,8 +1,9 @@
 using UnityEngine;
 
 public enum ActionTarget { Enemy, Ally, Self }   // Ally = any party member, including yourself
-public enum ActionEffect { Damage, Heal, Buff, Help }   // Help = get a downed ally back up with 1 HP (Baldur's Gate)
-public enum ActionArea { Single, AroundTarget, AroundUser }   // AroundTarget = splash round who you hit, AroundUser = a sweep round you   // Buff = Bless, Shield of Faith... (lasts until the fight ends)
+// Buff = Bless, Shield of Faith... (lasts until the fight ends). Help = get a downed ally back up with 1 HP (Baldur's Gate)
+public enum ActionEffect { Damage, Heal, Buff, Help }
+public enum ActionArea { Single, AroundTarget, AroundUser }   // AroundTarget = splash round who you hit, AroundUser = a sweep round you
 
 // One thing a character can do with their action (Sword Strike, Holy Verse, Heal...).
 // Make new ones: right-click in the Project window -> Create -> Game -> Combat Action.
@@ -49,6 +50,10 @@ public class CombatAction : ScriptableObject
     [Header("Visuals (any action, optional)")]
     [Tooltip("Spawned on the user as the action starts, e.g. sparkles when a spell is cast.")]
     public GameObject castEffect;
+
+    [Header("Sound (optional)")]
+    [Tooltip("A folder name in Resources/Sfx played as the action starts (cast, swing, thunder, holy_boom...). Empty = picked by what the action does.")]
+    public string sound = "";
 
     [Header("Swing (melee, optional)")]
     [Tooltip("Played instead of the character's normal attack frames, e.g. Divine Smite's glowing sword. Empty = normal swing.")]

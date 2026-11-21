@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.UI;
 
 // Something the player can use while exploring: a spell book now, a chest or a door later.
 // Stand on it or next to it and press E, or click it. Click it from further away and the
@@ -234,29 +233,13 @@ public abstract class Interactable : MonoBehaviour
 
     static void BuildPrompt()
     {
-        var canvasGo = new GameObject("Interact Prompt", typeof(Canvas), typeof(CanvasScaler));
-        var canvas = canvasGo.GetComponent<Canvas>();
-        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        canvas.sortingOrder = 40;
-        var scaler = canvasGo.GetComponent<CanvasScaler>();
-        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1920, 1080);
-        scaler.matchWidthOrHeight = 0.5f;
+        Canvas canvas = UIBuilder.NewOverlayCanvas("Interact Prompt", null, UIBuilder.HintOrder);
 
-        var go = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
-        go.transform.SetParent(canvasGo.transform, false);
-        promptRect = (RectTransform)go.transform;
+        promptLabel = UIBuilder.NewText("Label", canvas.transform, 26, Palette.Bone, TextAlignmentOptions.Bottom);
+        UIBuilder.AddOutline(promptLabel);
+        promptRect = promptLabel.rectTransform;
         promptRect.sizeDelta = new Vector2(500, 50);
         promptRect.pivot = new Vector2(0.5f, 0f);   // sits just above the point
-
-        promptLabel = go.GetComponent<TextMeshProUGUI>();
-        promptLabel.fontSize = 26;
-        promptLabel.color = new Color32(217, 203, 176, 255);   // bone
-        promptLabel.alignment = TextAlignmentOptions.Bottom;
-        promptLabel.textWrappingMode = TextWrappingModes.NoWrap;
-        promptLabel.raycastTarget = false;
-        promptLabel.outlineWidth = 0.25f;                       // dark edge so it reads over anything
-        promptLabel.outlineColor = new Color32(5, 4, 7, 255);
-        go.SetActive(false);
+        promptLabel.gameObject.SetActive(false);
     }
 }

@@ -47,6 +47,23 @@ public class CombatUnit : MonoBehaviour
     public int CurrentHP { get; private set; }
     public bool IsAlive => CurrentHP > 0;
 
+    // The one you walk with (Kairos). The story treats him differently: when he falls, time loops.
+    public bool IsPlayer => TryGetComponent<PlayerMovement>(out _);
+
+    // Every unit of a team in the scene
+    public static IEnumerable<CombatUnit> OnTeam(Team team)
+    {
+        foreach (CombatUnit u in FindObjectsByType<CombatUnit>(FindObjectsSortMode.None))
+            if (u.team == team) yield return u;
+    }
+
+    // Our body sprite if it is on screen right now, otherwise null (effects use this to know where to draw)
+    public SpriteRenderer VisibleSprite()
+    {
+        SpriteRenderer sr = GetComponentInChildren<SpriteRenderer>();
+        return sr != null && sr.enabled && sr.gameObject.activeInHierarchy ? sr : null;
+    }
+
     // ---------- Downed (party only, Baldur's Gate style) ----------
     // A party member at 0 HP is downed, not dead. On each of their turns they roll a death saving throw:
     // d20 10+ = success, below 10 = failure, natural 20 = back up with 1 HP, natural 1 = two failures.
@@ -97,8 +114,8 @@ public class CombatUnit : MonoBehaviour
         DeathSaveSuccesses = 0;
         DeathSaveFailures = 0;
     }
+
     public int MoveTiles => speedFeet / 5;
-    public string DamageText => $"{damageDiceCount}d{damageDiceSides}+{damageBonus}";
 
     // ---------- Buffs (Bless, Shield of Faith...). They last until the fight ends. ----------
     public int BlessDie { get; private set; }        // 4 = +1d4 on attack rolls, 0 = not blessed
@@ -106,6 +123,10 @@ public class CombatUnit : MonoBehaviour
     public bool IsBlessed => BlessDie > 0 || BlessBonus > 0;
     public int BonusAC { get; private set; }
     public int ArmorClass => armorClass + BonusAC;   // use this for rolls, not armorClass
+
+    // What the blessing adds to one roll: the bless die alone, or the die plus the flat bonus
+    public int RollBlessDie() => BlessDie > 0 ? DiceSimulator.Roll(BlessDie) : 0;
+    public int RollBless() => RollBlessDie() + BlessBonus;
 
     public void AddBuff(int blessDie, int bonusAC, int blessBonus = 0)
     {
@@ -225,25 +246,17 @@ public class CombatUnit : MonoBehaviour
     }
 
     // Steps (no diagonals) from a tile to the NEAREST tile we cover. 0 = on top of us, 1 = next to us
-    public int StepsTo(Vector2Int tile)
-    {
-        Vector2Int a = AnchorTile;
-        int dx = Mathf.Max(a.x - tile.x, 0, tile.x - (a.x + size - 1));
-        int dy = Mathf.Max(a.y - tile.y, 0, tile.y - (a.y + size - 1));
-        return dx + dy;
-    }
+    public int StepsTo(Vector2Int tile) => TileMath.StepsBetween(AnchorTile, size, tile, 1);
 
     // Like StepsTo, but for fighting: a diagonal neighbour counts as next to us (melee hits diagonally)
-    public int ReachTo(Vector2Int tile)
-    {
-        Vector2Int a = AnchorTile;
-        int dx = Mathf.Max(a.x - tile.x, 0, tile.x - (a.x + size - 1));
-        int dy = Mathf.Max(a.y - tile.y, 0, tile.y - (a.y + size - 1));
-        return Reach(dx, dy);
-    }
+    public int ReachTo(Vector2Int tile) => TileMath.ReachBetween(AnchorTile, size, tile, 1);
 
-    // Steps from a gap of dx, dy tiles: one step diagonally is still 1, anything further adds up as usual
-    public static int Reach(int dx, int dy) => dx == 1 && dy == 1 ? 1 : dx + dy;
+    // Fighting reach between our whole footprint and another unit's. 1 = right next to each other.
+    public int ReachTo(CombatUnit other) => ReachFrom(AnchorTile, other);
+
+    // The same, as if our bottom-left tile were 'anchor' (for planning a move)
+    public int ReachFrom(Vector2Int anchor, CombatUnit other) =>
+        TileMath.ReachBetween(anchor, size, other.AnchorTile, other.size);
 
     // Where the root should be if our bottom-left tile is 'anchor'
     public Vector3 WorldPositionFor(Vector2Int anchor)

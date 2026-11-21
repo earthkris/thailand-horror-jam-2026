@@ -2,7 +2,6 @@ using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Rendering;
-using UnityEngine.UI;
 
 // Connects combat to the 3D dice roller (RollerPrefabChanged).
 // Put it on the RollerPrefabChanged object. During a fight, every d20 (attacks) is rolled
@@ -25,9 +24,9 @@ public class DiceTray : MonoBehaviour
     [Range(0f, 1f)] public float diceBrightness = 0.2f;
 
     [Header("Banner (above the tray)")]
-    public Color captionColor = new Color32(217, 203, 176, 255);   // bone
-    public Color hitColor = new Color32(232, 190, 99, 255);        // candle gold
-    public Color missColor = new Color32(194, 59, 59, 255);        // blood
+    public Color captionColor = Palette.Bone;
+    public Color hitColor = Palette.CandleGold;
+    public Color missColor = Palette.Blood;
     [Tooltip("Banner height on screen (0 = bottom, 1 = top).")]
     [Range(0f, 1f)] public float bannerHeight = 0.6f;
     [Tooltip("Gap between the banner and the right edge of the screen.")]
@@ -127,12 +126,14 @@ public class DiceTray : MonoBehaviour
         dice.OnRolled += OnRolled;
         yield return null;          // let the dice wake up if the tray was hidden
         dice.Roll();
+        Sfx.Play("dice_rattle", 0.7f);
 
         float timeout = 6f;         // safety: never hang the turn
         while (!finished && (timeout -= Time.deltaTime) > 0f) yield return null;
         dice.OnRolled -= OnRolled;
         if (!finished) lastResult = DiceSimulator.Roll(20);
 
+        Sfx.Play("dice_land", 0.8f, lastResult == 20 ? 1.2f : lastResult == 1 ? 0.8f : 1f);
         outcome.text = lastResult.ToString();
         outcome.color = lastResult == 20 ? hitColor : lastResult == 1 ? missColor : captionColor;
         yield return new WaitForSeconds(0.4f);
@@ -152,6 +153,8 @@ public class DiceTray : MonoBehaviour
     IEnumerator OutcomeRoutine(string text, bool good)
     {
         if (banner != null) banner.SetActive(true);
+        if (text.StartsWith("MISS") || text.StartsWith("NATURAL 1")) Sfx.Play("miss", 0.8f);
+        else if (text.StartsWith("CRITICAL")) Sfx.Play("crit", 0.8f);
         outcome.text = text;
         outcome.color = good ? hitColor : missColor;
         yield return new WaitForSeconds(showResultFor);
@@ -168,15 +171,7 @@ public class DiceTray : MonoBehaviour
 
     void BuildBanner()
     {
-        banner = new GameObject("Dice Banner", typeof(Canvas), typeof(CanvasScaler));
-        banner.transform.SetParent(transform, false);
-        var canvas = banner.GetComponent<Canvas>();
-        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        canvas.sortingOrder = 50;
-        var scaler = banner.GetComponent<CanvasScaler>();
-        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1920, 1080);
-        scaler.matchWidthOrHeight = 0.5f;
+        banner = UIBuilder.NewOverlayCanvas("Dice Banner", transform, UIBuilder.DiceOrder).gameObject;
 
         caption = MakeText("Caption", 24, captionColor, new Vector2(0, 26));
         caption.characterSpacing = 4;
@@ -186,25 +181,17 @@ public class DiceTray : MonoBehaviour
 
     TextMeshProUGUI MakeText(string name, float size, Color color, Vector2 offset)
     {
-        var go = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI));
-        go.transform.SetParent(banner.transform, false);
-        var rt = (RectTransform)go.transform;
+        TextMeshProUGUI t = UIBuilder.NewText(name, banner.transform, size, color, TextAlignmentOptions.Center);
+        UIBuilder.AddOutline(t);
+        t.enableAutoSizing = true;                 // long lines shrink instead of running off screen
+        t.fontSizeMax = size;
+        t.fontSizeMin = size * 0.5f;
+
+        RectTransform rt = t.rectTransform;
         rt.anchorMin = rt.anchorMax = new Vector2(1f, bannerHeight);   // pinned to the right edge
         rt.pivot = new Vector2(1f, 0.5f);
         rt.sizeDelta = new Vector2(560, 60);
         rt.anchoredPosition = new Vector2(-bannerRightMargin, offset.y);
-
-        var t = go.GetComponent<TextMeshProUGUI>();
-        t.fontSize = size;
-        t.color = color;
-        t.alignment = TextAlignmentOptions.Center;
-        t.textWrappingMode = TextWrappingModes.NoWrap;
-        t.enableAutoSizing = true;                 // long lines shrink instead of running off screen
-        t.fontSizeMax = size;
-        t.fontSizeMin = size * 0.5f;
-        t.raycastTarget = false;
-        t.outlineWidth = 0.25f;                     // dark edge so it reads over anything
-        t.outlineColor = new Color32(5, 4, 7, 255);
         return t;
     }
 }

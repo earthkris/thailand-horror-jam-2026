@@ -31,6 +31,7 @@ public class ScreenFade : MonoBehaviour
     // 'from' is only used when no fade is on screen; otherwise it carries on from where it is
     static void Play(float from, float to, float seconds, float hold, bool removeWhenDone)
     {
+        if (current == null) current = FindAnyObjectByType<ScreenFade>();   // one left over from another scene
         if (current == null) current = Build(from);
         if (current.running != null) current.StopCoroutine(current.running);
         current.running = current.StartCoroutine(current.Run(current.image.color.a, to, seconds, hold, removeWhenDone));
@@ -38,22 +39,12 @@ public class ScreenFade : MonoBehaviour
 
     static ScreenFade Build(float alpha)
     {
-        var go = new GameObject("Screen Fade", typeof(Canvas), typeof(CanvasScaler));
+        GameObject go = UIBuilder.NewOverlayCanvas("Screen Fade", null, UIBuilder.FadeOrder).gameObject;   // above the battle UI, dialogue and menus
         DontDestroyOnLoad(go);
-        var canvas = go.GetComponent<Canvas>();
-        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        canvas.sortingOrder = 200;   // above the battle UI, dialogue and menus
-
-        var img = new GameObject("Black", typeof(RectTransform), typeof(Image));
-        img.transform.SetParent(go.transform, false);
-        var rt = (RectTransform)img.transform;
-        rt.anchorMin = Vector2.zero;
-        rt.anchorMax = Vector2.one;
-        rt.sizeDelta = Vector2.zero;
 
         var fade = go.AddComponent<ScreenFade>();
-        fade.image = img.GetComponent<Image>();
-        fade.image.raycastTarget = false;   // never blocks clicks
+        fade.image = UIBuilder.NewImage("Black", go.transform);   // never blocks clicks
+        UIBuilder.Stretch(fade.image.rectTransform);
         fade.image.color = new Color(0f, 0f, 0f, alpha);
         return fade;
     }
@@ -61,13 +52,7 @@ public class ScreenFade : MonoBehaviour
     IEnumerator Run(float from, float to, float seconds, float hold, bool removeWhenDone)
     {
         if (hold > 0f) yield return new WaitForSecondsRealtime(hold);
-        for (float t = 0f; t < 1f; t += Time.unscaledDeltaTime / Mathf.Max(seconds, 0.01f))
-        {
-            float k = t * t * (3f - 2f * t);   // smooth start and end
-            image.color = new Color(0f, 0f, 0f, Mathf.Lerp(from, to, k));
-            yield return null;
-        }
-        image.color = new Color(0f, 0f, 0f, to);
+        yield return Tween.Over(seconds, k => image.color = new Color(0f, 0f, 0f, Mathf.Lerp(from, to, k)), unscaled: true, smooth: true);
         running = null;
         if (removeWhenDone)
         {

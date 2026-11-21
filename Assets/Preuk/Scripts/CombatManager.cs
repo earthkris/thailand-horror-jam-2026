@@ -26,7 +26,7 @@ public class CombatManager : MonoBehaviour
     void Awake()
     {
         if (grid == null) grid = FindAnyObjectByType<GridManager>();
-        if (cameraController == null) cameraController = FindAnyObjectByType<CameraController>();
+        if (cameraController == null) cameraController = CameraController.Main;
     }
 
     void OnEnable() => EnemyEncounter.OnCombatStarted += BeginCombat;
@@ -50,8 +50,8 @@ public class CombatManager : MonoBehaviour
 
         // 2. Party: whoever got touched goes first in the list
         Party.Add(touched);
-        foreach (CombatUnit u in FindObjectsByType<CombatUnit>(FindObjectsSortMode.None))
-            if (u.team == Team.Party && u.IsAlive && u != touched)
+        foreach (CombatUnit u in CombatUnit.OnTeam(Team.Party))
+            if (u.IsAlive && u != touched)
                 Party.Add(u);
 
         // 3. Enemies: the one that touched us, plus the others in the same room
@@ -85,6 +85,26 @@ public class CombatManager : MonoBehaviour
         OnBattleReady?.Invoke();
     }
 
+    // A monster that arrives mid-fight (the boss calls its brood): onto the nearest free tile to 'near',
+    // into the enemy list, frozen out of exploring. False if there was no room on the grid.
+    public bool AddEnemy(CombatUnit u, Vector2Int near)
+    {
+        if (!InCombat || u == null) return false;
+        var taken = new HashSet<Vector2Int>();
+        foreach (CombatUnit other in Party)
+            if (other != null && !other.IsDead) foreach (Vector2Int t in other.GetOccupiedTiles()) taken.Add(t - grid.OriginTile);
+        foreach (CombatUnit other in Enemies)
+            if (other != null && !other.IsDead) foreach (Vector2Int t in other.GetOccupiedTiles()) taken.Add(t - grid.OriginTile);
+        if (!FindFreeSpot(near, u.size, taken, out Vector2Int spot)) return false;
+
+        u.transform.position = u.WorldPositionFor(grid.OriginTile + spot);
+        Enemies.Add(u);
+        u.OnDied += HandleDeath;
+        if (u.TryGetComponent(out EnemyEncounter e)) e.MarkInCombat();
+        SetExplorationMovement(u, false);
+        return true;
+    }
+
     // ---------- End of battle ----------
 
     // Called by TurnManager when every monster is dead: back to exploring
@@ -111,7 +131,7 @@ public class CombatManager : MonoBehaviour
         GameState.Current = GameMode.Exploring;
         if (cameraController != null && Party.Count > 0)
         {
-            CombatUnit leader = Party.Find(p => p.GetComponent<PlayerMovement>() != null) ?? Party[0];
+            CombatUnit leader = Party.Find(p => p.IsPlayer) ?? Party[0];
             cameraController.FocusOn(leader.transform);
         }
         Debug.Log("Back to exploring.");
@@ -133,16 +153,55 @@ public class CombatManager : MonoBehaviour
         }
     }
 
+    // ---------- Questions about the grid (combat movement and the monsters' brains ask these) ----------
+
+    // The grid tile (0,0 = bottom-left of the room) that a unit's bottom-left tile is on
+    public Vector2Int GridTileOf(CombatUnit u) => u.AnchorTile - grid.OriginTile;
+
+    // Could this unit's whole footprint stand with its bottom-left on grid tile 'anchor'?
+    // 'blocker' = the unit in the way, if that's what stopped it.
+    // ignoreUnseen: monsters hidden in the dark don't count (so the UI doesn't give them away).
+    public bool CanStand(CombatUnit u, Vector2Int anchor, out CombatUnit blocker, bool ignoreUnseen = false)
+    {
+        blocker = null;
+        for (int x = 0; x < u.size; x++)
+            for (int y = 0; y < u.size; y++)
+            {
+                Vector2Int cell = anchor + new Vector2Int(x, y);
+                if (!grid.IsWalkable(cell.x, cell.y)) return false;   // wall, rock, outside the room
+
+                Vector2Int world = grid.OriginTile + cell;
+                blocker = UnitOn(Party, world, u, ignoreUnseen);
+                if (blocker == null) blocker = UnitOn(Enemies, world, u, ignoreUnseen);
+                if (blocker != null) return false;
+            }
+        return true;
+    }
+
+    // Whoever of 'units' covers this world tile (the dead don't count, nor does 'except')
+    static CombatUnit UnitOn(List<CombatUnit> units, Vector2Int worldTile, CombatUnit except, bool ignoreUnseen)
+    {
+        foreach (CombatUnit other in units)
+        {
+            if (other == null || other == except || other.IsDead || !other.Occupies(worldTile)) continue;
+            if (ignoreUnseen && !FogOfWar.CanSee(other)) continue;
+            return other;
+        }
+        return null;
+    }
+
+    // ---------- Placing everyone when the battle starts ----------
+
     // Is this unit standing inside the battle grid?
     bool OnGrid(CombatUnit u)
     {
-        Vector2Int t = u.AnchorTile - grid.OriginTile;
+        Vector2Int t = GridTileOf(u);
         return grid.GetTile(t.x, t.y) != null;
     }
 
     void Place(CombatUnit u, HashSet<Vector2Int> taken)
     {
-        Vector2Int desired = u.AnchorTile - grid.OriginTile;   // world tile -> grid tile
+        Vector2Int desired = GridTileOf(u);
         if (!FindFreeSpot(desired, u.size, taken, out Vector2Int spot))
         {
             Debug.LogWarning($"No room on the grid for {u.unitName}!");
@@ -187,8 +246,8 @@ public class CombatManager : MonoBehaviour
         return true;
     }
 
-    // Turns exploration scripts off (combat) or back on (after combat)
-    static void SetExplorationMovement(CombatUnit u, bool on)
+    // Turns a unit's exploration scripts off (combat) or back on (after combat, or once it's back on its feet)
+    public static void SetExplorationMovement(CombatUnit u, bool on)
     {
         if (u.TryGetComponent(out PlayerMovement pm)) pm.enabled = on;
         if (u.TryGetComponent(out Follower f)) f.enabled = on;
