@@ -433,10 +433,9 @@ public class EnemyAI : CombatBrain
     string Afflict(CombatUnit who, bool special)
     {
         StatusType s = special ? specialInflicts : inflicts;
-        int chance = special ? specialStatusChance : statusChance;
-        if (s == StatusType.None || who == null || !who.IsAlive || Random.Range(0, 100) >= chance) return "";
-        int turnsFor = special ? specialStatusTurns : statusTurns;
-        who.AddStatus(s, turnsFor, special ? specialStatusDiceCount : statusDiceCount, special ? specialStatusDiceSides : statusDiceSides);
+        bool took = who != null && who.TryAddStatus(s, special ? specialStatusTurns : statusTurns, special ? specialStatusChance : statusChance,
+                                                     special ? specialStatusDiceCount : statusDiceCount, special ? specialStatusDiceSides : statusDiceSides);
+        if (!took) return "";
         Sfx.Play(s == StatusType.Paralyse ? "paralyse" : "burn", 0.7f);
         return s == StatusType.Paralyse ? "  (webbed)" : s == StatusType.Burn ? "  (burning)" : "";
     }

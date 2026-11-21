@@ -165,6 +165,14 @@ public class CombatUnit : MonoBehaviour
         OnAnyStatusChanged?.Invoke(this);
     }
 
+    // A hit that might bring a status with it: rolls the chance (percent) and adds it. True if it took hold.
+    public bool TryAddStatus(StatusType s, int turns, int chance, int diceCount = 1, int diceSides = 4)
+    {
+        if (s == StatusType.None || !IsAlive || Random.Range(0, 100) >= chance) return false;
+        AddStatus(s, turns, diceCount, diceSides);
+        return true;
+    }
+
     // Burn damage for one turn, e.g. 1d4
     public int RollBurn() => Mathf.Max(DiceSimulator.Roll(burnDiceCount, burnDiceSides), 1);
 
@@ -177,6 +185,18 @@ public class CombatUnit : MonoBehaviour
         if (statusTurns.Count == 0) return;
         foreach (StatusType s in new List<StatusType>(statusTurns.Keys))
             if (--statusTurns[s] <= 0) statusTurns.Remove(s);
+        OnAnyStatusChanged?.Invoke(this);
+    }
+
+    // Burning or paralysed (Regen is a good status, so it doesn't count)
+    public bool HasHarmfulStatus => Has(StatusType.Burn) || Has(StatusType.Paralyse);
+
+    // Ends burning and paralysis, keeps Regen (an antidote)
+    public void CureHarmfulStatuses()
+    {
+        if (!HasHarmfulStatus) return;
+        statusTurns.Remove(StatusType.Burn);
+        statusTurns.Remove(StatusType.Paralyse);
         OnAnyStatusChanged?.Invoke(this);
     }
 
@@ -307,6 +327,13 @@ public class CombatUnit : MonoBehaviour
             Debug.Log($"{unitName} is {(IsDead ? "dead" : "down")}!");
             OnDied?.Invoke(this);
         }
+    }
+
+    // A new maximum, at full health (the boss grows to match a bigger party before the fight)
+    public void SetMaxHP(int hp)
+    {
+        maxHP = Mathf.Max(1, hp);
+        CurrentHP = maxHP;
     }
 
     // Healing someone who is downed gets them back up (Baldur's Gate rule). The dead stay dead.

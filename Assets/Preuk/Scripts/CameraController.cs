@@ -82,8 +82,6 @@ public class CameraController : MonoBehaviour
         panOffset = Vector3.zero;   // a new turn: look at who's acting
     }
 
-    public bool IsPanned => panOffset != Vector3.zero;
-
     // Slide the view along the floor. 'input' x = right, y = into the screen.
     public void Pan(Vector2 input, float deltaTime)
     {

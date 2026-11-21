@@ -69,15 +69,9 @@ public static class TitleUI
         t.text = label;
         t.characterSpacing = 8;
 
-        var hover = bg.gameObject.AddComponent<EventTrigger>();
-        void On(EventTriggerType type, Color text, Color back)
-        {
-            var e = new EventTrigger.Entry { eventID = type };
-            e.callback.AddListener(_ => { t.color = text; bg.color = back; });
-            hover.triggers.Add(e);
-        }
-        On(EventTriggerType.PointerEnter, Palette.CandleGold, new Color(0.22f, 0.08f, 0.07f, 0.95f));
-        On(EventTriggerType.PointerExit, Palette.Bone, new Color(0.08f, 0.05f, 0.06f, 0.85f));
+        UIBuilder.AddHover(bg.gameObject,
+            () => { t.color = Palette.CandleGold; bg.color = new Color(0.22f, 0.08f, 0.07f, 0.95f); },
+            () => { t.color = Palette.Bone; bg.color = new Color(0.08f, 0.05f, 0.06f, 0.85f); });
         return button;
     }
 

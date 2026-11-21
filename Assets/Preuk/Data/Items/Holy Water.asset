@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fc5af25f61fdb1d47b63db2c9bb8cd29, type: 3}
+  m_Name: Holy Water
+  m_EditorClassIdentifier: Assembly-CSharp::ItemData
+  displayName: Holy Water
+  description: A blessed vial. Burns what lives in the dark; may stun it.
+  target: 1
+  range: 1
+  effect: 4
+  diceCount: 0
+  diceSides: 1
+  bonus: 0
+  actsAs: {fileID: 11400000, guid: faf649f87491b5245ae230544a3cae75, type: 2}
+  teaches: {fileID: 0}
+  learner: Lucius

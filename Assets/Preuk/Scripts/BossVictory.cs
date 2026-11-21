@@ -174,12 +174,7 @@ public class BossVictory : MonoBehaviour
         RenderSettings.fog = false;
     }
 
-    static IEnumerator Talk(DialogueScriptableObject lines)
-    {
-        if (lines == null || DialogueBox.Instance == null) yield break;
-        yield return StoryDialogue.Play(lines);
-        yield return new WaitForSeconds(0.2f);
-    }
+    static IEnumerator Talk(DialogueScriptableObject lines) => StoryDialogue.Talk(lines, 0.2f);
 
     // The trap chest's magic circle art, lying flat, golden this time
     GameObject MakeCircle(Vector3 centre, out SpriteRenderer ring, out Light glow)

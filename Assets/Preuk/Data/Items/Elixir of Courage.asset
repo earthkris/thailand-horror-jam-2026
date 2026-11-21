@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fc5af25f61fdb1d47b63db2c9bb8cd29, type: 3}
+  m_Name: Elixir of Courage
+  m_EditorClassIdentifier: Assembly-CSharp::ItemData
+  displayName: Elixir of Courage
+  description: 'Drink before the worst of it: +2 to rolls and +1 AC until the fight
+    ends.'
+  target: 1
+  range: 1
+  effect: 4
+  diceCount: 0
+  diceSides: 1
+  bonus: 0
+  actsAs: {fileID: 11400000, guid: 2741979941e3eb144bbc9f1f24bdb4b5, type: 2}
+  teaches: {fileID: 0}
+  learner: Lucius

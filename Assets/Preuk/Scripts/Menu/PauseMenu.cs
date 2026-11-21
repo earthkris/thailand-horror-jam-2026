@@ -267,12 +267,13 @@ public class PauseMenu : MonoBehaviour
                     });
                     continue;
                 }
+                bool fightOnly = picked.FightOnly && !inBattle;
                 options.Add(new ChoiceMenu.Option
                 {
                     label = s.item.displayName,
                     detail = s.DetailText,
-                    description = s.item.description,
-                    enabled = canUse,
+                    description = fightOnly ? $"Only useful in a fight. {picked.description}" : s.item.description,
+                    enabled = canUse && !fightOnly,
                     onPick = () => PickItem(picked)
                 });
             }
@@ -309,13 +310,13 @@ public class PauseMenu : MonoBehaviour
         var options = new List<ChoiceMenu.Option>();
         foreach (CombatUnit u in PartyMembers())
         {
-            bool full = item.effect == ItemEffect.Heal && u.CurrentHP >= u.maxHP;
+            bool full = !item.HelpsNow(u);
             CombatUnit who = u;
             options.Add(new ChoiceMenu.Option
             {
                 label = u.unitName,
                 detail = u.IsAlive ? $"{u.CurrentHP}/{u.maxHP} HP" : "down",
-                description = !u.IsAlive ? $"{u.unitName} is down." : full ? $"{u.unitName} is already at full health." : item.description,
+                description = !u.IsAlive ? $"{u.unitName} is down." : full ? $"{u.unitName} doesn't need it." : item.description,
                 enabled = u.IsAlive && !full,
                 onPick = () => UseItemOn(item, who)
             });
@@ -331,15 +332,8 @@ public class PauseMenu : MonoBehaviour
             return;
         }
 
-        string what = $"{u.unitName} uses {item.displayName}.";
-        if (item.effect == ItemEffect.Heal)
-        {
-            int amount = Mathf.Max(DiceSimulator.Roll(item.diceCount, item.diceSides) + item.bonus, 0);
-            int before = u.CurrentHP;
-            u.Heal(amount);
-            what = $"{item.displayName} on {u.unitName}:  +{u.CurrentHP - before} HP  ({u.CurrentHP}/{u.maxHP})   " + DiceFormat.Faint($"{item.DiceText} = {amount}");
-        }
-        Debug.Log(what);
+        Sfx.Play("heal", 0.7f);
+        string what = $"{item.displayName}:  " + item.ApplyTo(u);
         ShowItems();
         listInfo.text = what;
     }

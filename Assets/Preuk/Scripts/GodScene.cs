@@ -232,12 +232,7 @@ public class GodScene : MonoBehaviour
         if (Application.CanStreamedLevelBeLoaded(endScene)) UnityEngine.SceneManagement.SceneManager.LoadScene(endScene);
     }
 
-    static IEnumerator Talk(DialogueScriptableObject lines)
-    {
-        if (lines == null || DialogueBox.Instance == null) yield break;
-        yield return StoryDialogue.Play(lines);
-        yield return new WaitForSecondsRealtime(0.25f);
-    }
+    static IEnumerator Talk(DialogueScriptableObject lines) => StoryDialogue.Talk(lines);
 
     // Real time (the game may be frozen behind her), with a smooth start and end
     static IEnumerator Ease(float seconds, System.Action<float> step) =>
