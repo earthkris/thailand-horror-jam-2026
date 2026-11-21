@@ -6,17 +6,17 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Preuk/Scenes/StartScreen.unity
-    guid: 633ac37940fbc3543829c11c37c0ce3c
-  - enabled: 1
-    path: Assets/Preuk/Scenes/Main_Expanded.unity
-    guid: 777665cb3510cb944a811e5635ec275c
-  - enabled: 1
-    path: Assets/Preuk/Scenes/EndScreen.unity
-    guid: 80e67d5cbf5ea32418898fdf7920e356
-  - enabled: 0
     path: Assets/Scenes/RealScene.unity
     guid: be8ac92b144c75b499be8e7a193c57f5
+  - enabled: 0
+    path: Assets/Preuk/Scenes/StartScreen.unity
+    guid: 633ac37940fbc3543829c11c37c0ce3c
+  - enabled: 0
+    path: Assets/Preuk/Scenes/Main_Expanded.unity
+    guid: 777665cb3510cb944a811e5635ec275c
+  - enabled: 0
+    path: Assets/Preuk/Scenes/EndScreen.unity
+    guid: 80e67d5cbf5ea32418898fdf7920e356
   - enabled: 0
     path: Assets/Preuk/Scenes/Base.unity
     guid: 3f0436425e891de4a9b438d127ffe268
