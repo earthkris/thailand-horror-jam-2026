@@ -62,7 +62,7 @@ public class HitEffects : MonoBehaviour
     {
         block = new MaterialPropertyBlock();
         if (cameraController == null && TryGetComponent(out CombatManager combat)) cameraController = combat.cameraController;
-        if (cameraController == null) cameraController = FindAnyObjectByType<CameraController>();
+        if (cameraController == null) cameraController = CameraController.Main;
     }
 
     void OnEnable()
@@ -88,12 +88,11 @@ public class HitEffects : MonoBehaviour
     void OnDamaged(CombatUnit unit, int amount)
     {
         float power = Mathf.Clamp((float)amount / normalDamage, 0.6f, 2f);
-        SpriteRenderer sr = unit.GetComponentInChildren<SpriteRenderer>();
-        bool visible = sr != null && sr.enabled && sr.gameObject.activeInHierarchy;
+        SpriteRenderer sr = unit.VisibleSprite();
 
         if (hitStop > 0f) StartCoroutine(HitStop(hitStop * Mathf.Min(power, 1.5f)));
         if (cameraController != null) cameraController.Shake(cameraShake * power, cameraShakeTime);
-        if (!visible) return;   // hidden in the dark: you feel it, you don't see it
+        if (sr == null) return;   // hidden in the dark: you feel it, you don't see it
 
         // A monster's sprite is hidden the moment it dies, so a copy plays the death
         if (!unit.IsAlive && unit.team == Team.Enemy)
@@ -108,8 +107,8 @@ public class HitEffects : MonoBehaviour
 
     void OnHealed(CombatUnit unit, int amount)
     {
-        SpriteRenderer sr = unit.GetComponentInChildren<SpriteRenderer>();
-        if (sr == null || !sr.enabled) return;
+        SpriteRenderer sr = unit.VisibleSprite();
+        if (sr == null) return;
         Flash(sr, healColor, healGlow, 0.1f, healTime);
     }
 

@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 // A pop-up list of choices (used for ACTION and BONUS ACTION).
@@ -50,35 +49,9 @@ public class ChoiceMenu : MonoBehaviour
         gameObject.SetActive(true);
         if (title != null) title.text = heading;
 
-        // One button per option (reuse old ones)
-        while (buttons.Count < options.Count)
-        {
-            Button b = Instantiate(optionTemplate, optionTemplate.transform.parent);
-            buttons.Add(b);
-        }
-
-        for (int i = 0; i < buttons.Count; i++)
-        {
-            Button b = buttons[i];
-            bool used = i < options.Count;
-            b.gameObject.SetActive(used);
-            if (!used) continue;
-
-            Option o = options[i];
-            SetText(b.transform, "Label", o.label, o.enabled);
-            SetText(b.transform, "Detail", o.detail, o.enabled);
-            SetIcon(b.transform, o.icon, o.enabled);
-            b.interactable = o.enabled;
-
-            b.onClick.RemoveAllListeners();
-            System.Action pick = o.onPick;
-            b.onClick.AddListener(() => pick?.Invoke());
-
-            MenuHover hover = b.GetComponent<MenuHover>();
-            if (hover == null) hover = b.gameObject.AddComponent<MenuHover>();
-            string desc = o.description;
-            hover.onEnter = () => { if (description != null) description.text = desc; };
-        }
+        // One button per option (old ones are reused). Hovering one shows its description.
+        MenuRows.Fill(buttons, optionTemplate, options, disabledLabelAlpha, disabledLabelAlpha,
+                      desc => { if (description != null) description.text = desc; });
 
         if (description != null)
             description.text = options.Count == 0 ? emptyText : options[0].description;
@@ -91,28 +64,6 @@ public class ChoiceMenu : MonoBehaviour
 
     void Update()
     {
-        if (PauseMenu.BlocksInput) return;   // the pause menu has the keys
-        bool esc = Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame;
-        bool rightClick = Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame;
-        if (esc || rightClick) Close();
-    }
-
-    void SetIcon(Transform button, Sprite icon, bool enabled)
-    {
-        Transform t = button.Find("Icon");
-        if (t == null || !t.TryGetComponent(out Image img)) return;
-        img.sprite = icon;
-        img.enabled = icon != null;
-        Color c = img.color;
-        c.a = enabled ? 1f : disabledLabelAlpha;
-        img.color = c;
-    }
-
-    void SetText(Transform button, string child, string text, bool enabled)
-    {
-        Transform t = button.Find(child);
-        if (t == null || !t.TryGetComponent(out TMP_Text tmp)) return;
-        tmp.text = text;
-        tmp.alpha = enabled ? 1f : disabledLabelAlpha;
+        if (PauseMenu.CancelPressed) Close();
     }
 }

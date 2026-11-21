@@ -18,55 +18,36 @@ public static class LoopManager
     public static int LoopsLeft => MaxLoops - LoopsUsed;
     public static bool CanLoop => LoopsUsed < MaxLoops;
 
-    // Fired right after the scene reloads for a loop (before any Start() runs).
-    // The number is how many loops are used now (1, 2 or 3).
-    public static event System.Action<int> OnLooped;
-
-    static bool looping;
-
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    static void ResetOnPlay()
-    {
-        LoopsUsed = 0;
-        looping = false;
-        OnLooped = null;
-        SceneManager.sceneLoaded -= AfterReload;
-        SceneManager.sceneLoaded += AfterReload;
-    }
+    static void ResetOnPlay() => LoopsUsed = 0;
 
     // Spend one loop and go back to the start. Does nothing if none are left.
     public static void Loop()
     {
         if (!CanLoop) return;
         LoopsUsed++;
-        looping = true;
+        Sfx.Play("loop_warp", 0.9f, 1f, 0f);
         Debug.Log($"Looping back... ({LoopsUsed}/{MaxLoops} used, {LoopsLeft} left)");
         ReloadScene();
     }
+
+    // Back to the title screen after the end: every loop back, nothing reloaded
+    public static void ResetLoops() => LoopsUsed = 0;
 
     // After GAME OVER: a brand-new run with every loop back.
     public static void StartOver()
     {
         LoopsUsed = 0;
-        looping = false;
         Debug.Log("Starting over.");
         ReloadScene();
     }
 
-    static void AfterReload(Scene scene, LoadSceneMode mode)
-    {
-        if (!looping) return;
-        looping = false;
-        OnLooped?.Invoke(LoopsUsed);
-    }
-
     static void ReloadScene()
     {
-        // Undo anything the menus froze
-        Time.timeScale = 1f;
-        AudioListener.pause = false;
+        PauseMenu.SetFrozen(false);   // undo anything the menus froze
         GameState.Current = GameMode.Exploring;
         GameState.InDungeon = false;   // LoopStart puts the party back in after a loop
+        RunStats.Rescued.Clear();      // the survivors are back in the silk
 
         Scene scene = SceneManager.GetActiveScene();
         if (scene.buildIndex >= 0)

@@ -1,6 +1,6 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 // The goddess (storyboard scenes 8, 10, 15, 16).
@@ -11,7 +11,7 @@ using UnityEngine.UI;
 //   Later deaths:  she reminds him how many chances are left.
 //   No loops left: her last line, then GAME OVER (DeathScreen).
 // Everything on screen is built in code. Drag in the sprites and the dialogues.
-// E or a click moves the dialogue on.
+// E, a click, Space or Enter moves the dialogue on (the same as every other dialogue).
 public class GodScene : MonoBehaviour
 {
     public static GodScene Instance { get; private set; }
@@ -42,7 +42,7 @@ public class GodScene : MonoBehaviour
 
     [Header("Colours")]
     public Color brightColor = new Color32(250, 244, 228, 255);   // warm white light
-    public Color glowColor = new Color32(232, 190, 99, 255);      // candle gold
+    public Color glowColor = Palette.CandleGold;
 
     [Header("Dialogue (storyboard scene numbers)")]
     [Tooltip("8.1  In the dark: 'Am I dead? Is this it...?'")]
@@ -66,6 +66,9 @@ public class GodScene : MonoBehaviour
     public float darkenTime = 1.5f;
     public float brightenTime = 2.2f;
     public float sharpenTime = 1.3f;
+
+    [Tooltip("Loaded after the ending (the credits). Must be in the build's scene list.")]
+    public string endScene = "EndScreen";
 
     [Tooltip("Draw order. Under the pause menu (100); the dialogue box is lifted just above this while she talks.")]
     public int sortingOrder = 90;
@@ -124,9 +127,9 @@ public class GodScene : MonoBehaviour
     {
         running = true;   // a fight noticing the party fell won't start a second scene
         GameState.Current = GameMode.Cutscene;
-        var party = new System.Collections.Generic.List<CombatUnit>();
-        foreach (CombatUnit u in FindObjectsByType<CombatUnit>(FindObjectsSortMode.None))
-            if (u.team == Team.Party && u.IsAlive) party.Add(u);
+        var party = new List<CombatUnit>();
+        foreach (CombatUnit u in CombatUnit.OnTeam(Team.Party))
+            if (u.IsAlive) party.Add(u);
         foreach (CombatUnit u in party) u.TakeDamage(u.CurrentHP);   // hit flash and shake
         yield return new WaitForSecondsRealtime(0.4f);
         foreach (CombatUnit u in party)
@@ -155,7 +158,7 @@ public class GodScene : MonoBehaviour
         Open();
 
         // 1. The world goes dark
-        yield return Tween(darkenTime, k => bg.color = new Color(0f, 0f, 0f, k));
+        yield return Ease(darkenTime, k => bg.color = new Color(0f, 0f, 0f, k));
         if (first)
         {
             yield return new WaitForSecondsRealtime(0.5f);
@@ -164,7 +167,7 @@ public class GodScene : MonoBehaviour
 
         // 2. Light. The first time she comes in blurry.
         blur = first ? 1f : 0f;
-        yield return Tween(first ? brightenTime : brightenTime * 0.6f, k =>
+        yield return Ease(first ? brightenTime : brightenTime * 0.6f, k =>
         {
             bg.color = Color.Lerp(Color.black, brightColor, k);
             reveal = k;
@@ -174,7 +177,7 @@ public class GodScene : MonoBehaviour
         if (first)
         {
             yield return Talk(firstDeathBlurry);
-            yield return Tween(sharpenTime, k => blur = 1f - k);
+            yield return Ease(sharpenTime, k => blur = 1f - k);
             yield return Talk(firstDeathGift);
         }
         else if (final) yield return Talk(gameOver);
@@ -198,7 +201,7 @@ public class GodScene : MonoBehaviour
         }
 
         // 4b. Back in time: white, then black, then the loop (LoopStart fades in in the dungeon)
-        yield return Tween(0.7f, k => flash.color = new Color(1f, 1f, 1f, k));
+        yield return Ease(0.7f, k => flash.color = new Color(1f, 1f, 1f, k));
         ScreenFade.FadeOut(0.6f);
         yield return new WaitForSecondsRealtime(0.8f);
         running = false;
@@ -225,26 +228,20 @@ public class GodScene : MonoBehaviour
         yield return new WaitForSecondsRealtime(2.2f);
         Close();
         running = false;
+        // Then the end screen, if the build has one
+        if (Application.CanStreamedLevelBeLoaded(endScene)) UnityEngine.SceneManagement.SceneManager.LoadScene(endScene);
     }
 
-    IEnumerator Talk(DialogueScriptableObject lines)
+    static IEnumerator Talk(DialogueScriptableObject lines)
     {
         if (lines == null || DialogueBox.Instance == null) yield break;
-        DialogueBox.Instance.StartDialogue(lines);
-        yield return null;
-        while (DialogueBox.Instance != null && DialogueBox.Instance.IsContentOpen) yield return null;
+        yield return StoryDialogue.Play(lines);
         yield return new WaitForSecondsRealtime(0.25f);
     }
 
-    static IEnumerator Tween(float seconds, System.Action<float> step)
-    {
-        for (float t = 0f; t < 1f; t += Time.unscaledDeltaTime / Mathf.Max(seconds, 0.01f))
-        {
-            step(t * t * (3f - 2f * t));   // smooth start and end
-            yield return null;
-        }
-        step(1f);
-    }
+    // Real time (the game may be frozen behind her), with a smooth start and end
+    static IEnumerator Ease(float seconds, System.Action<float> step) =>
+        Tween.Over(seconds, step, unscaled: true, smooth: true);
 
     // ================= Showing and hiding =================
 
@@ -252,6 +249,7 @@ public class GodScene : MonoBehaviour
     {
         if (canvas == null) Build();
         canvas.gameObject.SetActive(true);
+        Sfx.Play("god_bell", 0.9f, 1f, 0f);
         reveal = 0f;
         blur = 0f;
         bg.color = new Color(0f, 0f, 0f, 0f);
@@ -287,10 +285,7 @@ public class GodScene : MonoBehaviour
     {
         if (canvas == null || !canvas.gameObject.activeSelf) return;
         ApplyVisuals(Time.unscaledTime);
-
-        // A click moves the dialogue on too (E already does, through Earth's Interactor)
-        if (running && GameState.DialogueOpen && Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
-            DialogueBox.Instance.NextDialogue();
+        // Clicks, Space and Enter move the dialogue on through DialogueInput (StoryDialogue.cs), like everywhere else
     }
 
     // Every frame: her animation, the blur, the eyes looking around
@@ -344,37 +339,22 @@ public class GodScene : MonoBehaviour
 
     void Build()
     {
-        var go = new GameObject("God Scene", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
-        go.transform.SetParent(transform, false);
-        canvas = go.GetComponent<Canvas>();
-        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        canvas.sortingOrder = sortingOrder;
-        var scaler = go.GetComponent<CanvasScaler>();
-        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1920f, 1080f);
-        scaler.matchWidthOrHeight = 0.5f;
-        BuildInto((RectTransform)go.transform);
-        go.SetActive(false);
-    }
+        canvas = UIBuilder.NewOverlayCanvas("God Scene", transform, sortingOrder, clickable: true);
 
-    // Used by Build, and for a preview in the editor
-    public void BuildInto(RectTransform parent)
-    {
-        root = MakeRect("God Scene", parent);
-        Stretch(root);
+        root = UIBuilder.NewRect("God Scene", canvas.transform);
+        UIBuilder.Stretch(root);
 
-        bg = MakeImage("Light", root, null);
-        Stretch(bg.rectTransform);
-        bg.raycastTarget = true;   // no clicking the world behind her
+        bg = UIBuilder.NewImage("Light", root, raycastTarget: true);   // no clicking the world behind her
+        UIBuilder.Stretch(bg.rectTransform);
 
-        rays = MakeImage("Rays", root, MakeRaysSprite());
+        rays = UIBuilder.NewImage("Rays", root, MakeRaysSprite());
         rays.rectTransform.sizeDelta = new Vector2(2400f, 2400f);
-        glow = MakeImage("Glow", root, MakeGlowSprite());
+        glow = UIBuilder.NewImage("Glow", root, MakeGlowSprite());
         glow.rectTransform.sizeDelta = new Vector2(1300f, 1300f);
 
         // The eyes, spread over an arc around her
-        RectTransform eyesRoot = MakeRect("Eyes", root);
-        Stretch(eyesRoot);
+        RectTransform eyesRoot = UIBuilder.NewRect("Eyes", root);
+        UIBuilder.Stretch(eyesRoot);
         int n = Mathf.Clamp(eyeCount, 1, 12);
         eyes = new Image[n];
         eyeAngle = new float[n];
@@ -383,7 +363,7 @@ public class GodScene : MonoBehaviour
         Vector2 eyeSize = eyeFrames != null && eyeFrames.Length > 0 ? eyeFrames[0].rect.size * eyePixelScale : new Vector2(160f, 150f);
         for (int i = 0; i < n; i++)
         {
-            eyes[i] = MakeImage("Eye " + (i + 1), eyesRoot, null);
+            eyes[i] = UIBuilder.NewImage("Eye " + (i + 1), eyesRoot);
             eyes[i].rectTransform.sizeDelta = eyeSize;
             eyeAngle[i] = n == 1 ? 90f : Mathf.Lerp(eyeArc.x, eyeArc.y, (float)i / (n - 1));
             eyePhase[i] = Mathf.Repeat(i * 5.37f, 14f);                            // each starts on a different frame
@@ -391,58 +371,24 @@ public class GodScene : MonoBehaviour
         }
 
         // The goddess, her blur copies, and a mist over the bottom edge of her picture
-        godRoot = MakeRect("Goddess", root);
+        godRoot = UIBuilder.NewRect("Goddess", root);
         Vector2 godSize = godFrames != null && godFrames.Length > 0 ? godFrames[0].rect.size * godPixelScale : new Vector2(1000f, 825f);
         for (int i = 0; i < blurCopies.Length; i++)
         {
-            blurCopies[i] = MakeImage("Blur " + (i + 1), godRoot, null);
+            blurCopies[i] = UIBuilder.NewImage("Blur " + (i + 1), godRoot);
             blurCopies[i].rectTransform.sizeDelta = godSize;
         }
-        god = MakeImage("Goddess", godRoot, null);
+        god = UIBuilder.NewImage("Goddess", godRoot);
         god.rectTransform.sizeDelta = godSize;
-        mist = MakeImage("Mist", godRoot, MakeMistSprite());
+        mist = UIBuilder.NewImage("Mist", godRoot, MakeMistSprite());
         mist.rectTransform.sizeDelta = new Vector2(128f, 34f) * godPixelScale;
         mist.rectTransform.anchoredPosition = new Vector2(0f, -43f * godPixelScale);
 
-        flash = MakeImage("Flash", root, null);
-        Stretch(flash.rectTransform);
+        flash = UIBuilder.NewImage("Flash", root);
+        UIBuilder.Stretch(flash.rectTransform);
         flash.color = new Color(1f, 1f, 1f, 0f);
-    }
 
-    // Editor preview: build into any canvas and show her fully there
-    public void PreviewInto(RectTransform parent, float revealAmount, float blurAmount, float time)
-    {
-        BuildInto(parent);
-        reveal = revealAmount;
-        blur = blurAmount;
-        bg.color = Color.Lerp(Color.black, brightColor, revealAmount);
-        flash.color = new Color(1f, 1f, 1f, 0f);
-        ApplyVisuals(time);
-    }
-
-    static RectTransform MakeRect(string name, Transform parent)
-    {
-        var go = new GameObject(name, typeof(RectTransform));
-        go.transform.SetParent(parent, false);
-        return (RectTransform)go.transform;
-    }
-
-    static Image MakeImage(string name, Transform parent, Sprite sprite)
-    {
-        var go = new GameObject(name, typeof(RectTransform), typeof(Image));
-        go.transform.SetParent(parent, false);
-        var img = go.GetComponent<Image>();
-        img.sprite = sprite;
-        img.raycastTarget = false;
-        return img;
-    }
-
-    static void Stretch(RectTransform rt)
-    {
-        rt.anchorMin = Vector2.zero;
-        rt.anchorMax = Vector2.one;
-        rt.sizeDelta = Vector2.zero;
-        rt.anchoredPosition = Vector2.zero;
+        canvas.gameObject.SetActive(false);
     }
 
     static Color WithAlpha(Color c, float a)
@@ -451,61 +397,29 @@ public class GodScene : MonoBehaviour
         return c;
     }
 
+    // ---------- Light painted in code (white, the alpha is the shape) ----------
+
     // A soft round glow: bright in the middle, gone at the edge
-    static Sprite MakeGlowSprite()
+    static Sprite MakeGlowSprite() => ProceduralSprite.Create(128, 128, (dx, dy) =>
     {
-        const int size = 128;
-        var px = new Color32[size * size];
-        for (int y = 0; y < size; y++)
-            for (int x = 0; x < size; x++)
-            {
-                float dx = (x + 0.5f) / size * 2f - 1f, dy = (y + 0.5f) / size * 2f - 1f;
-                float r = Mathf.Clamp01(Mathf.Sqrt(dx * dx + dy * dy));
-                float a = (1f - r) * (1f - r);
-                px[y * size + x] = new Color32(255, 255, 255, (byte)(a * 255f));
-            }
-        return MakeSprite(px, size, size, FilterMode.Bilinear);
-    }
+        float r = Mathf.Clamp01(Mathf.Sqrt(dx * dx + dy * dy));
+        return ProceduralSprite.Pixel(255, (1f - r) * (1f - r));
+    }, FilterMode.Bilinear, 100f);
 
     // Soft light rays fanning out from the middle
-    static Sprite MakeRaysSprite()
+    static Sprite MakeRaysSprite() => ProceduralSprite.Create(256, 256, (dx, dy) =>
     {
-        const int size = 256;
-        var px = new Color32[size * size];
-        for (int y = 0; y < size; y++)
-            for (int x = 0; x < size; x++)
-            {
-                float dx = (x + 0.5f) / size * 2f - 1f, dy = (y + 0.5f) / size * 2f - 1f;
-                float r = Mathf.Sqrt(dx * dx + dy * dy);
-                float angle = Mathf.Atan2(dy, dx);
-                float ray = Mathf.Pow(0.5f + 0.5f * Mathf.Cos(angle * 14f), 6f);
-                float fade = Mathf.Clamp01(1f - r) * Mathf.Clamp01(r * 4f);
-                px[y * size + x] = new Color32(255, 255, 255, (byte)(ray * fade * 255f));
-            }
-        return MakeSprite(px, size, size, FilterMode.Bilinear);
-    }
+        float r = Mathf.Sqrt(dx * dx + dy * dy);
+        float ray = Mathf.Pow(0.5f + 0.5f * Mathf.Cos(Mathf.Atan2(dy, dx) * 14f), 6f);
+        float fade = Mathf.Clamp01(1f - r) * Mathf.Clamp01(r * 4f);
+        return ProceduralSprite.Pixel(255, ray * fade);
+    }, FilterMode.Bilinear, 100f);
 
     // See-through at the top, solid at the bottom, soft at the sides
-    static Sprite MakeMistSprite()
+    static Sprite MakeMistSprite() => ProceduralSprite.Create(64, 32, (dx, dy) =>
     {
-        const int w = 64, h = 32;
-        var px = new Color32[w * h];
-        for (int y = 0; y < h; y++)
-            for (int x = 0; x < w; x++)
-            {
-                float down = 1f - (y + 0.5f) / h;                                  // 0 at the top, 1 at the bottom
-                float side = Mathf.Abs((x + 0.5f) / w * 2f - 1f);                  // 0 in the middle, 1 at the sides
-                float a = Mathf.SmoothStep(0f, 1f, down * 2f) * Mathf.SmoothStep(1f, 0f, (side - 0.7f) / 0.3f);
-                px[y * w + x] = new Color32(255, 255, 255, (byte)(Mathf.Clamp01(a) * 255f));
-            }
-        return MakeSprite(px, w, h, FilterMode.Bilinear);
-    }
-
-    static Sprite MakeSprite(Color32[] px, int w, int h, FilterMode filter)
-    {
-        var tex = new Texture2D(w, h, TextureFormat.RGBA32, false) { filterMode = filter, wrapMode = TextureWrapMode.Clamp };
-        tex.SetPixels32(px);
-        tex.Apply();
-        return Sprite.Create(tex, new Rect(0, 0, w, h), new Vector2(0.5f, 0.5f), 100f);
-    }
+        float down = (1f - dy) * 0.5f;   // 0 at the top, 1 at the bottom
+        float side = Mathf.Abs(dx);      // 0 in the middle, 1 at the sides
+        return ProceduralSprite.Pixel(255, Mathf.SmoothStep(0f, 1f, down * 2f) * Mathf.SmoothStep(1f, 0f, (side - 0.7f) / 0.3f));
+    }, FilterMode.Bilinear, 100f);
 }

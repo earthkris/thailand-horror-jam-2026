@@ -60,9 +60,8 @@ public class BlessAura : MonoBehaviour
         foreach (CombatUnit u in units)
         {
             if (u == null) continue;
-            SpriteRenderer body = u.GetComponentInChildren<SpriteRenderer>();
-            bool show = u.IsAlive && u.IsBlessed && body != null && body.enabled &&
-                        body.gameObject.activeInHierarchy && FogOfWar.CanSee(u);
+            SpriteRenderer body = u.VisibleSprite();
+            bool show = body != null && u.IsAlive && u.IsBlessed && FogOfWar.CanSee(u);
             auras.TryGetValue(u, out Aura a);
 
             if (!show)
@@ -70,7 +69,7 @@ public class BlessAura : MonoBehaviour
                 if (a != null) { if (a.sr != null) Destroy(a.sr.gameObject); auras.Remove(u); }
                 continue;
             }
-            if (a == null) auras[u] = a = Make(body, u.team == Team.Enemy);
+            if (a == null) auras[u] = a = Make(u.team == Team.Enemy);
             a.age += Time.deltaTime;
             Place(a, body);
         }
@@ -81,7 +80,7 @@ public class BlessAura : MonoBehaviour
         foreach (CombatUnit u in gone) { if (auras[u].sr != null) Destroy(auras[u].sr.gameObject); auras.Remove(u); }
     }
 
-    Aura Make(SpriteRenderer body, bool enemy)
+    Aura Make(bool enemy)
     {
         var go = new GameObject(enemy ? "Unholy Aura" : "Bless Aura", typeof(SpriteRenderer));
         var sr = go.GetComponent<SpriteRenderer>();

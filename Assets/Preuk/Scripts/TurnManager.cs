@@ -14,7 +14,6 @@ public class TurnManager : MonoBehaviour
     public class Combatant
     {
         public CombatUnit unit;
-        public int roll;        // the d20 alone
         public int initiative;  // d20 + Dex
     }
 
@@ -36,6 +35,7 @@ public class TurnManager : MonoBehaviour
 
     // Is the "where can I walk" highlight on? (MOVE button toggles it)
     public bool ShowMoveRange { get; private set; } = true;
+    static bool panHintShown;
 
     public bool IsPartyTurn => Current != null && Current.team == Team.Party && !ResolvingStatus;
 
@@ -97,7 +97,7 @@ public class TurnManager : MonoBehaviour
         {
             int roll = scripted && fixedRolls.TryGetValue(u, out int fixedRoll) ? fixedRoll : DiceSimulator.Roll(20);
             int total = roll + u.dexModifier;
-            Order.Add(new Combatant { unit = u, roll = roll, initiative = total });
+            Order.Add(new Combatant { unit = u, initiative = total });
             Debug.Log($"{u.unitName} rolls initiative: d20 ({roll}) + {u.dexModifier} = {total}");
         }
 
@@ -120,6 +120,16 @@ public class TurnManager : MonoBehaviour
         Round = 1;
         index = 0;
         StartTurn();
+    }
+
+    // A monster that joined mid-fight: rolls initiative and acts at the end of this round
+    public void Join(CombatUnit u)
+    {
+        if (!InBattle || u == null) return;
+        int roll = DiceSimulator.Roll(20);
+        Order.Add(new Combatant { unit = u, initiative = roll + u.dexModifier });
+        Debug.Log($"{u.unitName} joins the fight (initiative {roll + u.dexModifier}, acts at the end of the round)");
+        OnChanged?.Invoke();
     }
 
     // ---------- Turns ----------
@@ -177,9 +187,22 @@ public class TurnManager : MonoBehaviour
             return;
         }
 
-        OnChanged?.Invoke();
+        BeginActing();
+    }
 
+    // The turn is theirs to use now: the UI redraws, and a monster starts thinking
+    void BeginActing()
+    {
+        OnChanged?.Invoke();
         if (!IsPartyTurn) StartCoroutine(EnemyTurn());
+    }
+
+    // This unit can't go on with its turn (it went down, or it's paralysed):
+    // the fight ends if that decides it, otherwise the next unit is up.
+    public void EndTurnOf(CombatUnit me)
+    {
+        CheckForVictory();
+        if (InBattle && Current == me) EndTurn();
     }
 
     // Burn: fire damage now. Paralyse: the whole turn is lost. Then every status ticks down one turn.
@@ -187,7 +210,7 @@ public class TurnManager : MonoBehaviour
     {
         ResolvingStatus = true;
         OnChanged?.Invoke();
-        string who = FogOfWar.CanSee(me) ? me.unitName : "Something in the dark";
+        string who = FogOfWar.NameOf(me);
         bool goodForParty = me.team == Team.Enemy;
         yield return new WaitForSeconds(0.3f);
 
@@ -195,6 +218,7 @@ public class TurnManager : MonoBehaviour
         {
             int damage = me.RollBurn();
             Debug.Log($"{me.unitName} burns for {damage} fire damage");
+            Sfx.Play("burn", 0.8f);
             me.TakeDamage(damage);
             yield return DiceTray.ShowMessage($"{who} is burning", $"{damage} fire damage" + (me.IsAlive ? "" : "  —  DOWN"), goodForParty);
         }
@@ -212,6 +236,7 @@ public class TurnManager : MonoBehaviour
         if (paralysed)
         {
             Debug.Log($"{me.unitName} is paralysed and loses the turn");
+            Sfx.Play("paralyse", 0.7f);
             yield return DiceTray.ShowMessage($"{who} is paralysed", "loses this turn", goodForParty);
         }
 
@@ -220,13 +245,11 @@ public class TurnManager : MonoBehaviour
 
         if (!me.IsAlive || paralysed)
         {
-            CheckForVictory();
-            if (InBattle && Current == me) EndTurn();
+            EndTurnOf(me);
             yield break;
         }
 
-        OnChanged?.Invoke();
-        if (!IsPartyTurn) StartCoroutine(EnemyTurn());
+        BeginActing();
     }
 
     bool TakesTurn(CombatUnit u) => u.IsAlive || (u.IsDowned && !u.IsStable);
@@ -256,8 +279,7 @@ public class TurnManager : MonoBehaviour
             OnChanged?.Invoke();   // up again: move and act as normal
             yield break;
         }
-        CheckForVictory();
-        if (InBattle && Current == me) EndTurn();
+        EndTurnOf(me);
     }
 
     void FinishBattle(bool won)
@@ -271,7 +293,7 @@ public class TurnManager : MonoBehaviour
         Current = null;
         Debug.Log(won ? "Victory! The monsters are dead." : "The party has fallen...");
         OnChanged?.Invoke();
-        if (won) combat.EndCombat();
+        if (won) { Sfx.Play("victory", 0.8f, 1f, 0f); combat.EndCombat(); }
         else OnPartyFallen?.Invoke();   // DeathScreen takes it from here
     }
 
@@ -279,7 +301,7 @@ public class TurnManager : MonoBehaviour
     bool PlayerDown()
     {
         foreach (Combatant c in Order)
-            if (c.unit != null && !c.unit.IsAlive && c.unit.GetComponent<PlayerMovement>() != null) return true;
+            if (c.unit != null && !c.unit.IsAlive && c.unit.IsPlayer) return true;
         return false;
     }
 
@@ -309,16 +331,14 @@ public class TurnManager : MonoBehaviour
         StartTurn();
     }
 
-    // Monsters with an EnemyAI walk and attack; anything without one just waits
+    // Monsters with a brain (EnemyAI, BossAI) walk and attack; anything without one just waits
     IEnumerator EnemyTurn()
     {
         CombatUnit me = Current;
         yield return new WaitForSeconds(enemyTurnDelay);
 
-        if (me.TryGetComponent(out EnemyAI ai))
-            yield return ai.TakeTurn(combat);
-        else if (me.TryGetComponent(out BossAI boss))
-            yield return boss.TakeTurn(combat);
+        if (me.TryGetComponent(out CombatBrain brain))
+            yield return brain.TakeTurn(combat, this);
         else
             Debug.Log($"{me.unitName} waits. (Give it an EnemyAI to make it fight)");
 
@@ -351,6 +371,11 @@ public class TurnManager : MonoBehaviour
     {
         if (!IsPartyTurn || HasMoved) return;
         ShowMoveRange = !ShowMoveRange;
+        if (!ShowMoveRange && !panHintShown)
+        {
+            panHintShown = true;
+            GameToast.Show("Move mode off", "WASD / arrows look around the room. Press MOVE again to walk. C snaps the camera back.");
+        }
         OnChanged?.Invoke();
     }
 
@@ -359,16 +384,20 @@ public class TurnManager : MonoBehaviour
     {
         if (!IsPartyTurn || action == null || !CanAfford(action)) return;
         if (UsesLeft(Current, action) == 0) return;
-        if (targeting != null) targeting.BeginAction(Current, action);
-        else Debug.LogWarning("Add a CombatTargeting component to the Combat object.");
+        if (CanAim()) targeting.BeginAction(Current, action);
     }
 
     // BONUS ACTION menu -> an item was picked. Drinking a potion is a bonus action (Baldur's Gate rule).
     public void ChooseItem(ItemData item)
     {
         if (!IsPartyTurn || HasUsedBonus || item == null) return;
-        if (targeting != null) targeting.BeginItem(Current, item);
-        else Debug.LogWarning("Add a CombatTargeting component to the Combat object.");
+        if (CanAim()) targeting.BeginItem(Current, item);
+    }
+
+    bool CanAim()
+    {
+        if (targeting == null) Debug.LogWarning("Add a CombatTargeting component to the Combat object.");
+        return targeting != null;
     }
 
     // How many more times this unit can use this action this battle. -1 = unlimited.

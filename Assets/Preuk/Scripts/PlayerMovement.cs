@@ -21,7 +21,7 @@ public class PlayerMovement : MonoBehaviour
     [Header("Click target glow")]
     [Tooltip("Light up the tile you clicked until you get there.")]
     public bool showTargetGlow = true;
-    public Color targetColor = new Color32(232, 190, 99, 255);   // candle gold, same as combat
+    public Color targetColor = Palette.CandleGold;   // same as combat
     [Range(0f, 1f)] public float targetStrength = 0.6f;
     [Tooltip("How much the glow breathes (0 = steady).")]
     [Range(0f, 0.5f)] public float targetPulse = 0.2f;
@@ -44,14 +44,12 @@ public class PlayerMovement : MonoBehaviour
     // The glow on the clicked tile
     GameObject targetGlow;
     Renderer targetRend;
+    Material targetTint;   // the glow's own copy of the material (so the pulsing never edits the shared one)
     bool hasTarget;
-
-    static readonly Vector2Int[] Directions =
-        { Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right };
 
     void Start()
     {
-        transform.position = SnapToGrid(transform.position);
+        transform.position = TileMath.Snap(transform.position, tileSize);
         targetPos = transform.position;
     }
 
@@ -60,7 +58,7 @@ public class PlayerMovement : MonoBehaviour
         if (moveAction != null) moveAction.action.Enable();
 
         // Coming back after combat moved us: start from where we stand now
-        targetPos = SnapToGrid(transform.position);
+        targetPos = TileMath.Snap(transform.position, tileSize);
         isMoving = false;
         scripted = false;
         path.Clear();
@@ -71,6 +69,7 @@ public class PlayerMovement : MonoBehaviour
 
     void OnDestroy()
     {
+        if (targetTint != null) Destroy(targetTint);
         if (targetGlow != null) Destroy(targetGlow);
     }
 
@@ -162,7 +161,7 @@ public class PlayerMovement : MonoBehaviour
     public bool WalkTo(Vector3 goal)
     {
         path.Clear();
-        List<Vector3> route = FindPath(targetPos, SnapToGrid(new Vector3(goal.x, targetPos.y, goal.z)));
+        List<Vector3> route = FindPath(targetPos, TileMath.Snap(new Vector3(goal.x, targetPos.y, goal.z), tileSize));
         if (route == null) { ClearTarget(); return false; }
         path.AddRange(route);
         SetTarget(route[route.Count - 1]);
@@ -176,8 +175,18 @@ public class PlayerMovement : MonoBehaviour
         ClearTarget();
         isMoving = false;
         scripted = false;
-        transform.position = SnapToGrid(new Vector3(spot.x, transform.position.y, spot.z));
+        transform.position = TileMath.Snap(new Vector3(spot.x, transform.position.y, spot.z), tileSize);
         targetPos = transform.position;
+    }
+
+    // Teleport the whole party: the followers land next to us and the camera cuts over.
+    // Cutscenes do this while the screen is black.
+    public void TeleportParty(Vector3 spot)
+    {
+        Teleport(spot);
+        foreach (Follower f in FindObjectsByType<Follower>(FindObjectsSortMode.None)) f.SnapNextToLeader();
+        CameraController cam = CameraController.Main;
+        if (cam != null) cam.SnapToTarget();
     }
 
     // ---------- Click to move ----------
@@ -198,7 +207,7 @@ public class PlayerMovement : MonoBehaviour
         if (!floor.Raycast(ray, out float distance)) return false;
 
         Vector3 p = ray.GetPoint(distance);
-        tile = SnapToGrid(new Vector3(p.x, targetPos.y, p.z));
+        tile = TileMath.Snap(new Vector3(p.x, targetPos.y, p.z), tileSize);
         return true;
     }
 
@@ -254,30 +263,22 @@ public class PlayerMovement : MonoBehaviour
     {
         Color c = targetColor;
         c.a = targetStrength * (1f - targetPulse + targetPulse * Mathf.Sin(Time.time * 4f));
-        targetRend.material.color = c;
+        targetTint.color = c;
     }
 
     bool CreateGlow()
     {
-        Material mat = Resources.Load<Material>("TileGlow");   // Assets/Preuk/Resources/TileGlow.mat
-        if (mat == null)
+        if (Tile.GlowMaterial == null)
         {
             Debug.LogWarning("TileGlow material not found in a Resources folder: no click glow.");
             showTargetGlow = false;
             return false;
         }
 
-        targetGlow = GameObject.CreatePrimitive(PrimitiveType.Quad);
-        targetGlow.name = "Click Target Glow";
+        targetGlow = Tile.CreateGlow("Click Target Glow", tileSize * targetInset);   // the battle grid's glow
         targetGlow.layer = 2;   // Ignore Raycast
-        DestroyImmediate(targetGlow.GetComponent<Collider>());
-        targetGlow.transform.rotation = Quaternion.Euler(90f, 0f, 0f);   // lie flat, facing up
-        targetGlow.transform.localScale = Vector3.one * tileSize * targetInset;
-
         targetRend = targetGlow.GetComponent<MeshRenderer>();
-        targetRend.sharedMaterial = mat;
-        targetRend.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-        targetRend.receiveShadows = false;
+        targetTint = targetRend.material;
         targetRend.enabled = false;
         return true;
     }
@@ -286,8 +287,8 @@ public class PlayerMovement : MonoBehaviour
     // Null if the goal is a wall, off the floor, too far, or can't be reached.
     public List<Vector3> FindPath(Vector3 start, Vector3 goal)
     {
-        Vector2Int s = ToTile(start), g = ToTile(goal);
-        if (s == g || Distance(s, g) > maxPathLength || !IsWalkable(g)) return null;
+        Vector2Int s = TileMath.TileOf(start, tileSize), g = TileMath.TileOf(goal, tileSize);
+        if (s == g || TileMath.Steps(s, g) > maxPathLength || !IsWalkable(g)) return null;
 
         var open = new List<Vector2Int> { s };                          // tiles to look at next
         var cost = new Dictionary<Vector2Int, int> { [s] = 0 };         // steps from the start
@@ -307,10 +308,10 @@ public class PlayerMovement : MonoBehaviour
             if (t == g) return Rebuild(cameFrom, s, g, start.y);
             done.Add(t);
 
-            foreach (Vector2Int d in Directions)
+            foreach (Vector2Int d in TileMath.Directions)
             {
                 Vector2Int n = t + d;
-                if (done.Contains(n) || Distance(s, n) > maxPathLength) continue;
+                if (done.Contains(n) || TileMath.Steps(s, n) > maxPathLength) continue;
 
                 int c = cost[t] + 1;
                 if (cost.TryGetValue(n, out int old))
@@ -330,7 +331,7 @@ public class PlayerMovement : MonoBehaviour
         }
         return null;
 
-        int Score(Vector2Int t) => cost[t] + Distance(t, g);
+        int Score(Vector2Int t) => cost[t] + TileMath.Steps(t, g);
     }
 
     List<Vector3> Rebuild(Dictionary<Vector2Int, Vector2Int> cameFrom, Vector2Int s, Vector2Int g, float y)
@@ -353,10 +354,6 @@ public class PlayerMovement : MonoBehaviour
         return Physics.Raycast(tileCenter, Vector3.down, tileSize * 3f, floorLayers, QueryTriggerInteraction.Ignore);
     }
 
-    Vector2Int ToTile(Vector3 p) => new Vector2Int(Mathf.RoundToInt(p.x / tileSize), Mathf.RoundToInt(p.z / tileSize));
-
-    static int Distance(Vector2Int a, Vector2Int b) => Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y);
-
     // ---------- Keys ----------
 
     // Turns input into exactly one of: up, down, left, right, or none
@@ -373,20 +370,7 @@ public class PlayerMovement : MonoBehaviour
         return Vector2Int.zero;
     }
 
-    bool IsBlocked(Vector3 tileCenter)
-    {
-        Vector3 halfSize = new Vector3(0.4f, 1f, 0.4f) * tileSize;
-        bool blocked = Physics.CheckBox(tileCenter, halfSize, Quaternion.identity, obstacleLayers);
-        return blocked;
-    }
-
-    Vector3 SnapToGrid(Vector3 pos)
-    {
-        return new Vector3(
-            Mathf.Round(pos.x / tileSize) * tileSize,
-            pos.y,
-            Mathf.Round(pos.z / tileSize) * tileSize);
-    }
+    bool IsBlocked(Vector3 tileCenter) => TileMath.IsBlocked(tileCenter, tileSize, obstacleLayers);
 
     Vector2 ReadInput()
     {

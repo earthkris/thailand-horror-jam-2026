@@ -32,7 +32,7 @@ public class PathBlocker : MonoBehaviour
         if (GameState.Current != GameMode.Exploring) return;
 
         Vector3 tile = player.CurrentTile;   // the tile we stand on, or are stepping onto
-        if (!Inside(tile))
+        if (!ZoneBox.Contains(transform.position, size, tile))
         {
             lastOutside = tile;
             return;
@@ -49,12 +49,7 @@ public class PathBlocker : MonoBehaviour
 
         DialogueScriptableObject lines = warned && again != null ? again : firstTime;
         warned = true;
-        if (lines != null && DialogueBox.Instance != null)
-        {
-            DialogueBox.Instance.StartDialogue(lines);
-            yield return null;
-            while (DialogueBox.Instance != null && DialogueBox.Instance.IsContentOpen) yield return null;
-        }
+        yield return StoryDialogue.Play(lines);
         yield return null;
 
         // Walk back to the last tile outside the box (keys are ignored on the way)
@@ -65,18 +60,5 @@ public class PathBlocker : MonoBehaviour
         busy = false;
     }
 
-    bool Inside(Vector3 p)
-    {
-        Vector3 c = transform.position;
-        return Mathf.Abs(p.x - c.x) <= size.x * 0.5f + 0.01f && Mathf.Abs(p.z - c.z) <= size.y * 0.5f + 0.01f;
-    }
-
-    void OnDrawGizmos()
-    {
-        Gizmos.color = new Color(1f, 0.85f, 0.2f, 0.25f);
-        Vector3 box = new Vector3(size.x, 0.2f, size.y);
-        Gizmos.DrawCube(transform.position + Vector3.up * 0.1f, box);
-        Gizmos.color = new Color(1f, 0.85f, 0.2f, 0.9f);
-        Gizmos.DrawWireCube(transform.position + Vector3.up * 0.1f, box);
-    }
+    void OnDrawGizmos() => ZoneBox.DrawGizmo(transform.position, size, filled: true);
 }

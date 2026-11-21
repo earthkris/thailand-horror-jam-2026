@@ -10,11 +10,12 @@ public class PartyInventory : MonoBehaviour
     {
         public ItemData item;
         [Min(0)] public int count = 1;
+
+        // The small text next to the item's name in menus: "4–10 2d4+2   x3"
+        public string DetailText => $"{item.RangeText}   x{count}";
     }
 
     public List<ItemStack> items = new List<ItemStack>();
-
-    public event System.Action OnChanged;
 
     // Spell books stay in the bag through a loop: the party wakes up with them, but has to read them again.
     // Static, so it survives the scene reloading. A fresh run (Play, START OVER) forgets them.
@@ -52,11 +53,9 @@ public class PartyInventory : MonoBehaviour
             if (s.item == item)
             {
                 s.count += amount;
-                OnChanged?.Invoke();
                 return;
             }
         items.Add(new ItemStack { item = item, count = amount });
-        OnChanged?.Invoke();
     }
 
     // Uses up one. False if we don't have any.
@@ -66,7 +65,6 @@ public class PartyInventory : MonoBehaviour
             if (s.item == item && s.count > 0)
             {
                 s.count--;
-                OnChanged?.Invoke();
                 return true;
             }
         return false;

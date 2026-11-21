@@ -58,9 +58,9 @@ public class TurnPanel : MonoBehaviour
     public PartyInventory inventory;
 
     [Header("Colors")]
-    public Color partyColor = new Color32(217, 203, 176, 255);    // bone
-    public Color enemyColor = new Color32(194, 59, 59, 255);      // blood
-    public Color currentColor = new Color32(232, 190, 99, 255);   // candle gold
+    public Color partyColor = Palette.Bone;
+    public Color enemyColor = Palette.Blood;
+    public Color currentColor = Palette.CandleGold;
     public Color downColor = new Color32(74, 68, 60, 255);        // ash
     public Color unseenColor = new Color32(90, 82, 72, 255);      // something in the dark
 
@@ -234,7 +234,7 @@ public class TurnPanel : MonoBehaviour
                 options.Add(new ChoiceMenu.Option
                 {
                     label = s.item.displayName,
-                    detail = $"{s.item.RangeText}   x{s.count}",
+                    detail = s.DetailText,
                     description = s.item.description,
                     enabled = true,
                     onPick = () => { menu.Close(); turns.ChooseItem(picked); }
@@ -275,12 +275,7 @@ public class TurnPanel : MonoBehaviour
         if (targeting != null && targeting.IsAiming) targeting.Cancel();
     }
 
-    void SetButton(Button b, bool on)
-    {
-        b.interactable = on;
-        TMP_Text label = b.GetComponentInChildren<TMP_Text>(true);
-        if (label != null) label.alpha = on ? 1f : disabledLabelAlpha;
-    }
+    void SetButton(Button b, bool on) => MenuRows.SetButton(b, on, disabledLabelAlpha);
 
     // Tells you exactly which slot is still empty instead of crashing
     bool CheckReferences()

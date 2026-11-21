@@ -17,11 +17,8 @@ public class CombatMovement : MonoBehaviour
     public float stepSpeed = 5f;
 
     [Header("Path preview (under the mouse)")]
-    public Color pathColor = new Color32(232, 190, 99, 255);   // candle gold
+    public Color pathColor = Palette.CandleGold;
     [Range(0f, 1f)] public float pathStrength = 0.4f;
-
-    static readonly Vector2Int[] Directions =
-        { Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right };
 
     TurnManager turns;
     CombatManager combat;
@@ -100,10 +97,15 @@ public class CombatMovement : MonoBehaviour
                        && !PauseMenu.BlocksInput && !TutorialCombat.BlocksInput;
         if (!canWalk || turns.Current != pathOwner) path.Clear();
         UpdatePreview(canWalk);
+
+        // Move mode off (MOVE button), or nobody can walk right now: the keys move the camera instead
+        bool keysWalk = canWalk && turns.ShowMoveRange;
+        if (turns.InBattle && !PauseMenu.BlocksInput && !TutorialCombat.BlocksInput && !GameState.DialogueOpen)
+            PanCamera(keysWalk);
         if (!canWalk) return;
 
         // 3. Keys take over from a clicked path (holding the key keeps walking, like exploring)
-        Vector2Int dir = ReadDirection();
+        Vector2Int dir = keysWalk ? ReadDirection() : Vector2Int.zero;
         if (dir != Vector2Int.zero)
         {
             path.Clear();
@@ -114,7 +116,7 @@ public class CombatMovement : MonoBehaviour
         // 4. Next tile of a clicked path
         if (path.Count > 0)
         {
-            Vector2Int step = path.Dequeue() - GridTileOf(turns.Current);
+            Vector2Int step = path.Dequeue() - combat.GridTileOf(turns.Current);
             bool ok = Mathf.Abs(step.x) + Mathf.Abs(step.y) == 1 && TryStep(turns.Current, step);
             if (!ok) path.Clear();   // something got in the way (e.g. a monster in the dark)
         }
@@ -130,7 +132,7 @@ public class CombatMovement : MonoBehaviour
 
         CombatUnit u = turns.Current;
         // Clicked mid-step? Plan from the tile we're stepping onto.
-        Vector2Int start = stepping ? StepTargetTile() : GridTileOf(u);
+        Vector2Int start = stepping ? StepTargetTile() : combat.GridTileOf(u);
         int moves = turns.MovesLeft - (stepping ? 1 : 0);
 
         List<Vector2Int> route = FindPath(u, start, goal, moves);
@@ -148,29 +150,7 @@ public class CombatMovement : MonoBehaviour
     {
         if (start == goal || steps <= 0) return null;
 
-        var cameFrom = new Dictionary<Vector2Int, Vector2Int> { [start] = start };
-        var dist = new Dictionary<Vector2Int, int> { [start] = 0 };
-        var queue = new Queue<Vector2Int>();
-        queue.Enqueue(start);
-
-        // Every step costs the same, so a plain breadth-first search finds the shortest way
-        while (queue.Count > 0)
-        {
-            Vector2Int t = queue.Dequeue();
-            if (t == goal) break;
-            if (dist[t] >= steps) continue;
-
-            foreach (Vector2Int d in Directions)
-            {
-                Vector2Int n = t + d;
-                if (dist.ContainsKey(n)) continue;
-                if (!CanStand(u, n, out _, ignoreUnseen: true)) continue;
-                dist[n] = dist[t] + 1;
-                cameFrom[n] = t;
-                queue.Enqueue(n);
-            }
-        }
-
+        Dictionary<Vector2Int, Vector2Int> cameFrom = Flood(u, start, steps, goal);
         if (!cameFrom.ContainsKey(goal)) return null;
 
         // Walk back from the goal to the start, then flip it
@@ -203,7 +183,7 @@ public class CombatMovement : MonoBehaviour
         if (previewShown) Grid.ClearMarks();
         previewShown = false;
 
-        List<Vector2Int> route = FindPath(turns.Current, GridTileOf(turns.Current), hover, turns.MovesLeft);
+        List<Vector2Int> route = FindPath(turns.Current, combat.GridTileOf(turns.Current), hover, turns.MovesLeft);
         if (route == null) return;
         Grid.MarkTiles(route, pathColor, pathStrength);
         previewShown = true;
@@ -213,9 +193,9 @@ public class CombatMovement : MonoBehaviour
 
     bool TryStep(CombatUnit u, Vector2Int dir)
     {
-        Vector2Int to = GridTileOf(u) + dir;
+        Vector2Int to = combat.GridTileOf(u) + dir;
 
-        if (!CanStand(u, to, out CombatUnit blocker))
+        if (!combat.CanStand(u, to, out CombatUnit blocker))
         {
             // Walking into an enemy you can't see: you feel it, you don't see it
             if (blocker != null && blocker != lastBump && !FogOfWar.CanSee(blocker))
@@ -242,6 +222,7 @@ public class CombatMovement : MonoBehaviour
     {
         mover = u;
         stepTarget = u.WorldPositionFor(Grid.OriginTile + to);
+        Sfx.Step(u.transform, 0.3f);
         stepping = true;
     }
 
@@ -257,34 +238,10 @@ public class CombatMovement : MonoBehaviour
         {
             // Cut down on the way out: Kairos loops time, Lucius's turn is over
             path.Clear();
-            turns.CheckForVictory();
-            if (turns.InBattle && turns.Current == u) turns.EndTurn();
+            turns.EndTurnOf(u);
             yield break;
         }
         BeginStep(u, to);
-    }
-
-    // Could this unit's whole footprint stand with its bottom-left on grid tile 'anchor'?
-    // 'blocker' = the unit in the way, if that's what stopped us.
-    bool CanStand(CombatUnit u, Vector2Int anchor, out CombatUnit blocker, bool ignoreUnseen = false)
-    {
-        blocker = null;
-        for (int x = 0; x < u.size; x++)
-            for (int y = 0; y < u.size; y++)
-            {
-                Vector2Int cell = anchor + new Vector2Int(x, y);
-                if (!Grid.IsWalkable(cell.x, cell.y)) return false;   // wall, rock, outside the room
-
-                Vector2Int world = Grid.OriginTile + cell;
-                foreach (CombatUnit other in AllUnits())
-                {
-                    if (other == u || other.IsDead || !other.Occupies(world)) continue;
-                    if (ignoreUnseen && !FogOfWar.CanSee(other)) continue;
-                    blocker = other;
-                    return false;
-                }
-            }
-        return true;
     }
 
     // ---------- Range highlight ----------
@@ -301,47 +258,55 @@ public class CombatMovement : MonoBehaviour
             return;
         }
 
+        // Every tile the unit can still get to (not where it stands now), with its whole footprint lit
         CombatUnit u = turns.Current;
+        Vector2Int start = combat.GridTileOf(u);
         var lit = new HashSet<Vector2Int>();
-        foreach (Vector2Int anchor in Reachable(u, turns.MovesLeft))
+        foreach (Vector2Int anchor in Flood(u, start, turns.MovesLeft).Keys)
+        {
+            if (anchor == start) continue;
             for (int x = 0; x < u.size; x++)
                 for (int y = 0; y < u.size; y++)
                     lit.Add(anchor + new Vector2Int(x, y));
+        }
 
         Grid.ShowRange(lit);
     }
 
-    // Every grid tile the unit can reach within 'steps' steps (going around things).
+    // ---------- Pathfinding ----------
+
+    // Spreads out from 'start' one step at a time (breadth-first, going around things):
+    // every grid tile the unit can reach within 'steps' steps, each with the tile it was reached from
+    // ('start' maps to itself). Every step costs the same, so following those back gives the shortest way.
+    // Stops early once 'goal' is reached, if one is given.
     // Enemies hidden in the dark are ignored here, so the glow doesn't give away where they are.
-    List<Vector2Int> Reachable(CombatUnit u, int steps)
+    Dictionary<Vector2Int, Vector2Int> Flood(CombatUnit u, Vector2Int start, int steps, Vector2Int? goal = null)
     {
-        Vector2Int start = GridTileOf(u);
+        var cameFrom = new Dictionary<Vector2Int, Vector2Int> { [start] = start };
         var dist = new Dictionary<Vector2Int, int> { [start] = 0 };
         var queue = new Queue<Vector2Int>();
-        var result = new List<Vector2Int>();
         queue.Enqueue(start);
 
         while (queue.Count > 0)
         {
             Vector2Int t = queue.Dequeue();
-            if (t != start) result.Add(t);
+            if (t == goal) break;
             if (dist[t] >= steps) continue;
 
-            foreach (Vector2Int d in Directions)
+            foreach (Vector2Int d in TileMath.Directions)
             {
                 Vector2Int n = t + d;
                 if (dist.ContainsKey(n)) continue;
-                if (!CanStand(u, n, out _, ignoreUnseen: true)) continue;
+                if (!combat.CanStand(u, n, out _, ignoreUnseen: true)) continue;
                 dist[n] = dist[t] + 1;
+                cameFrom[n] = t;
                 queue.Enqueue(n);
             }
         }
-        return result;
+        return cameFrom;
     }
 
     // ---------- Helpers ----------
-
-    Vector2Int GridTileOf(CombatUnit u) => u.AnchorTile - Grid.OriginTile;
 
     Vector2Int StepTargetTile()
     {
@@ -349,10 +314,48 @@ public class CombatMovement : MonoBehaviour
         return new Vector2Int(x, y);
     }
 
-    IEnumerable<CombatUnit> AllUnits()
+    // WASD / arrows slide the view (when they don't walk); middle-mouse drag works any time; C or Home snaps back
+    Vector3 lastDrag;
+    bool dragging;
+
+    void PanCamera(bool keysWalk)
     {
-        foreach (CombatUnit u in combat.Party) yield return u;
-        foreach (CombatUnit u in combat.Enemies) yield return u;
+        CameraController cam = CameraController.Main;
+        if (cam == null) return;
+        var kb = Keyboard.current;
+        if (kb != null && (kb.cKey.wasPressedThisFrame || kb.homeKey.wasPressedThisFrame)) cam.ResetPan();
+
+        if (!keysWalk && kb != null)
+        {
+            Vector2 input = Vector2.zero;
+            if (kb.wKey.isPressed || kb.upArrowKey.isPressed) input.y += 1f;
+            if (kb.sKey.isPressed || kb.downArrowKey.isPressed) input.y -= 1f;
+            if (kb.aKey.isPressed || kb.leftArrowKey.isPressed) input.x -= 1f;
+            if (kb.dKey.isPressed || kb.rightArrowKey.isPressed) input.x += 1f;
+            if (input != Vector2.zero) cam.Pan(input.normalized, Time.unscaledDeltaTime);
+        }
+
+        Mouse m = Mouse.current;
+        if (m == null) return;
+        Camera c = cam.GetComponent<Camera>();
+        if (m.middleButton.wasPressedThisFrame) { dragging = FloorPoint(c, m, out lastDrag); return; }
+        if (!m.middleButton.isPressed) { dragging = false; return; }
+        if (dragging && FloorPoint(c, m, out Vector3 now))
+        {
+            cam.PanBy(lastDrag - now);   // the floor under the mouse stays under the mouse
+            FloorPoint(c, m, out lastDrag);
+        }
+    }
+
+    bool FloorPoint(Camera c, Mouse m, out Vector3 point)
+    {
+        point = default;
+        if (c == null) return false;
+        Ray ray = c.ScreenPointToRay(m.position.ReadValue());
+        float y = turns.Current != null ? turns.Current.transform.position.y - 1f : 0f;
+        if (!new Plane(Vector3.up, new Vector3(0f, y, 0f)).Raycast(ray, out float d)) return false;
+        point = ray.GetPoint(d);
+        return true;
     }
 
     static Vector2Int ReadDirection()

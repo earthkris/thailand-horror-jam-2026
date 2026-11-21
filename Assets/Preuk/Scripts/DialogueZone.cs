@@ -20,10 +20,9 @@ public class DialogueZone : MonoBehaviour
     void Update()
     {
         if (played || player == null || !GameState.CanMove || DialogueBox.Instance == null) return;
-        if (!Inside(player.CurrentTile)) return;
+        if (!ZoneBox.Contains(transform.position, size, player.CurrentTile)) return;
         played = true;
-        if (dialogueByLoop == null || dialogueByLoop.Length == 0) return;
-        DialogueScriptableObject lines = dialogueByLoop[Mathf.Clamp(LoopManager.LoopsUsed, 0, dialogueByLoop.Length - 1)];
+        DialogueScriptableObject lines = StoryDialogue.Pick(dialogueByLoop, LoopManager.LoopsUsed);
         if (lines != null)
         {
             player.StopWalking();
@@ -31,15 +30,5 @@ public class DialogueZone : MonoBehaviour
         }
     }
 
-    bool Inside(Vector3 p)
-    {
-        Vector3 c = transform.position;
-        return Mathf.Abs(p.x - c.x) <= size.x * 0.5f + 0.01f && Mathf.Abs(p.z - c.z) <= size.y * 0.5f + 0.01f;
-    }
-
-    void OnDrawGizmos()
-    {
-        Gizmos.color = new Color(1f, 0.85f, 0.2f, 0.9f);
-        Gizmos.DrawWireCube(transform.position + Vector3.up * 0.1f, new Vector3(size.x, 0.2f, size.y));
-    }
+    void OnDrawGizmos() => ZoneBox.DrawGizmo(transform.position, size);
 }

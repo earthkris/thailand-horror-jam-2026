@@ -39,7 +39,7 @@ public class DeathScreen : MonoBehaviour
 
     [Header("Colors")]
     public Color loopColor = new Color32(245, 242, 236, 255);   // white
-    public Color finalColor = new Color32(194, 59, 59, 255);     // blood
+    public Color finalColor = Palette.Blood;
 
     [Header("Timing (seconds)")]
     [Tooltip("Wait after the last hit before the screen darkens.")]
@@ -106,14 +106,11 @@ public class DeathScreen : MonoBehaviour
     IEnumerator AcceptDeath()
     {
         HideButtons();
-        for (float t = 0f; t < 1f; t += Time.unscaledDeltaTime / 0.5f)
+        yield return Tween.Over(0.5f, t =>
         {
             SetPaint(1f - t);
             subtitle.alpha = 1f - t;
-            yield return null;
-        }
-        SetPaint(0f);
-        subtitle.alpha = 0f;
+        }, unscaled: true);
 
         SetLook(true);
         yield return new WaitForSecondsRealtime(0.4f);
@@ -139,13 +136,8 @@ public class DeathScreen : MonoBehaviour
 
     IEnumerator Paint()
     {
-        for (float t = 0f; t < 1f; t += Time.unscaledDeltaTime / paintTime)
-        {
-            SetPaint(1f - Mathf.Pow(1f - t, 3f));   // fast stroke that slows at the end
-            yield return null;
-        }
-        SetPaint(1f);
-        yield return Fade(subtitle, 0.6f);
+        yield return Tween.Over(paintTime, t => SetPaint(1f - Mathf.Pow(1f - t, 3f)), unscaled: true);   // fast stroke that slows at the end
+        yield return Tween.Over(0.6f, t => subtitle.alpha = t, unscaled: true);
     }
 
     // 0 = nothing painted yet, 1 = the whole title showing
@@ -171,23 +163,7 @@ public class DeathScreen : MonoBehaviour
         buttons.blocksRaycasts = true;
     }
 
-    static IEnumerator Fade(CanvasGroup g, float from, float to, float time)
-    {
-        for (float t = 0f; t < 1f; t += Time.unscaledDeltaTime / Mathf.Max(time, 0.01f))
-        {
-            g.alpha = Mathf.Lerp(from, to, t);
-            yield return null;
-        }
-        g.alpha = to;
-    }
-
-    static IEnumerator Fade(TMP_Text text, float time)
-    {
-        for (float t = 0f; t < 1f; t += Time.unscaledDeltaTime / Mathf.Max(time, 0.01f))
-        {
-            text.alpha = t;
-            yield return null;
-        }
-        text.alpha = 1f;
-    }
+    // Runs on real time: the game may be frozen behind the screen
+    static IEnumerator Fade(CanvasGroup g, float from, float to, float time) =>
+        Tween.Over(time, t => g.alpha = Mathf.Lerp(from, to, t), unscaled: true);
 }

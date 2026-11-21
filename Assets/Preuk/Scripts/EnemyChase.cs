@@ -18,9 +18,6 @@ public class EnemyChase : MonoBehaviour
     [Tooltip("Things the enemy can't walk through (rocks, walls).")]
     public LayerMask obstacleLayers;
 
-    static readonly Vector2Int[] Directions =
-        { Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right };
-
     CombatUnit unit;
     readonly List<CombatUnit> party = new List<CombatUnit>();
     readonly List<CombatUnit> otherEnemies = new List<CombatUnit>();
@@ -103,12 +100,12 @@ public class EnemyChase : MonoBehaviour
         {
             Vector2Int current = queue.Dequeue();
 
-            if (StepsFrom(current, unit.size, targetTile) == 1)   // from here we'd be touching
+            if (TileMath.StepsBetween(current, unit.size, targetTile, 1) == 1)   // from here we'd be touching
                 return FirstStep(current, start, cameFrom);
 
             if (distance[current] >= maxPathLength) continue;     // too far, don't spread further
 
-            foreach (Vector2Int dir in Directions)
+            foreach (Vector2Int dir in TileMath.Directions)
             {
                 Vector2Int next = current + dir;
                 if (distance.ContainsKey(next)) continue;          // already visited
@@ -153,7 +150,6 @@ public class EnemyChase : MonoBehaviour
     bool IsFree(Vector2Int anchor)
     {
         float t = unit.tileSize;
-        Vector3 halfSize = new Vector3(0.4f, 1f, 0.4f) * t;   // same tall box the player uses
 
         for (int x = 0; x < unit.size; x++)
             for (int y = 0; y < unit.size; y++)
@@ -161,12 +157,8 @@ public class EnemyChase : MonoBehaviour
                 Vector2Int tile = anchor + new Vector2Int(x, y);
                 Vector3 center = new Vector3(tile.x * t, transform.position.y, tile.y * t);
 
-                // Rock or wall?
-                if (Physics.CheckBox(center, halfSize, Quaternion.identity, obstacleLayers))
-                    return false;
-
-                // Ground under it? (don't walk off the map)
-                if (!Physics.Raycast(center + Vector3.up, Vector3.down, 5f, ~obstacleLayers))
+                // Rock or wall? No ground under it? (don't walk off the map)
+                if (!TileMath.IsOpenGround(center, t, obstacleLayers))
                     return false;
 
                 // A party member standing there?
@@ -182,17 +174,5 @@ public class EnemyChase : MonoBehaviour
         return true;
     }
 
-    // Steps from a tile to the nearest tile of a footprint (same maths as CombatUnit.StepsTo)
-    static int StepsFrom(Vector2Int anchor, int size, Vector2Int tile)
-    {
-        int dx = Mathf.Max(anchor.x - tile.x, 0, tile.x - (anchor.x + size - 1));
-        int dy = Mathf.Max(anchor.y - tile.y, 0, tile.y - (anchor.y + size - 1));
-        return dx + dy;
-    }
-
-    Vector2Int TileOf(Vector3 pos)
-    {
-        return new Vector2Int(Mathf.RoundToInt(pos.x / unit.tileSize),
-                              Mathf.RoundToInt(pos.z / unit.tileSize));
-    }
+    Vector2Int TileOf(Vector3 pos) => TileMath.TileOf(pos, unit.tileSize);
 }

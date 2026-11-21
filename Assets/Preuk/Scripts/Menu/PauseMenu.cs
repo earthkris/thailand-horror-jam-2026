@@ -19,6 +19,13 @@ public class PauseMenu : MonoBehaviour
     public static bool BlocksInput => IsOpen || DeathScreen.IsShowing || Time.frameCount == closedFrame;
     static int closedFrame = -1;
 
+    // Esc or right-click this frame = "cancel" for aiming and the battle's pop-up menus
+    // (never while this menu or the death screen has the keys)
+    public static bool CancelPressed =>
+        !BlocksInput &&
+        ((Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame) ||
+         (Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame));
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void ResetOnPlay() { IsOpen = false; closedFrame = -1; }
 
@@ -77,13 +84,6 @@ public class PauseMenu : MonoBehaviour
 
     const string VolumeKey = "volume";
 
-    struct Row
-    {
-        public string label, detail, description;
-        public bool enabled;
-        public System.Action onPick;
-    }
-
     readonly List<Button> rows = new List<Button>();
     System.Action onBack;   // what Back / Esc does on the page that's showing
     System.Action onYes;
@@ -139,8 +139,7 @@ public class PauseMenu : MonoBehaviour
         if (IsOpen)
         {
             IsOpen = false;
-            Time.timeScale = 1f;
-            AudioListener.pause = false;
+            SetFrozen(false);
         }
     }
 
@@ -179,8 +178,7 @@ public class PauseMenu : MonoBehaviour
     {
         if (IsOpen || exited || DeathScreen.IsShowing) return;
         IsOpen = true;
-        Time.timeScale = 0f;          // freeze everything: walking, monsters, dice
-        AudioListener.pause = true;
+        SetFrozen(true);
         root.SetActive(true);
         ShowMain();
     }
@@ -190,9 +188,15 @@ public class PauseMenu : MonoBehaviour
         if (!IsOpen || exited) return;
         IsOpen = false;
         closedFrame = Time.frameCount;   // the key that closed us shouldn't also do something else
-        Time.timeScale = 1f;
-        AudioListener.pause = false;
+        SetFrozen(false);
         root.SetActive(false);
+    }
+
+    // Freezes everything (walking, monsters, dice, sound), or lets it run again
+    public static void SetFrozen(bool frozen)
+    {
+        Time.timeScale = frozen ? 0f : 1f;
+        AudioListener.pause = frozen;
     }
 
     void Back() => (onBack ?? Close).Invoke();
@@ -242,7 +246,7 @@ public class PauseMenu : MonoBehaviour
         bool inBattle = turns != null && turns.InBattle;
         bool canUse = !inBattle || (turns.IsPartyTurn && !turns.HasUsedBonus && (targeting == null || !targeting.IsBusy));
 
-        var options = new List<Row>();
+        var options = new List<ChoiceMenu.Option>();
         if (inventory != null)
             foreach (PartyInventory.ItemStack s in inventory.items)
             {
@@ -252,7 +256,7 @@ public class PauseMenu : MonoBehaviour
                 {
                     // Books: read once per loop, outside a fight. They stay in the bag.
                     bool read = SpellBook.HasRead(picked);
-                    options.Add(new Row
+                    options.Add(new ChoiceMenu.Option
                     {
                         label = picked.displayName,
                         detail = read ? "read" : "READ",
@@ -263,10 +267,10 @@ public class PauseMenu : MonoBehaviour
                     });
                     continue;
                 }
-                options.Add(new Row
+                options.Add(new ChoiceMenu.Option
                 {
                     label = s.item.displayName,
-                    detail = $"{s.item.RangeText}   x{s.count}",
+                    detail = s.DetailText,
                     description = s.item.description,
                     enabled = canUse,
                     onPick = () => PickItem(picked)
@@ -302,12 +306,12 @@ public class PauseMenu : MonoBehaviour
     // Outside a fight the party is together, so anyone can get it
     void ShowTargets(ItemData item)
     {
-        var options = new List<Row>();
+        var options = new List<ChoiceMenu.Option>();
         foreach (CombatUnit u in PartyMembers())
         {
             bool full = item.effect == ItemEffect.Heal && u.CurrentHP >= u.maxHP;
             CombatUnit who = u;
-            options.Add(new Row
+            options.Add(new ChoiceMenu.Option
             {
                 label = u.unitName,
                 detail = u.IsAlive ? $"{u.CurrentHP}/{u.maxHP} HP" : "down",
@@ -342,11 +346,8 @@ public class PauseMenu : MonoBehaviour
 
     static List<CombatUnit> PartyMembers()
     {
-        var list = new List<CombatUnit>();
-        foreach (CombatUnit u in FindObjectsByType<CombatUnit>(FindObjectsSortMode.None))
-            if (u.team == Team.Party) list.Add(u);
-        // The one you walk with comes first
-        list.Sort((a, b) => (b.GetComponent<PlayerMovement>() != null).CompareTo(a.GetComponent<PlayerMovement>() != null));
+        var list = new List<CombatUnit>(CombatUnit.OnTeam(Team.Party));
+        list.Sort((a, b) => b.IsPlayer.CompareTo(a.IsPlayer));   // the one you walk with comes first
         return list;
     }
 
@@ -393,8 +394,7 @@ public class PauseMenu : MonoBehaviour
         root.SetActive(false);
         exited = true;
         IsOpen = true;          // keeps every other script's input off
-        Time.timeScale = 0f;
-        AudioListener.pause = true;
+        SetFrozen(true);
         Screen.fullScreen = false;
         if (exitScreen != null) exitScreen.SetActive(true);
     }
@@ -425,59 +425,22 @@ public class PauseMenu : MonoBehaviour
     void RefreshOptionLabels()
     {
         if (volumeValue != null) volumeValue.text = Mathf.RoundToInt(AudioListener.volume * 100f) + "%";
-        SetText(fullscreenButton.transform, "Detail", Screen.fullScreen ? "ON" : "OFF", true);
+        MenuRows.SetText(fullscreenButton.transform, "Detail", Screen.fullScreen ? "ON" : "OFF");
     }
 
     // ================= List rows =================
 
-    void ShowList(string title, List<Row> options, string info, System.Action back)
+    void ShowList(string title, List<ChoiceMenu.Option> options, string info, System.Action back)
     {
         ShowPage(listPage, back);
         listTitle.text = title;
         listInfo.text = info;
-
-        while (rows.Count < options.Count)
-            rows.Add(Instantiate(optionTemplate, optionTemplate.transform.parent));
-
-        for (int i = 0; i < rows.Count; i++)
-        {
-            Button b = rows[i];
-            bool used = i < options.Count;
-            b.gameObject.SetActive(used);
-            if (!used) continue;
-
-            Row r = options[i];
-            SetText(b.transform, "Label", r.label, r.enabled);
-            SetText(b.transform, "Detail", r.detail, r.enabled);
-            b.interactable = r.enabled;
-
-            b.onClick.RemoveAllListeners();
-            System.Action pick = r.onPick;
-            b.onClick.AddListener(() => pick?.Invoke());
-
-            MenuHover hover = b.GetComponent<MenuHover>();
-            if (hover == null) hover = b.gameObject.AddComponent<MenuHover>();
-            string desc = r.description;
-            hover.onEnter = () => { if (!string.IsNullOrEmpty(desc)) listInfo.text = desc; };
-        }
-    }
-
-    void SetText(Transform button, string child, string text, bool enabled)
-    {
-        Transform t = button.Find(child);
-        if (t == null || !t.TryGetComponent(out TMP_Text tmp)) return;
-        tmp.text = text;
-        tmp.alpha = enabled ? 1f : (child == "Label" ? disabledLabelAlpha : disabledDetailAlpha);
+        MenuRows.Fill(rows, optionTemplate, options, disabledLabelAlpha, disabledDetailAlpha,
+                      desc => { if (!string.IsNullOrEmpty(desc)) listInfo.text = desc; });
     }
 
     // Black bar over the words (TMP highlight in black, black text)
     static string Redact(string text) => $"<mark=#000000FF>{text}</mark>";
 
-    // Turns a button on/off and fades its label to match
-    void SetButton(Button b, bool on)
-    {
-        b.interactable = on;
-        TMP_Text label = b.GetComponentInChildren<TMP_Text>(true);
-        if (label != null) label.alpha = on ? 1f : disabledLabelAlpha;
-    }
+    void SetButton(Button b, bool on) => MenuRows.SetButton(b, on, disabledLabelAlpha);
 }

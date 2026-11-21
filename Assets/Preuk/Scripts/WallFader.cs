@@ -60,8 +60,7 @@ public class WallFader : MonoBehaviour
         set = Resources.Load<SeeThroughMaterials>("SeeThroughMaterials");
         FindFrontWalls();
         watched.Clear();
-        foreach (CombatUnit u in FindObjectsByType<CombatUnit>(FindObjectsSortMode.None))
-            if (u.team == Team.Party) watched.Add(u.transform);
+        foreach (CombatUnit u in CombatUnit.OnTeam(Team.Party)) watched.Add(u.transform);
     }
 
     // Every wall object once: its size from its colliders, its look from its renderers (torches on it too)

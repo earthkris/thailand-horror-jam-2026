@@ -36,12 +36,7 @@ public class LoopStart : MonoBehaviour
 
         var player = FindAnyObjectByType<PlayerMovement>();
         if (player != null && trapChest != null && trapChest.destination != null)
-        {
-            player.Teleport(trapChest.LandingSpot());
-            foreach (Follower f in FindObjectsByType<Follower>(FindObjectsSortMode.None)) f.SnapNextToLeader();
-            var cam = FindAnyObjectByType<CameraController>();
-            if (cam != null) cam.SnapToTarget();
-        }
+            player.TeleportParty(trapChest.LandingSpot());
         else Debug.LogWarning("LoopStart: drag in the trap chest (with a destination).", this);
 
         // Wake up (the screen is still black from the loop)
@@ -49,10 +44,7 @@ public class LoopStart : MonoBehaviour
         yield return new WaitForSecondsRealtime(0.9f);
         GameState.Current = GameMode.Exploring;
 
-        if (wakeUp != null && wakeUp.Length > 0 && DialogueBox.Instance != null)
-        {
-            DialogueScriptableObject lines = wakeUp[Mathf.Clamp(LoopManager.LoopsUsed - 1, 0, wakeUp.Length - 1)];
-            if (lines != null) DialogueBox.Instance.StartDialogue(lines);
-        }
+        DialogueScriptableObject lines = StoryDialogue.Pick(wakeUp, LoopManager.LoopsUsed - 1);
+        if (lines != null && DialogueBox.Instance != null) DialogueBox.Instance.StartDialogue(lines);
     }
 }

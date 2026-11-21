@@ -55,7 +55,7 @@ public class TutorialCombat : MonoBehaviour
     [Min(1f)] public float arrowPixelScale = 4f;
     [Tooltip("About how wide the hint box is. It snaps to whole tiles of the frame.")]
     public float boxWidth = 880f;
-    public Color textColor = new Color32(217, 203, 176, 255);       // bone
+    public Color textColor = Palette.Bone;
     public Color continueColor = new Color32(232, 190, 99, 190);    // candle gold
     [Tooltip("How dark the screen gets while a hint waits for you to continue.")]
     [Range(0f, 1f)] public float dimScreen = 0.2f;
@@ -200,7 +200,7 @@ public class TutorialCombat : MonoBehaviour
         GameState.Current = GameMode.Dialogue;   // nobody wanders off until the talk is over
         yield return new WaitForSeconds(pauseBeforeDialogue);
 
-        yield return PlayDialogue(beforeHeal);
+        yield return StoryDialogue.Play(beforeHeal);
 
         // "Lucius healed both of us."
         HealUp(kairos);
@@ -208,15 +208,8 @@ public class TutorialCombat : MonoBehaviour
         Debug.Log("Lucius heals the party to full.");
         yield return new WaitForSeconds(pauseAfterHeal);
 
-        yield return PlayDialogue(afterHeal);
+        yield return StoryDialogue.Play(afterHeal);
         GameState.Current = GameMode.Exploring;
-    }
-
-    IEnumerator PlayDialogue(DialogueScriptableObject d)
-    {
-        if (d == null || DialogueBox.Instance == null) yield break;
-        DialogueBox.Instance.StartDialogue(d);
-        while (DialogueBox.Instance.IsContentOpen) yield return null;
     }
 
     static void HealUp(CombatUnit u)
@@ -229,8 +222,7 @@ public class TutorialCombat : MonoBehaviour
         }
         // Went down in the fight: back on their feet
         u.Revive(u.maxHP);
-        if (u.TryGetComponent(out PlayerMovement pm)) pm.enabled = true;
-        if (u.TryGetComponent(out Follower f)) f.enabled = true;
+        CombatManager.SetExplorationMovement(u, true);
     }
 
     // ================= Hint box and arrow =================
@@ -359,27 +351,17 @@ public class TutorialCombat : MonoBehaviour
 
     void BuildUI()
     {
-        var go = new GameObject("Tutorial Hints", typeof(RectTransform));
-        go.transform.SetParent(transform, false);
-        canvas = go.AddComponent<Canvas>();
-        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        canvas.sortingOrder = 40;   // above the battle UI
-        var scaler = go.AddComponent<CanvasScaler>();
-        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1920f, 1080f);
-        scaler.matchWidthOrHeight = 0.5f;
-        go.AddComponent<GraphicRaycaster>();
+        canvas = UIBuilder.NewOverlayCanvas("Tutorial Hints", transform, UIBuilder.HintOrder, clickable: true);   // above the battle UI
+        var scaler = canvas.GetComponent<CanvasScaler>();
+        Transform root = canvas.transform;
 
         // Dims the screen and eats clicks while a hint waits for "continue"
-        blocker = NewImage("Blocker", go.transform, new Color(0f, 0f, 0f, dimScreen));
-        RectTransform br = blocker.rectTransform;
-        br.anchorMin = Vector2.zero;
-        br.anchorMax = Vector2.one;
-        br.offsetMin = br.offsetMax = Vector2.zero;
+        blocker = UIBuilder.NewImage("Blocker", root, raycastTarget: true);
+        blocker.color = new Color(0f, 0f, 0f, dimScreen);
+        UIBuilder.Stretch(blocker.rectTransform);
 
         // The hint box: the UIKit frame, 9-sliced, with the text inside
-        Image frame = NewImage("Hint Box", go.transform, Color.white);
-        frame.raycastTarget = false;
+        Image frame = UIBuilder.NewImage("Hint Box", root);
         if (boxSprite != null)
         {
             frame.sprite = boxSprite;
@@ -408,8 +390,7 @@ public class TutorialCombat : MonoBehaviour
         continueText.text = continueHint;
 
         // The arrow: one sheet sprite per direction (picked in LateUpdate)
-        arrowImage = NewImage("Arrow", go.transform, Color.white);
-        arrowImage.raycastTarget = false;
+        arrowImage = UIBuilder.NewImage("Arrow", root);
         arrowImage.preserveAspect = true;
         arrow = arrowImage.rectTransform;
         SetArrow(arrowDown);
@@ -417,26 +398,11 @@ public class TutorialCombat : MonoBehaviour
             Debug.LogWarning("TutorialCombat: set all 4 arrow sprites (UIKit_58-61 from 32x32-Tilesheet).", this);
     }
 
-    static Image NewImage(string name, Transform parent, Color color)
-    {
-        var go = new GameObject(name, typeof(RectTransform), typeof(Image));
-        go.transform.SetParent(parent, false);
-        Image img = go.GetComponent<Image>();
-        img.color = color;
-        return img;
-    }
-
+    // Centred, wrapping text in the hint font
     TextMeshProUGUI NewText(string name, Transform parent, float size, Color color)
     {
-        var go = new GameObject(name, typeof(RectTransform));
-        go.transform.SetParent(parent, false);
-        var t = go.AddComponent<TextMeshProUGUI>();
+        TextMeshProUGUI t = UIBuilder.NewText(name, parent, size, color, TextAlignmentOptions.Center, wrap: true);
         if (font != null) t.font = font;
-        t.fontSize = size;
-        t.color = color;
-        t.alignment = TextAlignmentOptions.Center;
-        t.textWrappingMode = TextWrappingModes.Normal;
-        t.raycastTarget = false;
         return t;
     }
 

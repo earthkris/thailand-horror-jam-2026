@@ -1,7 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 // After picking something in the ACTION or BONUS ACTION menu: shows what it can reach,
 // waits for you to click a target, then rolls and applies it.
@@ -15,7 +14,7 @@ using UnityEngine.InputSystem;
 public class CombatTargeting : MonoBehaviour
 {
     [Header("Highlight")]
-    public Color enemyColor = new Color32(194, 59, 59, 255);   // blood
+    public Color enemyColor = Palette.Blood;
     public Color allyColor = new Color32(143, 176, 120, 255);  // pale green
     [Tooltip("Tiles inside the action's reach.")]
     [Range(0f, 1f)] public float rangeStrength = 0.12f;
@@ -98,7 +97,7 @@ public class CombatTargeting : MonoBehaviour
         var reach = new List<Vector2Int>();
         for (int x = 0; x < Grid.Width; x++)
             for (int y = 0; y < Grid.Height; y++)
-                if (Grid.GetTile(x, y) != null && GapTo(Grid.OriginTile + new Vector2Int(x, y)) <= Range)
+                if (Grid.GetTile(x, y) != null && user.ReachTo(Grid.OriginTile + new Vector2Int(x, y)) <= Range)
                     reach.Add(new Vector2Int(x, y));
         Grid.MarkTiles(reach, color, rangeStrength);
 
@@ -115,10 +114,7 @@ public class CombatTargeting : MonoBehaviour
 
     void Update()
     {
-        if (!aiming || PauseMenu.BlocksInput) return;
-        bool esc = Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame;
-        bool rightClick = Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame;
-        if (esc || rightClick) Cancel();
+        if (aiming && PauseMenu.CancelPressed) Cancel();
     }
 
     void OnTileClicked(Vector2Int gridTile)
@@ -131,7 +127,7 @@ public class CombatTargeting : MonoBehaviour
             if (c.Occupies(world)) { target = c; break; }
 
         if (target == null) { Debug.Log("No target there."); return; }
-        if (GapTo(target) > Range) { Debug.Log($"{TargetName(target)} is out of reach."); return; }
+        if (user.ReachTo(target) > Range) { Debug.Log($"{TargetName(target)} is out of reach."); return; }
         if (!HasLineOfSight(target)) { Debug.Log("Something is in the way."); return; }
 
         StartCoroutine(Resolve(target));
@@ -144,6 +140,9 @@ public class CombatTargeting : MonoBehaviour
         Cancel();
         busy = true;
         if (movement != null) movement.Refresh();
+
+        if (item != null) Sfx.Play("bag", 0.8f);
+        else Sfx.ForAction(action);
 
         // Casting flourish (sparkles round the priest...), a moment before the dice
         if (action != null && action.castEffect != null)
@@ -173,61 +172,52 @@ public class CombatTargeting : MonoBehaviour
         bool hidden = !FogOfWar.CanSee(target);
         bool ranged = action.range > 1;
         bool crowded = ranged && EnemyNextTo(user);
-        bool advantage = action.advantage && !(hidden || crowded);    // advantage and disadvantage cancel out
-        bool disadvantage = (hidden || crowded) && !action.advantage;
+        bool hampered = hidden || crowded;
+        RollMode mode = action.advantage == hampered ? RollMode.Normal   // advantage and disadvantage cancel out
+                      : hampered ? RollMode.Disadvantage : RollMode.Advantage;
         string why = hidden ? "can't see the target" : "enemy right next to you";
         string tName = TargetName(target);
-        int need = Mathf.Clamp(target.ArmorClass - action.attackBonus, 2, 20);
+        int need = AttackRoll.Needed(target.ArmorClass, action.attackBonus);
 
-        // 1. Roll to hit (twice with disadvantage, keep the lower)
-        int r1 = 0, r2 = 0;
-        yield return DiceTray.RollD20($"{action.displayName}  —  need {need}+" + (disadvantage ? "   (disadvantage)" : "")
-                                    + (advantage ? "   (advantage)" : "") + (user.IsBlessed ? "   (blessed)" : ""), v => r1 = v);
-        int roll = r1;
-        string rollText = $"d20 ({r1})";
-        if (disadvantage)
-        {
-            yield return DiceTray.RollD20($"Disadvantage: {why}  —  second roll", v => r2 = v);
-            roll = Mathf.Min(r1, r2);
-            rollText = $"d20 ({r1}, {r2} -> {roll}, disadvantage)";
-        }
-        if (advantage)
-        {
-            yield return DiceTray.RollD20("Advantage  —  second roll", v => r2 = v);
-            roll = Mathf.Max(r1, r2);
-            rollText = $"d20 ({r1}, {r2} -> {roll}, advantage)";
-        }
+        // 1. Roll to hit (twice with advantage or disadvantage)
+        var roll = new AttackRoll();
+        yield return roll.Throw(
+            $"{action.displayName}  —  need {need}+"
+                + (mode == RollMode.Disadvantage ? "   (disadvantage)" : mode == RollMode.Advantage ? "   (advantage)" : "")
+                + (user.IsBlessed ? "   (blessed)" : ""),
+            mode,
+            mode == RollMode.Disadvantage ? $"Disadvantage: {why}  —  second roll" : "Advantage  —  second roll");
+        string rollText = roll.Text;
 
         // 2. Hit or miss? (worked out first, so a missed spell can fly wide)
-        // Bless: add the blessing die (a d4) to the roll
-        int blessRoll = (user.BlessDie > 0 ? DiceSimulator.Roll(user.BlessDie) : 0) + user.BlessBonus;
+        // Bless: add the blessing die (a d4) and bonus to the roll
+        int blessRoll = user.RollBless();
         if (blessRoll > 0) rollText += $" + bless ({blessRoll})";
-        int total = roll + action.attackBonus + blessRoll;
-        bool crit = roll == 20;
-        bool hit = crit || (roll != 1 && total >= target.ArmorClass);
+        int total = roll.Value + action.attackBonus + blessRoll;
+        bool hit = roll.Hits(total, target.ArmorClass);
 
         if (action.glowSword) StartCoroutine(SwordGlow(user, action.glowColor, 2.4f));
 
         // 3. Show the swing / shot
-        if (ranged) yield return Shoot(user.transform, target.transform, hit);
-        else yield return Swing(user, target, action);
+        if (ranged) yield return Shoot(target, hit);
+        else yield return CombatAnimation.Swing(user, target, action);
 
         string head = $"{user.unitName} uses {action.displayName} on {tName}: {rollText} + {action.attackBonus} = {total} vs AC {target.ArmorClass}";
 
         if (!hit)
         {
-            Debug.Log($"{head} — miss{(roll == 1 ? " (natural 1)" : "")}");
-            yield return DiceTray.ShowOutcome(roll == 1 ? "NATURAL 1  —  MISS" : "MISS", false);
+            Debug.Log($"{head} — miss{(roll.Value == 1 ? " (natural 1)" : "")}");
+            yield return DiceTray.ShowOutcome(roll.MissText, false);
             yield break;
         }
 
         // 4. Damage (a critical hit rolls every damage die twice)
-        int times = crit ? 2 : 1;
+        int times = roll.DiceTimes;
         int damage = DiceSimulator.Roll(action.diceCount * times, action.diceSides) + action.bonus;
         if (action.extraDiceCount > 0) damage += DiceSimulator.Roll(action.extraDiceCount * times, action.extraDiceSides);
         damage = Mathf.Max(damage, 1);
 
-        Debug.Log($"{head} — {(crit ? "CRITICAL HIT" : "hit")}! {damage} {action.damageType} damage");
+        Debug.Log($"{head} — {(roll.IsCrit ? "CRITICAL HIT" : "hit")}! {damage} {action.damageType} damage");
         target.TakeDamage(damage);
         string killed = target.IsAlive ? "" : "  —  IT FALLS";
 
@@ -243,7 +233,7 @@ public class CombatTargeting : MonoBehaviour
         if (action.area != ActionArea.Single)
             foreach (CombatUnit other in AreaTargets(target))
             {
-                if (!(crit || (roll != 1 && total >= other.ArmorClass))) continue;
+                if (!roll.Hits(total, other.ArmorClass)) continue;
                 int d = Mathf.Max(damage * action.areaDamagePercent / 100, 1);
                 other.TakeDamage(d);
                 if (other.IsAlive && action.inflicts != StatusType.None && Random.Range(0, 100) < action.statusChance)
@@ -251,7 +241,7 @@ public class CombatTargeting : MonoBehaviour
                 extra += $"   +{TargetName(other)} {d}";
                 Debug.Log($"{action.displayName} also hits {other.unitName} for {d}");
             }
-        yield return DiceTray.ShowOutcome((crit ? $"CRITICAL!  {damage} damage" : $"HIT  —  {damage} damage") + killed + extra, true);
+        yield return DiceTray.ShowOutcome(roll.HitText(damage) + killed + extra, true);
     }
 
     IEnumerator Heal(string what, int count, int sides, int bonus, CombatUnit target)
@@ -347,28 +337,12 @@ public class CombatTargeting : MonoBehaviour
 
     bool Heals => item != null ? item.effect == ItemEffect.Heal : action.effect == ActionEffect.Heal;
 
-    bool CanReach(CombatUnit t) => GapTo(t) <= Range && HasLineOfSight(t);
+    bool CanReach(CombatUnit t) => user.ReachTo(t) <= Range && HasLineOfSight(t);
 
     bool HasLineOfSight(CombatUnit t)
     {
         if (!NeedsSight || t == user) return true;
         return !Physics.Linecast(user.transform.position, t.transform.position, Grid.obstacleLayers, QueryTriggerInteraction.Ignore);
-    }
-
-    // Steps between the user's footprint and a tile / another unit (0 = same spot, 1 = next to it)
-    int GapTo(Vector2Int worldTile)
-    {
-        Vector2Int a = user.AnchorTile;
-        int dx = Mathf.Max(0, worldTile.x - (a.x + user.size - 1), a.x - worldTile.x);
-        int dy = Mathf.Max(0, worldTile.y - (a.y + user.size - 1), a.y - worldTile.y);
-        return CombatUnit.Reach(dx, dy);
-    }
-
-    int GapTo(CombatUnit t)
-    {
-        int best = int.MaxValue;
-        foreach (Vector2Int w in t.GetOccupiedTiles()) best = Mathf.Min(best, GapTo(w));
-        return best;
     }
 
     bool EnemyNextTo(CombatUnit u)
@@ -385,19 +359,10 @@ public class CombatTargeting : MonoBehaviour
         foreach (CombatUnit e in combat.Enemies)
         {
             if (e == null || !e.IsAlive || e == main) continue;
-            int gap = action.area == ActionArea.AroundUser ? GapTo(e) : UnitGap(main, e);
-            if (gap <= action.areaRadius) list.Add(e);
+            CombatUnit centre = action.area == ActionArea.AroundUser ? user : main;
+            if (centre.ReachTo(e) <= action.areaRadius) list.Add(e);
         }
         return list;
-    }
-
-    // Steps between two units' footprints (1 = next to each other)
-    static int UnitGap(CombatUnit a, CombatUnit b)
-    {
-        Vector2Int pa = a.AnchorTile, pb = b.AnchorTile;
-        int dx = Mathf.Max(0, pb.x - (pa.x + a.size - 1), pa.x - (pb.x + b.size - 1));
-        int dy = Mathf.Max(0, pb.y - (pa.y + a.size - 1), pa.y - (pb.y + b.size - 1));
-        return CombatUnit.Reach(dx, dy);
     }
 
     // Divine Smite: the floating sword glows gold (tinted, a halo and a light) for a moment
@@ -408,13 +373,7 @@ public class CombatTargeting : MonoBehaviour
             if (sr.name == "Sword") { sword = sr; break; }
         if (sword == null) yield break;
         Color baseColor = sword.color;
-        var lightGo = new GameObject("Sword Glow", typeof(Light));
-        lightGo.transform.SetParent(sword.transform, false);
-        var glowLight = lightGo.GetComponent<Light>();
-        glowLight.type = LightType.Point;
-        glowLight.color = color;
-        glowLight.range = 2.5f;
-        glowLight.intensity = 0f;
+        Light glowLight = SceneLights.NewGlow("Sword Glow", sword.transform, color, 2.5f);
         var halo = new GameObject("Sword Halo", typeof(SpriteRenderer));
         halo.transform.SetParent(sword.transform, false);
         halo.transform.localPosition = new Vector3(0f, 0f, 0.01f);
@@ -433,7 +392,7 @@ public class CombatTargeting : MonoBehaviour
             yield return null;
         }
         if (sword != null) sword.color = baseColor;
-        Destroy(lightGo);
+        Destroy(glowLight.gameObject);
         Destroy(halo);
     }
 
@@ -445,74 +404,21 @@ public class CombatTargeting : MonoBehaviour
 
     static string TargetName(CombatUnit t) => FogOfWar.CanSee(t) ? t.unitName : "something in the dark";
 
-    // ================= Animation =================
-
-    // Melee: play the attacker's sword swing (if its SpriteAnimator has attack frames)
-    // and lunge forward on the slash frame. No attack frames = just the lunge.
-    static IEnumerator Swing(CombatUnit who, CombatUnit at, CombatAction with)
-    {
-        SpriteAnimator anim = who.GetComponentInChildren<SpriteAnimator>();
-        if (anim == null || !anim.HasAttackFrames)
-        {
-            yield return Lunge(who.transform, at.transform);
-            yield break;
-        }
-
-        anim.PlayAttack(at.transform.position, with.swingDownFrames, with.swingUpFrames, with.swingSideFrames);
-        while (anim.IsAttacking && !anim.OnLastAttackFrame) yield return null;   // wind-up
-        yield return Lunge(who.transform, at.transform);                          // slash
-        while (anim.IsAttacking) yield return null;                               // follow-through
-    }
-
-    static IEnumerator Lunge(Transform who, Transform at)
-    {
-        SpriteAnimator anim = who.GetComponentInChildren<SpriteAnimator>();   // facing is held so the slide back doesn't turn us
-        Vector3 home = who.position;
-        Vector3 toward = at.position - home;
-        toward.y = 0f;
-        if (anim != null) anim.FaceToward(toward);
-        Vector3 hitPos = home + toward.normalized * 0.35f;
-        for (float t = 0f; t < 1f; t += Time.deltaTime / 0.1f) { who.position = Vector3.Lerp(home, hitPos, t); Hold(anim); yield return null; }
-        for (float t = 0f; t < 1f; t += Time.deltaTime / 0.15f) { who.position = Vector3.Lerp(hitPos, home, t); Hold(anim); yield return null; }
-        who.position = home;
-        Hold(anim);
-    }
-
-    static void Hold(SpriteAnimator anim)
-    {
-        if (anim != null) anim.HoldFacing(0.1f);
-    }
+    // ================= Animation (the swing and the flight itself are in CombatAnimation) =================
 
     // Ranged: fly the action's projectile at the target, then play its impact effect.
     // A miss flies wide and bursts on the floor beside the target.
-    IEnumerator Shoot(Transform from, Transform to, bool hit)
+    IEnumerator Shoot(CombatUnit target, bool hit)
     {
         Vector3 lift = Vector3.up * projectileHeight;
-        Vector3 a = from.position + lift, b = to.position + lift;
-        Vector3 dir = b - a; dir.y = 0f;
-        if (!hit)
-        {
-            Vector3 side = Vector3.Cross(Vector3.up, dir).normalized * (Random.value < 0.5f ? -0.7f : 0.7f);
-            b += side + dir.normalized * 0.4f;
-        }
+        Vector3 a = user.transform.position + lift;
+        Vector3 b = CombatAnimation.ShotEnd(a, target.transform.position + lift, hit, user.tileSize);
 
-        GameObject prefab = action != null && action.projectilePrefab != null ? action.projectilePrefab : rangedProjectile;
-        GameObject p = prefab != null ? Instantiate(prefab) : GameObject.CreatePrimitive(PrimitiveType.Sphere);
-        if (prefab == null)
-        {
-            Destroy(p.GetComponent<Collider>());
-            p.transform.localScale = Vector3.one * 0.2f;
-        }
-        p.transform.SetPositionAndRotation(a, Quaternion.LookRotation(b - a));
-        SpriteFlipbook flip = p.GetComponent<SpriteFlipbook>();
-        if (flip != null) flip.travelDirection = b - a;   // sprite points the way it flies
-
-        float time = Vector3.Distance(a, b) / Mathf.Max(projectileSpeed, 0.1f);
-        for (float t = 0f; t < 1f; t += Time.deltaTime / time) { p.transform.position = Vector3.Lerp(a, b, t); yield return null; }
-        Destroy(p);
+        GameObject prefab = action.projectilePrefab != null ? action.projectilePrefab : rangedProjectile;
+        yield return CombatAnimation.Fly(prefab, a, b, projectileSpeed * user.tileSize);
 
         // Impact (explosion). Wait for most of it before the HIT / MISS banner.
-        if (action != null && action.impactPrefab != null)
+        if (action.impactPrefab != null)
         {
             GameObject boom = Instantiate(action.impactPrefab, b, Quaternion.identity);
             SpriteFlipbook boomFlip = boom.GetComponent<SpriteFlipbook>();

@@ -15,15 +15,33 @@ public static class OpportunityAttack
     public static List<CombatUnit> Provokers(CombatUnit mover, Vector2Int toAnchor, CombatManager combat, TurnManager turns)
     {
         var list = new List<CombatUnit>();
-        var foes = mover.team == Team.Party ? combat.Enemies : combat.Party;
-        foreach (CombatUnit f in foes)
-        {
-            if (f == null || !f.IsAlive || f.Has(StatusType.Paralyse) || !turns.HasReaction(f)) continue;
-            if (!FightsUpClose(f)) continue;
-            if (Gap(f, mover.AnchorTile, mover.size) <= 1 && Gap(f, toAnchor, mover.size) > 1) list.Add(f);
-        }
+        foreach (CombatUnit foe in Foes(mover, combat))
+            if (WouldSwing(foe, mover, mover.AnchorTile, toAnchor, turns)) list.Add(foe);
         return list;
     }
+
+    // Would stepping from one world tile to another give any foe a free swing? (Monsters plan their walk with this.)
+    public static bool Provokes(CombatUnit mover, Vector2Int fromAnchor, Vector2Int toAnchor, CombatManager combat, TurnManager turns)
+    {
+        foreach (CombatUnit foe in Foes(mover, combat))
+            if (WouldSwing(foe, mover, fromAnchor, toAnchor, turns)) return true;
+        return false;
+    }
+
+    static List<CombatUnit> Foes(CombatUnit mover, CombatManager combat) =>
+        mover.team == Team.Party ? combat.Enemies : combat.Party;
+
+    // Can 'foe' react, and does the step take 'mover' out of its reach?
+    static bool WouldSwing(CombatUnit foe, CombatUnit mover, Vector2Int from, Vector2Int to, TurnManager turns)
+    {
+        if (foe == null || !foe.IsAlive || foe.Has(StatusType.Paralyse) || !turns.HasReaction(foe)) return false;
+        if (!FightsUpClose(foe)) return false;
+        return Reach(foe, from, mover.size) <= 1 && Reach(foe, to, mover.size) > 1;
+    }
+
+    // Steps between 'foe' and a footprint of 'size' with its bottom-left on 'anchor' (1 = next to each other)
+    static int Reach(CombatUnit foe, Vector2Int anchor, int size) =>
+        TileMath.ReachBetween(foe.AnchorTile, foe.size, anchor, size);
 
     // One free swing at 'mover' as it leaves. Uses up the attacker's reaction.
     public static IEnumerator Resolve(CombatUnit attacker, CombatUnit mover, TurnManager turns)
@@ -33,35 +51,31 @@ public static class OpportunityAttack
 
         CombatAction melee = MeleeAction(attacker);
         int bonus = melee != null ? melee.attackBonus : attacker.attackBonus;
-        string who = FogOfWar.CanSee(attacker) ? attacker.unitName : "Something in the dark";
-        int need = Mathf.Clamp(mover.ArmorClass - bonus, 2, 20);
-
-        int roll = 0;
-        yield return DiceTray.RollD20($"{who}: OPPORTUNITY ATTACK on {mover.unitName}  —  need {need}+", v => roll = v);
-        int bless = (attacker.BlessDie > 0 ? DiceSimulator.Roll(attacker.BlessDie) : 0) + attacker.BlessBonus;
-        int total = roll + bonus + bless;
-        bool crit = roll == 20;
-        bool hit = crit || (roll != 1 && total >= mover.ArmorClass);
+        int need = AttackRoll.Needed(mover.ArmorClass, bonus);
         bool goodForParty = mover.team == Team.Enemy;
 
-        yield return Lunge(attacker.transform, mover.transform);
-        string head = $"{attacker.unitName} opportunity attack on {mover.unitName}: d20 ({roll}) + {bonus}" + (bless > 0 ? $" + bless ({bless})" : "") + $" = {total} vs AC {mover.ArmorClass}";
-        if (!hit)
+        var roll = new AttackRoll();
+        yield return roll.Throw($"{FogOfWar.NameOf(attacker)}: OPPORTUNITY ATTACK on {mover.unitName}  —  need {need}+");
+        int bless = attacker.RollBless();
+        int total = roll.Value + bonus + bless;
+
+        yield return CombatAnimation.Lunge(attacker, mover);
+        string head = $"{attacker.unitName} opportunity attack on {mover.unitName}: {roll.Text} + {bonus}" + (bless > 0 ? $" + bless ({bless})" : "") + $" = {total} vs AC {mover.ArmorClass}";
+        if (!roll.Hits(total, mover.ArmorClass))
         {
             Debug.Log($"{head} — miss");
-            yield return DiceTray.ShowOutcome(roll == 1 ? "NATURAL 1  —  MISS" : "MISS", !goodForParty);
+            yield return DiceTray.ShowOutcome(roll.MissText, !goodForParty);
             yield break;
         }
 
-        int times = crit ? 2 : 1;
         int damage = melee != null
-            ? DiceSimulator.Roll(melee.diceCount * times, melee.diceSides) + melee.bonus
-            : DiceSimulator.Roll(attacker.damageDiceCount * times, attacker.damageDiceSides) + attacker.damageBonus;
+            ? DiceSimulator.Roll(melee.diceCount * roll.DiceTimes, melee.diceSides) + melee.bonus
+            : DiceSimulator.Roll(attacker.damageDiceCount * roll.DiceTimes, attacker.damageDiceSides) + attacker.damageBonus;
         damage = Mathf.Max(damage, 1);
-        Debug.Log($"{head} — {(crit ? "CRITICAL HIT" : "hit")}! {damage} damage");
+        Debug.Log($"{head} — {(roll.IsCrit ? "CRITICAL HIT" : "hit")}! {damage} damage");
         mover.TakeDamage(damage);
         string down = mover.IsAlive ? "" : $"  —  {mover.unitName.ToUpper()} IS DOWN";
-        yield return DiceTray.ShowOutcome((crit ? $"CRITICAL!  {damage} damage" : $"HIT  —  {damage} damage") + down, goodForParty);
+        yield return DiceTray.ShowOutcome(roll.HitText(damage) + down, goodForParty);
         turns.NotifyChanged();
     }
 
@@ -79,28 +93,5 @@ public static class OpportunityAttack
         foreach (CombatAction a in u.actions)
             if (a != null && a.effect == ActionEffect.Damage && a.range <= 1 && a.usesPerBattle == 0 && !a.bonusAction) return a;
         return null;
-    }
-
-    // Steps between 'f' and a footprint of 'size' with its bottom-left on 'anchor' (1 = next to each other)
-    static int Gap(CombatUnit f, Vector2Int anchor, int size)
-    {
-        Vector2Int a = f.AnchorTile;
-        int dx = Mathf.Max(0, anchor.x - (a.x + f.size - 1), a.x - (anchor.x + size - 1));
-        int dy = Mathf.Max(0, anchor.y - (a.y + f.size - 1), a.y - (anchor.y + size - 1));
-        return CombatUnit.Reach(dx, dy);
-    }
-
-    // Quick jab toward the one leaving, and back
-    static IEnumerator Lunge(Transform who, Transform at)
-    {
-        SpriteAnimator anim = who.GetComponentInChildren<SpriteAnimator>();
-        Vector3 home = who.position;
-        Vector3 toward = at.position - home;
-        toward.y = 0f;
-        if (anim != null) anim.FaceToward(toward);
-        Vector3 hitPos = home + toward.normalized * 0.35f;
-        for (float t = 0f; t < 1f; t += Time.deltaTime / 0.1f) { who.position = Vector3.Lerp(home, hitPos, t); if (anim != null) anim.HoldFacing(0.1f); yield return null; }
-        for (float t = 0f; t < 1f; t += Time.deltaTime / 0.15f) { who.position = Vector3.Lerp(hitPos, home, t); if (anim != null) anim.HoldFacing(0.1f); yield return null; }
-        who.position = home;
     }
 }

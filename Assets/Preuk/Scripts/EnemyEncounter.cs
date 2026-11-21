@@ -25,8 +25,7 @@ public class EnemyEncounter : MonoBehaviour
 
     void Start()
     {
-        foreach (CombatUnit u in FindObjectsByType<CombatUnit>(FindObjectsSortMode.None))
-            if (u.team == Team.Party) party.Add(u);
+        party.AddRange(CombatUnit.OnTeam(Team.Party));
     }
 
     void Update()
@@ -70,11 +69,7 @@ public class EnemyEncounter : MonoBehaviour
         OnCombatStarted?.Invoke(this, touched);
     }
 
-    Vector2Int TileOf(Vector3 pos)
-    {
-        return new Vector2Int(Mathf.RoundToInt(pos.x / Unit.tileSize),
-                              Mathf.RoundToInt(pos.z / Unit.tileSize));
-    }
+    Vector2Int TileOf(Vector3 pos) => TileMath.TileOf(pos, Unit.tileSize);
 
     // Red squares in the Scene view = the tiles where a party member counts as "touching"
     void OnDrawGizmosSelected()

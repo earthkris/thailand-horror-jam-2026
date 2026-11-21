@@ -13,7 +13,7 @@ using UnityEngine;
 // The tiles about to be hit glow red for a moment first.
 // TurnManager calls TakeTurn (like EnemyAI). Put it on the boss root, next to CombatUnit.
 [RequireComponent(typeof(CombatUnit))]
-public class BossAI : MonoBehaviour
+public class BossAI : CombatBrain
 {
     [Header("Body")]
     [Tooltip("The sprite child. It squashes, stretches and jumps; its pivot should be at its feet.")]
@@ -68,6 +68,19 @@ public class BossAI : MonoBehaviour
     [Min(0)] public int hymnRegenTurns = 3;
     [Min(1)] public int hymnRegenDiceCount = 2, hymnRegenDiceSides = 4;
 
+    [Header("Call the Brood (summon)")]
+    [Tooltip("Spawned around the boss. Empty = it never summons.")]
+    public GameObject minionPrefab;
+    public string summonName = "Call the Brood";
+    [Tooltip("Its 2nd turn, then every this many turns.")]
+    [Min(2)] public int summonEvery = 3;
+    [Min(1)] public int minionsPerCall = 2;
+    [Tooltip("Never more than this many of its minions alive at once.")]
+    [Min(1)] public int maxMinions = 4;
+    [Tooltip("The minions' stats (they are weaker than a normal spider).")]
+    public string minionName = "Brood Spawn";
+    public int minionHP = 7, minionAC = 11, minionAttackBonus = 3, minionDiceSides = 4, minionDamageBonus = 1;
+
     [Header("Rules")]
     [Tooltip("DEX save the party must reach to take half damage.")]
     public int saveDC = 13;
@@ -77,17 +90,13 @@ public class BossAI : MonoBehaviour
     [Header("Look")]
     [Tooltip("Unlit (SpellUnlit) so tongues and shockwave show in the dark. Empty = default sprite material.")]
     public Material effectMaterial;
-    public Color warnColor = new Color32(194, 59, 59, 255);   // blood
+    public Color warnColor = Palette.Blood;
     [Range(0f, 1f)] public float warnStrength = 0.55f;
     public float warnTime = 0.8f;
 
-    static readonly Vector2Int[] Dirs = { Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right };
-
-    CombatUnit unit;
-    CombatManager combat;
-    GridManager grid;
-    TurnManager turns;
     bool lastWasStomp;
+    int bossTurns;
+    readonly List<CombatUnit> minions = new List<CombatUnit>();
 
     public bool ForcedFight => forcedDeathOnFirstRun && LoopManager.LoopsUsed == 0;
 
@@ -95,9 +104,9 @@ public class BossAI : MonoBehaviour
     float idleTime, attackTime;
     bool attacking;
 
-    void Awake()
+    protected override void Awake()
     {
-        unit = GetComponent<CombatUnit>();
+        base.Awake();
         bodySprite = body != null ? body.GetComponentInChildren<SpriteRenderer>(true) : GetComponentInChildren<SpriteRenderer>(true);
         // The frames are played from here, so the old Animator would only fight it
         Animator old = GetComponentInChildren<Animator>(true);
@@ -151,7 +160,7 @@ public class BossAI : MonoBehaviour
         body.gameObject.SetActive(true);
         Vector3 home = body.localPosition;
         Vector3 size = body.localScale;
-        yield return Shape(0.5f, t =>
+        yield return Tween.Over(0.5f, t =>
         {
             body.localPosition = home + Vector3.up * height * (1f - t * t);
             Scale(size, 0.78f, 1.35f);
@@ -172,19 +181,24 @@ public class BossAI : MonoBehaviour
     // true = the one you play (Kairos), false = the friend (Lucius)
     static CombatUnit FindParty(bool player)
     {
-        foreach (CombatUnit u in FindObjectsByType<CombatUnit>(FindObjectsSortMode.None))
-            if (u.team == Team.Party && (u.GetComponent<PlayerMovement>() != null) == player) return u;
+        foreach (CombatUnit u in CombatUnit.OnTeam(Team.Party))
+            if (u.IsPlayer == player) return u;
         return null;
     }
 
     // ================= The turn =================
 
-    public IEnumerator TakeTurn(CombatManager battle)
+    protected override IEnumerator Act()
     {
-        combat = battle;
-        grid = battle.grid;
-        turns = FindAnyObjectByType<TurnManager>();
         UpdateForcedRules();
+        bossTurns++;
+
+        // Every few turns it calls its brood out of the dark instead of attacking
+        if (ReadyToSummon())
+        {
+            yield return Summon();
+            yield break;
+        }
 
         CombatUnit focus = null;   // forced death: Lucius first
         if (ForcedFight)
@@ -192,19 +206,25 @@ public class BossAI : MonoBehaviour
             CombatUnit lucius = FindParty(false);
             if (lucius != null && lucius.IsAlive) focus = lucius;
         }
-        CombatUnit target = focus != null ? focus : Closest(MyTile());
+        CombatUnit target = focus != null ? focus : ClosestPartyMember(MyTile());
         if (target == null) yield break;
         Face(target.transform.position - transform.position);
 
         // It never walks: either a tongue lash from here, or a stomp-jump to a new spot
         Vector2Int me = MyTile();
         Vector2Int dir = BestTongueDirection(me, focus, out List<CombatUnit> tongueHits);
-        Vector2Int landing = BestLanding(me, focus, target, out List<CombatUnit> stompHits);
+        // The landing spot that hits the most people (or, if none, lands closest to the target)
+        Vector2Int landing = BestLanding(me, out List<CombatUnit> stompHits, (spot, hits, steps) =>
+        {
+            int hitScore = Score(hits, focus);
+            return hitScore > 0 ? hitScore * 100 - steps : -Gap(spot, target) * 10 - steps;
+        });
         // Forced fight and Lucius is out of reach this turn: hitting Kairos alone gets nowhere
-        // (he can't fall while Lucius stands), so leap toward Lucius instead.
+        // (he can't fall while Lucius stands), so leap toward Lucius instead:
+        // the spot that ends closest to him (more people hit breaks a tie).
         if (focus != null && !tongueHits.Contains(focus) && !stompHits.Contains(focus))
         {
-            landing = ChaseLanding(me, focus, out stompHits);
+            landing = BestLanding(me, out stompHits, (spot, hits, steps) => -Gap(spot, focus) * 100 + hits.Count * 10 - steps);
             tongueHits.Clear();
         }
         int tongueScore = Score(tongueHits, focus), stompScore = Score(stompHits, focus);
@@ -223,6 +243,91 @@ public class BossAI : MonoBehaviour
         else yield return StompTo(landing, stompHits);
     }
 
+    // ================= Call the Brood =================
+
+    bool ReadyToSummon()
+    {
+        if (minionPrefab == null || bossTurns < 2 || (bossTurns - 2) % summonEvery != 0) return false;
+        minions.RemoveAll(m => m == null || !m.IsAlive);
+        return minions.Count < maxMinions;
+    }
+
+    IEnumerator Summon()
+    {
+        Sfx.Play("roar", 1f, 0.8f);
+        CameraController cam = CameraController.Main;
+        if (cam != null) cam.Shake(0.15f, 0.6f);
+        if (body != null)   // rears up
+        {
+            Vector3 size = body.localScale;
+            yield return Tween.Over(0.3f, t => Scale(size, 1f - 0.1f * t, 1f + 0.2f * t));
+            yield return Tween.Over(0.25f, t => Scale(size, 0.9f + 0.1f * t, 1.2f - 0.2f * t));
+            body.localScale = size;
+        }
+
+        int made = 0;
+        int count = Mathf.Min(minionsPerCall, maxMinions - minions.Count);
+        Vector2Int me = MyTile();
+        for (int i = 0; i < count; i++)
+        {
+            CombatUnit m = SpawnMinion();
+            if (m == null) break;
+            // Around the boss, on the side nearest the party
+            Vector2Int near = me + new Vector2Int(i % 2 == 0 ? -1 : unit.size, i < 2 ? 0 : unit.size);
+            if (!combat.AddEnemy(m, near)) { Destroy(m.gameObject); break; }
+            turns.Join(m);
+            minions.Add(m);
+            made++;
+            StartCoroutine(RiseFromFloor(m.transform));
+            Sfx.Play("spit", 0.7f, 0.8f + 0.1f * i);
+            yield return new WaitForSeconds(0.25f);
+        }
+
+        string text = made > 0 ? $"{made} {minionName}{(made > 1 ? "s" : "")} crawl out of the dark" : "nothing answers";
+        Debug.Log($"{Name()} uses {summonName}: {text}");
+        yield return DiceTray.ShowMessage($"{Name()} uses {summonName}", text, false);
+        turns.NotifyChanged();
+    }
+
+    // Made switched off, so its stats are set before it wakes up (CombatUnit reads maxHP on Awake)
+    CombatUnit SpawnMinion()
+    {
+        var holder = new GameObject("Brood (spawning)");
+        holder.SetActive(false);
+        GameObject go = Instantiate(minionPrefab, holder.transform);
+        go.name = minionName;
+        CombatUnit u = go.GetComponent<CombatUnit>();
+        if (u == null) { Destroy(holder); return null; }
+        u.unitName = minionName;
+        u.team = Team.Enemy;
+        u.size = 1;
+        u.maxHP = minionHP;
+        u.armorClass = minionAC;
+        u.attackBonus = minionAttackBonus;
+        u.damageDiceCount = 1;
+        u.damageDiceSides = minionDiceSides;
+        u.damageBonus = minionDamageBonus;
+        if (go.TryGetComponent(out EnemyAI ai)) { ai.style = AttackStyle.Melee; ai.attackRange = 1; ai.meleeVerb = "bites"; }
+        foreach (SpriteRenderer sr in go.GetComponentsInChildren<SpriteRenderer>(true))
+        {
+            sr.color = new Color(0.75f, 0.55f, 0.85f);
+            sr.transform.localScale *= 0.7f;
+        }
+        go.transform.SetParent(null, false);
+        Destroy(holder);
+        go.SetActive(true);
+        return u;
+    }
+
+    // Grows up out of the floor
+    static IEnumerator RiseFromFloor(Transform t)
+    {
+        if (t == null) yield break;
+        Vector3 full = t.localScale;
+        yield return Tween.Over(0.35f, k => { if (t != null) t.localScale = full * Mathf.Max(0.05f, k); });
+        if (t != null) t.localScale = full;
+    }
+
     // More people hit = better. In the forced fight, hitting Lucius beats everything.
     static int Score(List<CombatUnit> hits, CombatUnit focus) =>
         hits.Count * 10 + (focus != null && hits.Contains(focus) ? 100 : 0);
@@ -235,17 +340,18 @@ public class BossAI : MonoBehaviour
         if (body != null)
         {
             Vector3 size = body.localScale;
-            yield return Shape(0.35f, t => Scale(size, 1f + 0.15f * t, 1f + 0.1f * t));
+            Sfx.Play("roar", 0.9f, 1.1f);
+            yield return Tween.Over(0.35f, t => Scale(size, 1f + 0.15f * t, 1f + 0.1f * t));
             unit.AddBuff(hymnDamageDie, hymnAC, hymnSaveBonus);
-            var cam = FindAnyObjectByType<CameraController>();
+            CameraController cam = CameraController.Main;
             if (cam != null) cam.Shake(0.25f, 0.25f);
-            yield return Shape(0.3f, t => Scale(size, 1.15f - 0.15f * t, 1.1f - 0.1f * t));
+            yield return Tween.Over(0.3f, t => Scale(size, 1.15f - 0.15f * t, 1.1f - 0.1f * t));
             body.localScale = size;
         }
         else unit.AddBuff(hymnDamageDie, hymnAC, hymnSaveBonus);
 
         if (hymnRegenTurns > 0) unit.AddStatus(StatusType.Regen, hymnRegenTurns, hymnRegenDiceCount, hymnRegenDiceSides);
-        if (turns != null) turns.NotifyChanged();
+        turns.NotifyChanged();
 
         string what = $"+1d{hymnDamageDie} damage   DC {SaveDC}   AC {unit.ArmorClass}"
                     + (hymnRegenTurns > 0 ? $"   regenerates {hymnRegenDiceCount}d{hymnRegenDiceSides} for {hymnRegenTurns} turns" : "");
@@ -261,6 +367,7 @@ public class BossAI : MonoBehaviour
     IEnumerator Tongue(Vector2Int me, Vector2Int dir, List<CombatUnit> victims)
     {
         List<Vector2Int> tiles = TongueTiles(me, dir);
+        Sfx.Play("roar", 0.6f, 1.4f);
         yield return Warn(tiles);
         List<bool> saved = new List<bool>();
         yield return RollSaves(victims, tongueName, saved);
@@ -276,7 +383,7 @@ public class BossAI : MonoBehaviour
         grid.ClearMarks();
         yield return Damage(victims, saved, tongueName, tongueDiceCount, tongueDiceSides, tongueBonus);
         while (attacking) yield return null;   // the mouth closes
-        if (turns != null) turns.CheckForVictory();
+        turns.CheckForVictory();
     }
 
     // A fan of tongues lying on the floor, shooting out from the mouth, wiggling, then pulling back
@@ -356,7 +463,7 @@ public class BossAI : MonoBehaviour
     {
         Vector2Int best = Vector2Int.right;
         hits = new List<CombatUnit>();
-        foreach (Vector2Int d in Dirs)
+        foreach (Vector2Int d in TileMath.Directions)
         {
             List<CombatUnit> h = InArea(TongueTiles(anchor, d));
             if (Score(h, focus) > Score(hits, focus)) { hits = h; best = d; }
@@ -366,8 +473,9 @@ public class BossAI : MonoBehaviour
 
     // ================= Stomp (its only way to move) =================
 
-    // The landing spot within jumpRange that hits the most people (or, if none, lands closest to the target)
-    Vector2Int BestLanding(Vector2Int me, CombatUnit focus, CombatUnit target, out List<CombatUnit> hits)
+    // The landing spot within jumpRange with the highest score. 'score' is told the spot,
+    // who a stomp there would hit, and how many steps away it is. 'hits' = who the winner hits.
+    Vector2Int BestLanding(Vector2Int me, out List<CombatUnit> hits, System.Func<Vector2Int, List<CombatUnit>, int, int> score)
     {
         Vector2Int best = me;
         int bestScore = int.MinValue;
@@ -380,29 +488,8 @@ public class BossAI : MonoBehaviour
                 Vector2Int spot = me + new Vector2Int(dx, dy);
                 if (spot != me && !CanStand(spot)) continue;
                 List<CombatUnit> h = InArea(StompTiles(spot));
-                int sc = Score(h, focus);
-                int score = sc > 0 ? sc * 100 - steps : -Gap(spot, target) * 10 - steps;
-                if (score > bestScore) { bestScore = score; best = spot; hits = h; }
-            }
-        return best;
-    }
-
-    // The landing spot within jumpRange that ends closest to 'focus' (more people hit breaks a tie)
-    Vector2Int ChaseLanding(Vector2Int me, CombatUnit focus, out List<CombatUnit> hits)
-    {
-        Vector2Int best = me;
-        int bestScore = int.MinValue;
-        hits = new List<CombatUnit>();
-        for (int dx = -jumpRange; dx <= jumpRange; dx++)
-            for (int dy = -jumpRange; dy <= jumpRange; dy++)
-            {
-                int steps = Mathf.Abs(dx) + Mathf.Abs(dy);
-                if (steps > jumpRange) continue;
-                Vector2Int spot = me + new Vector2Int(dx, dy);
-                if (spot != me && !CanStand(spot)) continue;
-                List<CombatUnit> h = InArea(StompTiles(spot));
-                int score = -Gap(spot, focus) * 100 + h.Count * 10 - steps;
-                if (score > bestScore) { bestScore = score; best = spot; hits = h; }
+                int s = score(spot, h, steps);
+                if (s > bestScore) { bestScore = s; best = spot; hits = h; }
             }
         return best;
     }
@@ -421,7 +508,7 @@ public class BossAI : MonoBehaviour
         grid.ClearMarks();
         if (victims.Count > 0) yield return Damage(victims, saved, stompName, stompDiceCount, stompDiceSides, stompBonus);
         yield return new WaitForSeconds(0.35f);   // let the body settle
-        if (turns != null) turns.CheckForVictory();
+        turns.CheckForVictory();
     }
 
     // Squat, jump up stretched (flying over to 'to'), fall stretched, land squashed with a shockwave
@@ -433,20 +520,20 @@ public class BossAI : MonoBehaviour
         Vector3 size = body.localScale;
         float height = jumpHeight * unit.tileSize;
 
-        yield return Shape(0.2f, t => Scale(size, Mathf.Lerp(1f, 1.18f, t), Mathf.Lerp(1f, 0.78f, t)));   // squat
-        yield return Shape(0.34f, t =>                                                                    // up
+        yield return Tween.Over(0.2f, t => Scale(size, Mathf.Lerp(1f, 1.18f, t), Mathf.Lerp(1f, 0.78f, t)));   // squat
+        yield return Tween.Over(0.34f, t =>                                                                    // up
         {
             float e = 1f - (1f - t) * (1f - t);
             transform.position = Vector3.Lerp(from, to, t * 0.55f);
             body.localPosition = home + Vector3.up * height * e;
             Scale(size, Mathf.Lerp(0.82f, 0.95f, t), Mathf.Lerp(1.3f, 1.08f, t));
         });
-        yield return Shape(0.12f, t =>                                                                    // hang
+        yield return Tween.Over(0.12f, t =>                                                                    // hang
         {
             transform.position = Vector3.Lerp(from, to, 0.55f + t * 0.1f);
             Scale(size, 0.97f, 1.03f);
         });
-        yield return Shape(0.22f, t =>                                                                    // down
+        yield return Tween.Over(0.22f, t =>                                                                    // down
         {
             transform.position = Vector3.Lerp(from, to, 0.65f + t * 0.35f);
             body.localPosition = home + Vector3.up * height * (1f - t * t);
@@ -462,11 +549,12 @@ public class BossAI : MonoBehaviour
         body.localPosition = home;
         Scale(size, 1.35f, 0.65f);
         StartCoroutine(Shockwave());
-        var cam = FindAnyObjectByType<CameraController>();
+        Sfx.Boom();
+        CameraController cam = CameraController.Main;
         if (cam != null) cam.Shake(0.3f, 0.45f);
         onLand?.Invoke();
 
-        yield return Shape(0.35f, t =>
+        yield return Tween.Over(0.35f, t =>
         {
             float wob = Mathf.Sin(t * Mathf.PI * 2.5f) * (1f - t) * 0.25f;
             Scale(size, 1f + 0.35f * (1f - t) * (1f - t) - wob * 0.5f, 1f - 0.35f * (1f - t) * (1f - t) + wob);
@@ -476,16 +564,6 @@ public class BossAI : MonoBehaviour
     }
 
     void Scale(Vector3 size, float x, float y) => body.localScale = new Vector3(size.x * x, size.y * y, size.z);
-
-    static IEnumerator Shape(float seconds, System.Action<float> step)
-    {
-        for (float t = 0f; t < 1f; t += Time.deltaTime / Mathf.Max(seconds, 0.01f))
-        {
-            step(t);
-            yield return null;
-        }
-        step(1f);
-    }
 
     // The shockwave from stomp.PNG, lying flat around its feet
     IEnumerator Shockwave()
@@ -522,9 +600,7 @@ public class BossAI : MonoBehaviour
         for (int x = anchor.x - r; x < anchor.x + unit.size + r; x++)
             for (int y = anchor.y - r; y < anchor.y + unit.size + r; y++)
             {
-                int dx = Mathf.Max(0, anchor.x - x, x - (anchor.x + unit.size - 1));
-                int dy = Mathf.Max(0, anchor.y - y, y - (anchor.y + unit.size - 1));
-                int gap = dx + dy;
+                int gap = TileMath.StepsBetween(anchor, unit.size, new Vector2Int(x, y), 1);
                 if (gap >= 1 && gap <= r && grid.InBounds(x, y)) tiles.Add(new Vector2Int(x, y));
             }
         return tiles;
@@ -546,7 +622,7 @@ public class BossAI : MonoBehaviour
             int roll = 0;
             yield return DiceTray.RollD20($"{v.unitName}: DEX save vs {move}  (DC {SaveDC})", x => roll = x);
             int total = roll + v.dexModifier + v.BlessBonus;
-            bool ok = roll == 20 || (roll != 1 && total >= SaveDC);
+            bool ok = AttackRoll.Beats(roll, total, SaveDC);
             saved.Add(ok);
             Debug.Log($"{v.unitName} DEX save vs {move}: d20 ({roll}) + {v.dexModifier} = {total} vs DC {SaveDC} — {(ok ? "half damage" : "full damage")}");
         }
@@ -556,12 +632,12 @@ public class BossAI : MonoBehaviour
     IEnumerator Damage(List<CombatUnit> victims, List<bool> saved, string move, int count, int sides, int bonus)
     {
         int damage = Mathf.Max(DiceSimulator.Roll(count, sides) + bonus, 1);
-        int hymn = unit.BlessDie > 0 ? DiceSimulator.Roll(unit.BlessDie) : 0;   // Unholy Hymn: +1d4
+        int hymn = unit.RollBlessDie();   // Unholy Hymn: +1d4
         damage += hymn;
         string text = "";
         // Lucius first, so Kairos stays protected until that hit has landed
         var order = new List<int>();
-        for (int i = 0; i < victims.Count; i++) if (victims[i] != null && victims[i].GetComponent<PlayerMovement>() == null) order.Add(i);
+        for (int i = 0; i < victims.Count; i++) if (victims[i] != null && !victims[i].IsPlayer) order.Add(i);
         for (int i = 0; i < victims.Count; i++) if (!order.Contains(i)) order.Add(i);
         foreach (int i in order)
         {
@@ -592,54 +668,7 @@ public class BossAI : MonoBehaviour
         return hit;
     }
 
-    // ================= Helpers =================
+    // ================= Helpers (MyTile, CanStand, Gap, ClosestPartyMember and Name are in CombatBrain) =================
 
-    Vector2Int MyTile() => unit.AnchorTile - grid.OriginTile;
-
-    bool CanStand(Vector2Int anchor)
-    {
-        for (int x = 0; x < unit.size; x++)
-            for (int y = 0; y < unit.size; y++)
-            {
-                Vector2Int cell = anchor + new Vector2Int(x, y);
-                if (!grid.IsWalkable(cell.x, cell.y)) return false;
-                Vector2Int world = grid.OriginTile + cell;
-                foreach (CombatUnit other in combat.Party)
-                    if (other != null && !other.IsDead && other.Occupies(world)) return false;
-                foreach (CombatUnit other in combat.Enemies)
-                    if (other != null && other != unit && !other.IsDead && other.Occupies(world)) return false;
-            }
-        return true;
-    }
-
-    int Gap(Vector2Int anchor, CombatUnit other)
-    {
-        Vector2Int a = grid.OriginTile + anchor;
-        Vector2Int b = other.AnchorTile;
-        int dx = Mathf.Max(0, b.x - (a.x + unit.size - 1), a.x - (b.x + other.size - 1));
-        int dy = Mathf.Max(0, b.y - (a.y + unit.size - 1), a.y - (b.y + other.size - 1));
-        return CombatUnit.Reach(dx, dy);
-    }
-
-    CombatUnit Closest(Vector2Int anchor)
-    {
-        CombatUnit best = null;
-        int bestGap = int.MaxValue;
-        foreach (CombatUnit p in combat.Party)
-        {
-            if (p == null || !p.IsAlive) continue;
-            int g = Gap(anchor, p);
-            if (g < bestGap) { bestGap = g; best = p; }
-        }
-        return best;
-    }
-
-    float FloorY()
-    {
-        if (Physics.Raycast(transform.position + Vector3.up, Vector3.down, out RaycastHit hit, 10f, grid.floorLayers, QueryTriggerInteraction.Ignore))
-            return hit.point.y;
-        return transform.position.y - 1f;
-    }
-
-    string Name() => FogOfWar.CanSee(unit) ? unit.unitName : "Something in the dark";
+    float FloorY() => TileMath.FloorY(transform.position, grid.floorLayers);
 }

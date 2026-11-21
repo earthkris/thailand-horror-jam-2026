@@ -65,7 +65,6 @@ public class SpellBook : Interactable
 
     void ReadPage()
     {
-        PlayerMovement player = FindAnyObjectByType<PlayerMovement>();
         if (player != null) player.StopWalking();
         if (DialogueBox.Instance == null)
         {
@@ -102,6 +101,7 @@ public class SpellBook : Interactable
 
         ItemData book = MakeBook();
         bag.AddBook(book);
+        Sfx.Play("book_pickup");
         Debug.Log($"Picked up {book.displayName}.");
         GameToast.Show($"{book.displayName} is in your bag", "Read it from the menu (ITEMS)");
         Destroy(gameObject);
@@ -136,6 +136,8 @@ public class SpellBook : Interactable
         CombatUnit who = FindLearner(book.learner);
         if (who == null || book.teaches == null) return $"Nobody can make sense of {book.displayName}.";
         if (!who.actions.Contains(book.teaches)) who.actions.Add(book.teaches);
+        Sfx.Play("book_read");
+        Sfx.Play("buff", 0.6f);
         Debug.Log($"{who.unitName} learned {book.teaches.displayName}!");
         GameToast.Show($"{who.unitName} learned {book.teaches.displayName}", book.teaches.description);
         return $"{who.unitName} learned {book.teaches.displayName}.";
@@ -143,8 +145,8 @@ public class SpellBook : Interactable
 
     static CombatUnit FindLearner(string learner)
     {
-        foreach (CombatUnit u in FindObjectsByType<CombatUnit>(FindObjectsSortMode.None))
-            if (u.team == Team.Party && (u.gameObject.name == learner || u.unitName == learner))
+        foreach (CombatUnit u in CombatUnit.OnTeam(Team.Party))
+            if (u.gameObject.name == learner || u.unitName == learner)
                 return u;
         return null;
     }
