@@ -5,7 +5,7 @@ public enum RollMode { Normal, Advantage, Disadvantage }
 
 // One d20 roll on the dice tray, by the rules every attack shares (the party's attacks, monsters'
 // attacks and opportunity attacks):
-//   Advantage / disadvantage: roll twice, keep the higher / the lower.
+//   Advantage / disadvantage: two dice thrown together, keep the higher / the lower.
 //   Natural 20 always hits and is a critical hit. Natural 1 always misses.
 // Usage:  var roll = new AttackRoll();  yield return roll.Throw("Sword Strike  —  need 12+");
 public class AttackRoll
@@ -15,18 +15,24 @@ public class AttackRoll
 
     public bool IsCrit => Value == 20;
 
-    // 'secondHeading' is the banner line for the second roll (advantage / disadvantage only)
+    // Advantage / disadvantage throw both dice at once. 'secondHeading' says why ("Advantage: it is prone");
+    // it is shown under the heading.
     public IEnumerator Throw(string heading, RollMode mode = RollMode.Normal, string secondHeading = "")
     {
-        int first = 0, second = 0;
-        yield return DiceTray.RollD20(heading, v => first = v);
-        Value = first;
-        Text = $"d20 ({first})";
-        if (mode == RollMode.Normal) yield break;
+        if (mode == RollMode.Normal)
+        {
+            int only = 0;
+            yield return DiceTray.RollD20(heading, v => only = v);
+            Value = only;
+            Text = $"d20 ({only})";
+            yield break;
+        }
 
-        yield return DiceTray.RollD20(secondHeading, v => second = v);
         bool advantage = mode == RollMode.Advantage;
-        Value = advantage ? Mathf.Max(first, second) : Mathf.Min(first, second);
+        string why = string.IsNullOrEmpty(secondHeading) ? "" : "\n<size=70%>" + secondHeading.Replace("  —  second roll", "") + "</size>";
+        int first = 0, second = 0, kept = 0;
+        yield return DiceTray.RollD20Pair(heading + why, advantage, (a, b, k) => { first = a; second = b; kept = k; });
+        Value = kept;
         Text = $"d20 ({first}, {second} -> {Value}, {(advantage ? "advantage" : "disadvantage")})";
     }
 

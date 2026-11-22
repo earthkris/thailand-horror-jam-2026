@@ -47,6 +47,9 @@ public class CombatUnit : MonoBehaviour
     public int CurrentHP { get; private set; }
     public bool IsAlive => CurrentHP > 0;
 
+    // A saved game's HP (at least 1: saves are only made outside fights)
+    public void SetHP(int hp) => CurrentHP = Mathf.Clamp(hp, 1, maxHP);
+
     // The one you walk with (Kairos). The story treats him differently: when he falls, time loops.
     public bool IsPlayer => TryGetComponent<PlayerMovement>(out _);
 

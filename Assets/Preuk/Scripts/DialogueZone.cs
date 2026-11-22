@@ -12,6 +12,9 @@ public class DialogueZone : MonoBehaviour
     PlayerMovement player;
     bool played;
 
+    // Already heard (the save remembers it)
+    public bool Played { get => played; set => played = value; }
+
     void Start()
     {
         player = FindAnyObjectByType<PlayerMovement>();

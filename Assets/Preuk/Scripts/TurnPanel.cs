@@ -72,6 +72,7 @@ public class TurnPanel : MonoBehaviour
     readonly List<TextMeshProUGUI> rows = new List<TextMeshProUGUI>();
     CombatTargeting targeting;
     bool bonusMenu;   // the open menu is the BONUS ACTION one
+    CombatUnit menuOwner;   // whose moves the open menu lists
     FontStyles rowStyle;
     bool ready;
 
@@ -103,7 +104,7 @@ public class TurnPanel : MonoBehaviour
         moveButton.onClick.AddListener(turns.ChooseMove);
         actionButton.onClick.AddListener(OpenActions);
         if (itemButton != null) itemButton.onClick.AddListener(OpenBonus);
-        endTurnButton.onClick.AddListener(turns.EndTurnButton);
+        endTurnButton.onClick.AddListener(() => { CloseMenu(); turns.EndTurnButton(); });
     }
 
     void OnEnable()
@@ -132,9 +133,10 @@ public class TurnPanel : MonoBehaviour
         if (aimPanel != null) aimPanel.SetActive(aiming);
         if (aiming && aimText != null) aimText.text = string.Format(aimFormat, targeting.AimingName);
 
-        // Close the menu when it's no longer our turn, or what it spends is used up
+        // Close the menu when it's no longer that hero's turn (End Turn can pass straight to another hero),
+        // or what it spends is used up
         bool spent = bonusMenu ? turns.HasUsedBonus : turns.HasActed;
-        if (menu != null && menu.IsOpen && (!show || !turns.IsPartyTurn || spent)) menu.Close();
+        if (menu != null && menu.IsOpen && (!show || !turns.IsPartyTurn || spent || turns.Current != menuOwner)) CloseMenu();
         if (!show) return;
 
         if (roundText != null) roundText.text = $"Round {turns.Round}";
@@ -217,6 +219,7 @@ public class TurnPanel : MonoBehaviour
         CombatUnit u = turns.Current;
         var options = ActionOptions(u, bonus: false);
         bonusMenu = false;
+        menuOwner = u;
         menu.Open($"{u.unitName}  —  ACTIONS", options);
     }
 
@@ -241,6 +244,7 @@ public class TurnPanel : MonoBehaviour
                 });
             }
         bonusMenu = true;
+        menuOwner = u;
         menu.Open($"{u.unitName}  —  BONUS ACTIONS", options);
     }
 
@@ -268,6 +272,12 @@ public class TurnPanel : MonoBehaviour
             });
         }
         return options;
+    }
+
+    void CloseMenu()
+    {
+        if (menu != null && menu.IsOpen) menu.Close();
+        menuOwner = null;
     }
 
     void CancelAim()

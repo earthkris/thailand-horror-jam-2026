@@ -29,6 +29,16 @@ public class LootContainer : Interactable
     public float lidAngle = -100f;
 
     bool searched;
+    public bool Searched => searched;
+
+    // Searched in a saved game: no loot, no ambush, just the searched look
+    public void MarkSearched()
+    {
+        if (searched) return;
+        searched = true;
+        Dim();
+        enabled = false;
+    }
 
     protected override string Prompt => promptText + " " + what;
 

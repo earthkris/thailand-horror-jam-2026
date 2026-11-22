@@ -35,6 +35,7 @@ public static class UIBuilder
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = ReferenceResolution;
         scaler.matchWidthOrHeight = 0.5f;
+        GameSettings.Register(scaler);   // the player's UI Size
         return canvas;
     }
 

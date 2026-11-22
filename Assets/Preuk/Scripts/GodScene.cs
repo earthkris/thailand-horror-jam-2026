@@ -141,6 +141,7 @@ public class GodScene : MonoBehaviour
     // Storyboard 15: after walking out of the dungeon
     public void ShowEnding()
     {
+        SaveGame.Delete();   // the run is won: nothing to continue
         if (!running) StartCoroutine(Ending());
     }
 

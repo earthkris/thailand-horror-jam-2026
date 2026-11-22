@@ -591,13 +591,11 @@ public class BossAI : CombatBrain
                 continue;
             }
             int roll = 0;
-            yield return DiceTray.RollD20($"{v.unitName}: DEX save vs {move}  (DC {SaveDC})", x => roll = x);
-            if (v.Has(StatusType.Restrained))
-            {
-                int second = 0;
-                yield return DiceTray.RollD20($"Disadvantage: {v.unitName} is restrained  —  second roll", x => second = x);
-                roll = Mathf.Min(roll, second);
-            }
+            string saveHeading = $"{v.unitName}: DEX save vs {move}  (DC {SaveDC})";
+            if (v.Has(StatusType.Restrained))   // both dice at once, keep the lower
+                yield return DiceTray.RollD20Pair(saveHeading + "   (disadvantage: restrained)", false, (a, b, kept) => roll = kept);
+            else
+                yield return DiceTray.RollD20(saveHeading, x => roll = x);
             int total = roll + v.dexModifier + v.BlessBonus - StatusRules.BaneRoll(v);
             bool ok = AttackRoll.Beats(roll, total, SaveDC);
             saved.Add(ok);
@@ -647,5 +645,6 @@ public class BossAI : CombatBrain
 
     // ================= Helpers (MyTile, CanStand, Gap, ClosestPartyMember and Name are in CombatBrain) =================
 
-    float FloorY() => TileMath.FloorY(transform.position, grid.floorLayers);
+    // The intro drop lands before the fight starts, so there may be no battle grid yet: use the Default layer then
+    float FloorY() => TileMath.FloorY(transform.position, grid != null ? (int)grid.floorLayers : 1);
 }

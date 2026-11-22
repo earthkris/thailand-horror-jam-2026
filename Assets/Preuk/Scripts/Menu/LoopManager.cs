@@ -1,9 +1,9 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-// There are no save files in this game. When the party dies (or you pick LOOP in the menu),
-// time loops back to the start of the scene. You can loop 3 times,
-// and every loop takes something from you (coming later: losing sight of your friend).
+// When the party dies (or you pick LOOP in the menu), time loops back to the start of the scene.
+// You can loop 3 times, and every loop takes something from you (Lucius's face, then his voice...).
+// The game saves by itself (SaveGame); a loop is saved the moment it's spent.
 //
 // This is a static class, so it is NOT reset when the scene reloads.
 // It IS reset when the game starts fresh (pressing Play, refreshing the web page).
@@ -21,11 +21,17 @@ public static class LoopManager
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void ResetOnPlay() => LoopsUsed = 0;
 
+    public const string TitleScene = "StartScreen";
+
+    // CONTINUE: the saved run's loop count
+    public static void SetLoopsUsed(int loops) => LoopsUsed = Mathf.Clamp(loops, 0, MaxLoops);
+
     // Spend one loop and go back to the start. Does nothing if none are left.
     public static void Loop()
     {
         if (!CanLoop) return;
         LoopsUsed++;
+        SaveGame.SaveLoopCheckpoint(LoopsUsed);   // spent, even if the game is closed right now
         Sfx.Play("loop_warp", 0.9f, 1f, 0f);
         Debug.Log($"Looping back... ({LoopsUsed}/{MaxLoops} used, {LoopsLeft} left)");
         ReloadScene();
@@ -34,12 +40,28 @@ public static class LoopManager
     // Back to the title screen after the end: every loop back, nothing reloaded
     public static void ResetLoops() => LoopsUsed = 0;
 
-    // After GAME OVER: a brand-new run with every loop back.
+    // After GAME OVER: the run is over, its save goes, and it's back to the start screen
     public static void StartOver()
     {
+        SaveGame.Delete();
+        Debug.Log("Game over: back to the start screen.");
+        GoToTitle();
+    }
+
+    // The start screen (GAME OVER, EXIT in the pause menu, the end screen). Every loop back.
+    public static void GoToTitle()
+    {
         LoopsUsed = 0;
-        Debug.Log("Starting over.");
-        ReloadScene();
+        PauseMenu.SetFrozen(false);
+        GameState.Current = GameMode.Menu;
+        GameState.InDungeon = false;
+        RunStats.Rescued.Clear();
+        if (Application.CanStreamedLevelBeLoaded(TitleScene)) SceneManager.LoadScene(TitleScene);
+        else
+        {
+            Debug.LogWarning($"'{TitleScene}' isn't in the build's scene list: starting the game scene over instead.");
+            ReloadScene();
+        }
     }
 
     static void ReloadScene()
