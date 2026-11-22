@@ -59,6 +59,9 @@ public class EnemyAI : CombatBrain
     [Min(1)] public int statusDiceCount = 1;
     [Min(1)] public int statusDiceSides = 4;
 
+    [Tooltip("Drinks blood: heals itself by this much of the damage it deals, in percent (a bat).")]
+    [Range(0, 100)] public int drainPercent = 0;
+
     [Header("Special move (optional)")]
     [Tooltip("Empty = none. Its 2nd turn, then every 'Special Every' turns, the attack is this instead.")]
     public string specialName = "";
@@ -73,6 +76,14 @@ public class EnemyAI : CombatBrain
     [Min(1)] public int specialStatusDiceSides = 6;
     [Tooltip("Party members this many tiles from the target are caught too (half damage). 0 = only the target.")]
     [Min(0)] public int specialSplash = 0;
+
+    [Header("Look (MoveFx, optional)")]
+    [Tooltip("Drawn where a melee attack lands: Bite, Claw, Venom Bite, Drain, Slam, Bone...")]
+    public MoveFxStyle meleeFx = MoveFxStyle.None;
+    [Tooltip("Drawn where a shot lands. Wail = rings of sound instead of a projectile.")]
+    public MoveFxStyle rangedFx = MoveFxStyle.None;
+    [Tooltip("The special move's look. None = the melee or ranged one.")]
+    public MoveFxStyle specialFx = MoveFxStyle.None;
 
     [Header("Words (battle log and dice banner)")]
     public string meleeVerb = "attacks";
@@ -360,27 +371,41 @@ public class EnemyAI : CombatBrain
         // Attacking someone who is down = advantage (roll twice, keep the higher). Both cancel out.
         bool downed = target.IsDowned;
         bool crowded = !melee && NearestPartyGap(MyTile()) <= 1;
-        RollMode mode = downed == crowded ? RollMode.Normal
-                      : crowded ? RollMode.Disadvantage : RollMode.Advantage;
+        bool favoured = downed, hampered = crowded;
+        var reasons = new List<string>();
+        if (downed) reasons.Add($"{target.unitName} is down");
+        StatusRules.Edge(unit, target, melee, ref favoured, ref hampered, reasons);   // poisoned, blinded, restrained...
+        RollMode mode = StatusRules.Mode(favoured, hampered);
         string verb = special ? "uses " + specialName + " on" : melee ? meleeVerb : rangedVerb;
+        MoveFxStyle fx = special && specialFx != MoveFxStyle.None ? specialFx : melee ? meleeFx : rangedFx;
         if (special) Sfx.Play("roar", 0.55f, 1.6f);
+        if (fx != MoveFxStyle.None)
+        {
+            float cast = MoveFx.Cast(fx, unit, target);
+            if (cast > 0f) yield return new WaitForSeconds(cast);
+        }
 
         // Rolled on the real dice (DiceTray), or DiceSimulator if there's no dice in the scene
         var roll = new AttackRoll();
         yield return roll.Throw(
             $"{Name()} {verb} {target.unitName}" + (mode == RollMode.Disadvantage ? "   (disadvantage)" : mode == RollMode.Advantage ? "   (advantage)" : ""),
             mode,
-            mode == RollMode.Disadvantage ? "Disadvantage  —  second roll" : $"Advantage: {target.unitName} is down  —  second roll");
+            mode == RollMode.Disadvantage ? "Disadvantage  —  second roll" : $"Advantage: {string.Join(", ", reasons)}  —  second roll");
 
         // Hit or miss? (worked out first, so a missed shot can fly wide)
-        int total = roll.Value + unit.attackBonus;
+        int total = roll.Value + unit.attackBonus - StatusRules.BaneRoll(unit);
         bool hit = roll.Hits(total, target.ArmorClass);
 
         // Show it
         SpriteAnimator facer = GetComponentInChildren<SpriteAnimator>();   // look at who we attack
         if (facer != null) facer.FaceToward(target.transform.position - transform.position);
-        if (melee) { Sfx.Play("bite", 0.7f, unit.size > 1 ? 0.7f : 1f); yield return CombatAnimation.Swing(unit, target); }
-        else { Sfx.Play("spit", 0.8f); yield return Shoot(target, hit); }
+        if (melee)
+        {
+            Sfx.Play("bite", 0.7f, unit.size > 1 ? 0.7f : 1f);
+            yield return CombatAnimation.Swing(unit, target);
+            if (fx != MoveFxStyle.None) MoveFx.Impact(fx, unit, target, MoveFx.Body(target), hit);
+        }
+        else { Sfx.Play(fx == MoveFxStyle.Wail ? "roar" : "spit", 0.8f, fx == MoveFxStyle.Wail ? 1.8f : 1f); yield return Shoot(target, hit, fx); }
 
         string attack = $"{Name()} {verb} {target.unitName}: {roll.Text} + {unit.attackBonus} = {total} vs AC {target.ArmorClass}";
 
@@ -412,6 +437,12 @@ public class EnemyAI : CombatBrain
         Debug.Log($"{attack} — {(roll.IsCrit ? "CRITICAL HIT" : "hit")}! {damage} damage");
         target.TakeDamage(damage);
         string extra = Afflict(target, special);
+        if (drainPercent > 0 && unit.CurrentHP < unit.maxHP)
+        {
+            int before = unit.CurrentHP;
+            unit.Heal(Mathf.Max(damage * drainPercent / 100, 1));
+            extra += $"   (drinks {unit.CurrentHP - before} HP)";
+        }
 
         // A special with splash also catches whoever stands next to the target
         if (special && specialSplash > 0)
@@ -436,16 +467,18 @@ public class EnemyAI : CombatBrain
         bool took = who != null && who.TryAddStatus(s, special ? specialStatusTurns : statusTurns, special ? specialStatusChance : statusChance,
                                                      special ? specialStatusDiceCount : statusDiceCount, special ? specialStatusDiceSides : statusDiceSides);
         if (!took) return "";
-        Sfx.Play(s == StatusType.Paralyse ? "paralyse" : "burn", 0.7f);
-        return s == StatusType.Paralyse ? "  (webbed)" : s == StatusType.Burn ? "  (burning)" : "";
+        Sfx.Play(s == StatusType.Paralyse || s == StatusType.Restrained ? "paralyse" : "burn", 0.7f);
+        return $"  ({StatusInfo.Word(s)})";
     }
 
     // Fly a projectile from us to the target (CombatAnimation). A miss flies wide and lands beside them.
-    IEnumerator Shoot(CombatUnit target, bool hit)
+    IEnumerator Shoot(CombatUnit target, bool hit, MoveFxStyle fx = MoveFxStyle.None)
     {
         Vector3 from = transform.position;
         Vector3 to = CombatAnimation.ShotEnd(from, target.transform.position, hit, unit.tileSize);
-        yield return CombatAnimation.Fly(projectilePrefab, from, to, projectileSpeed * unit.tileSize);
+        if (MoveFx.OwnsTravel(fx)) yield return MoveFx.Travel(fx, unit, target, to, hit, projectilePrefab, projectileSpeed * unit.tileSize);
+        else yield return CombatAnimation.Fly(projectilePrefab, from, to, projectileSpeed * unit.tileSize);
+        if (fx != MoveFxStyle.None) MoveFx.Impact(fx, unit, target, hit ? MoveFx.Body(target) : to, hit);
 
         // On the target, or on the floor beside them after a miss
         if (impactPrefab != null)

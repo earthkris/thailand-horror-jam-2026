@@ -33,7 +33,7 @@ public static class MonsterSpawner
         u.damageDiceCount = 1;
         u.damageDiceSides = s.diceSides;
         u.damageBonus = s.damageBonus;
-        if (go.TryGetComponent(out EnemyAI ai)) { ai.style = AttackStyle.Melee; ai.attackRange = 1; ai.meleeVerb = "bites"; }
+        if (go.TryGetComponent(out EnemyAI ai) && ai.style != AttackStyle.Melee) { ai.style = AttackStyle.Melee; ai.attackRange = 1; ai.meleeVerb = "bites"; }
         foreach (SpriteRenderer sr in go.GetComponentsInChildren<SpriteRenderer>(true))
         {
             sr.color = s.tint;

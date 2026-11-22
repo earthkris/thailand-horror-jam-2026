@@ -109,7 +109,10 @@ public class SpellBook : Interactable
 
     // The bag item for this book. Made in code, so a new book needs no Item asset.
     // Kept loaded while the scene reloads for a loop.
-    ItemData MakeBook()
+    ItemData MakeBook() => CreateBook(teaches, learner);
+
+    // Also used by the save to put books back in the bag
+    public static ItemData CreateBook(CombatAction teaches, string learner)
     {
         var book = ScriptableObject.CreateInstance<ItemData>();
         book.hideFlags = HideFlags.DontUnloadUnusedAsset;

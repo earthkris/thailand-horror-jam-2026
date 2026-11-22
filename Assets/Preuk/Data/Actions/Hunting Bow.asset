@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Hunting Bow
   m_EditorClassIdentifier: Assembly-CSharp::CombatAction
   displayName: Hunting Bow
-  description: A steady shot from the shadows.
+  description: A steady shot from up to 7 tiles away.
   typeIcon: {fileID: 4507998296860207705, guid: 8759f277fe018ee479fc51e7fa20ff19, type: 3}
   bonusAction: 0
   target: 0
@@ -27,6 +27,7 @@ MonoBehaviour:
   extraDiceCount: 0
   extraDiceSides: 6
   damageType: piercing
+  fx: 14
   projectilePrefab: {fileID: 1638535024415612332, guid: 81fa63bf283325e4dbcafe4b2cf0560f, type: 3}
   impactPrefab: {fileID: 0}
   castEffect: {fileID: 0}

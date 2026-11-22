@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: Blood Rage
   m_EditorClassIdentifier: Assembly-CSharp::CombatAction
   displayName: Blood Rage
-  description: 'Pain turns to fury: +2 to rolls, and his wounds close a little every
-    turn.'
+  description: 'Pain turns to fury: +2 on rolls until the fight ends, and he heals
+    1d6 at the start of his next 3 turns.'
   typeIcon: {fileID: 4203996732852112780, guid: 03ff3c98d63172e4c94b0b5064f8613d, type: 3}
   bonusAction: 1
   target: 2
@@ -28,6 +28,7 @@ MonoBehaviour:
   extraDiceCount: 0
   extraDiceSides: 6
   damageType: slashing
+  fx: 22
   projectilePrefab: {fileID: 0}
   impactPrefab: {fileID: 1018217874299416271, guid: f21cea955444c93428064d032aa90bfa, type: 3}
   castEffect: {fileID: 0}

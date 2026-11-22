@@ -65,6 +65,9 @@ public class PauseMenu : MonoBehaviour
     public TextMeshProUGUI volumeValue;
     [Tooltip("Needs a child text 'Detail' for ON / OFF.")]
     public Button fullscreenButton;
+    [Tooltip("Extra rows (UI Size, Dice Animation) are copied from the volume and fullscreen rows. "
+           + "How far apart the rows are, and how much taller the page gets for them.")]
+    public float optionRowGap = 62f;
     public Button optionsBackButton;
 
     [Header("Confirm Page")]
@@ -131,6 +134,68 @@ public class PauseMenu : MonoBehaviour
         volumeSlider.SetValueWithoutNotify(AudioListener.volume);
         volumeSlider.onValueChanged.AddListener(SetVolume);
         fullscreenButton.onClick.AddListener(() => Screen.fullScreen = !Screen.fullScreen);
+        BuildExtraOptions();
+    }
+
+    // UI SIZE (a copy of the volume row) and DICE ANIMATION (a copy of the fullscreen button),
+    // so they look like the rows the page already has
+    Slider uiSizeSlider;
+    TextMeshProUGUI uiSizeValue;
+    Button diceButton;
+
+    void BuildExtraOptions()
+    {
+        Transform page = optionsPage.transform;
+        Transform volumeLabel = page.Find("VolumeLabel");
+        float gap = optionRowGap;
+
+        // Make room: the page grows, and everything below the volume row moves down
+        float volumeY = ((RectTransform)volumeSlider.transform).anchoredPosition.y;
+        foreach (RectTransform child in page)
+            if (child.anchorMin.y > 0.5f && child.anchoredPosition.y < volumeY - 1f)
+                child.anchoredPosition += Vector2.down * gap;   // fullscreen: one row down
+        ((RectTransform)page).sizeDelta += Vector2.up * gap * 2f;
+
+        // UI SIZE: label, slider, value, one row under the volume
+        if (volumeLabel != null)
+        {
+            var label = Instantiate(volumeLabel.gameObject, page).GetComponent<TextMeshProUGUI>();
+            label.name = "UiSizeLabel";
+            label.text = "UI Size";
+            ((RectTransform)label.transform).anchoredPosition += Vector2.down * gap;
+        }
+        uiSizeSlider = Instantiate(volumeSlider.gameObject, page).GetComponent<Slider>();
+        uiSizeSlider.name = "UiSizeSlider";
+        ((RectTransform)uiSizeSlider.transform).anchoredPosition += Vector2.down * gap;
+        uiSizeSlider.onValueChanged.RemoveAllListeners();
+        uiSizeSlider.minValue = GameSettings.MinUiScale;
+        uiSizeSlider.maxValue = GameSettings.MaxUiScale;
+        uiSizeSlider.wholeNumbers = false;
+        uiSizeSlider.SetValueWithoutNotify(GameSettings.UiScale);
+        uiSizeSlider.onValueChanged.AddListener(SetUiSize);
+        if (volumeValue != null)
+        {
+            uiSizeValue = Instantiate(volumeValue.gameObject, page).GetComponent<TextMeshProUGUI>();
+            uiSizeValue.name = "UiSizeValue";
+            ((RectTransform)uiSizeValue.transform).anchoredPosition += Vector2.down * gap;
+        }
+
+        // DICE ANIMATION: ON / OFF, under fullscreen
+        diceButton = Instantiate(fullscreenButton.gameObject, page).GetComponent<Button>();
+        diceButton.name = "DiceAnimation";
+        ((RectTransform)diceButton.transform).anchoredPosition += Vector2.down * gap;
+        diceButton.onClick.RemoveAllListeners();
+        diceButton.onClick.AddListener(() => { GameSettings.DiceAnimation = !GameSettings.DiceAnimation; RefreshOptionLabels(); });
+        MenuRows.SetText(diceButton.transform, "Label", "Dice Animation");
+    }
+
+    // Snaps to 5% steps; the menu you're looking at grows or shrinks as you drag
+    void SetUiSize(float v)
+    {
+        v = Mathf.Round(v * 20f) / 20f;
+        uiSizeSlider.SetValueWithoutNotify(v);
+        GameSettings.UiScale = v;
+        RefreshOptionLabels();
     }
 
     void OnDestroy()
@@ -364,7 +429,14 @@ public class PauseMenu : MonoBehaviour
 
     void AskExit()
     {
-        Ask("Leave the game?\n<size=60%><color=#FFFFFFB3>There is no save. Everything will be lost.</color></size>", ExitGame, ShowMain);
+        Ask("Back to the start screen?\n<size=60%><color=#FFFFFFB3>The game saves by itself: CONTINUE picks up where you last walked.</color></size>", ToTitle, ShowMain);
+    }
+
+    void ToTitle()
+    {
+        Close();
+        AutoSave.SaveNow();   // where they stand right now, unless it's mid-fight (then the save from before it)
+        LoopManager.GoToTitle();
     }
 
     // The death screen's EXIT uses this too
@@ -406,6 +478,7 @@ public class PauseMenu : MonoBehaviour
     {
         ShowPage(optionsPage, () => { PlayerPrefs.Save(); ShowMain(); });
         volumeSlider.SetValueWithoutNotify(AudioListener.volume);
+        if (uiSizeSlider != null) uiSizeSlider.SetValueWithoutNotify(GameSettings.UiScale);
         RefreshOptionLabels();
     }
 
@@ -420,6 +493,8 @@ public class PauseMenu : MonoBehaviour
     {
         if (volumeValue != null) volumeValue.text = Mathf.RoundToInt(AudioListener.volume * 100f) + "%";
         MenuRows.SetText(fullscreenButton.transform, "Detail", Screen.fullScreen ? "ON" : "OFF");
+        if (uiSizeValue != null) uiSizeValue.text = Mathf.RoundToInt(GameSettings.UiScale * 100f) + "%";
+        if (diceButton != null) MenuRows.SetText(diceButton.transform, "Detail", GameSettings.DiceAnimation ? "ON" : "OFF");
     }
 
     // ================= List rows =================

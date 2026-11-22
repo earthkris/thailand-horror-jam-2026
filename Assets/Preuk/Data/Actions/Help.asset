@@ -15,6 +15,7 @@ MonoBehaviour:
   displayName: Help
   description: Pull a downed ally back to their feet with 1 HP.
   typeIcon: {fileID: -1337039248203370655, guid: a0609fffe09f22d4e9c909027b03867f, type: 3}
+  bonusAction: 0
   target: 1
   range: 1
   needsLineOfSight: 0
@@ -26,9 +27,11 @@ MonoBehaviour:
   extraDiceCount: 0
   extraDiceSides: 6
   damageType: slashing
+  fx: 23
   projectilePrefab: {fileID: 0}
   impactPrefab: {fileID: 0}
   castEffect: {fileID: 0}
+  sound: 
   swingDownFrames: []
   swingUpFrames: []
   swingSideFrames: []

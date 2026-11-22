@@ -13,8 +13,9 @@ MonoBehaviour:
   m_Name: Rejuvenation
   m_EditorClassIdentifier: Assembly-CSharp::CombatAction
   displayName: Rejuvenation
-  description: heal 3 turn
+  description: Every ally heals 2d4 at the start of each of their next 3 turns.
   typeIcon: {fileID: -1337039248203370655, guid: a0609fffe09f22d4e9c909027b03867f, type: 3}
+  bonusAction: 0
   target: 1
   range: 99
   needsLineOfSight: 0
@@ -26,9 +27,11 @@ MonoBehaviour:
   extraDiceCount: 0
   extraDiceSides: 6
   damageType: 
+  fx: 11
   projectilePrefab: {fileID: 0}
   impactPrefab: {fileID: 1018217874299416271, guid: f21cea955444c93428064d032aa90bfa, type: 3}
   castEffect: {fileID: 1018217874299416271, guid: f21cea955444c93428064d032aa90bfa, type: 3}
+  sound: 
   swingDownFrames: []
   swingUpFrames: []
   swingSideFrames: []

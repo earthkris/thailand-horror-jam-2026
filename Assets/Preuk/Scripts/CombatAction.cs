@@ -41,6 +41,11 @@ public class CombatAction : ScriptableObject
     [Tooltip("Just for flavour text: slashing, radiant, force...")]
     public string damageType = "slashing";
 
+    [Header("Look")]
+    [Tooltip("This move's own effect (MoveFx): a slash, lightning from the sky, a pillar of fire... "
+           + "None = the old prefabs below.")]
+    public MoveFxStyle fx = MoveFxStyle.None;
+
     [Header("Visuals (ranged only, optional)")]
     [Tooltip("What flies at the target. Empty = the Combat object's default Ranged Projectile.")]
     public GameObject projectilePrefab;
@@ -145,6 +150,17 @@ public class CombatAction : ScriptableObject
             if (regenTurns > 0) s += (s.Length > 0 ? ", " : "") + $"+{regenDiceCount}d{regenDiceSides} HP a turn ({regenTurns} turns)";
             if (bonusAC != 0) s += (s.Length > 0 ? ", " : "") + $"{(bonusAC > 0 ? "+" : "")}{bonusAC} AC";
             return s;
+        }
+    }
+
+    // The hover text: the description, plus what the status it inflicts does ("Restrained: can't move...")
+    public string FullDescription
+    {
+        get
+        {
+            if (effect != ActionEffect.Damage || inflicts == StatusType.None) return description;
+            string rule = $"{StatusInfo.Label(inflicts)}: {StatusInfo.Rules(inflicts)}.";
+            return string.IsNullOrEmpty(description) ? rule : $"{description}\n<size=85%><color=#B9A98C>{rule}</color></size>";
         }
     }
 

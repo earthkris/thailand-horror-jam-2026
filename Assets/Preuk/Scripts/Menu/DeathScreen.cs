@@ -121,6 +121,7 @@ public class DeathScreen : MonoBehaviour
 
     void SetLook(bool final)
     {
+        if (final) SaveGame.Delete();   // GAME OVER: the run can't be continued, however the screen is left
         title.text = final ? gameOverText : deadText;
         title.color = final ? finalColor : loopColor;
 

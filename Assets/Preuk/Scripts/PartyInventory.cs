@@ -27,6 +27,9 @@ public class PartyInventory : MonoBehaviour
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void ResetOnPlay() => keptBooks.Clear();
 
+    // For the save (SaveGame)
+    public static IReadOnlyList<ItemData> KeptBooks => keptBooks;
+
     void Awake()
     {
         if (LoopManager.LoopsUsed == 0) { keptBooks.Clear(); return; }

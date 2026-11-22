@@ -13,8 +13,9 @@ MonoBehaviour:
   m_Name: Lay on Hands
   m_EditorClassIdentifier: Assembly-CSharp::CombatAction
   displayName: Lay on Hands
-  description: heal friend, half for yourself
+  description: Kairos heals an ally next to him and gets half of it back himself.
   typeIcon: {fileID: -1337039248203370655, guid: a0609fffe09f22d4e9c909027b03867f, type: 3}
+  bonusAction: 0
   target: 1
   range: 1
   needsLineOfSight: 0
@@ -26,9 +27,11 @@ MonoBehaviour:
   extraDiceCount: 0
   extraDiceSides: 6
   damageType: 
+  fx: 4
   projectilePrefab: {fileID: 0}
   impactPrefab: {fileID: 1018217874299416271, guid: f21cea955444c93428064d032aa90bfa, type: 3}
   castEffect: {fileID: 0}
+  sound: 
   swingDownFrames: []
   swingUpFrames: []
   swingSideFrames: []

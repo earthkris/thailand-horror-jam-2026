@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: Fire Flask
   m_EditorClassIdentifier: Assembly-CSharp::CombatAction
   displayName: Fire Flask
-  description: 
+  description: Bursts into flame on the target and the tiles round it. May set them
+    burning.
   typeIcon: {fileID: 4507998296860207705, guid: 8759f277fe018ee479fc51e7fa20ff19, type: 3}
   bonusAction: 0
   target: 0
@@ -27,6 +28,7 @@ MonoBehaviour:
   extraDiceCount: 0
   extraDiceSides: 6
   damageType: fire
+  fx: 24
   projectilePrefab: {fileID: 6301460475028473566, guid: 7e53710e4a5bdfa4db63184ef71d1b34, type: 3}
   impactPrefab: {fileID: 5987730469374909056, guid: bc357e83f0c135243b1d2091b8eb41a8, type: 3}
   castEffect: {fileID: 0}

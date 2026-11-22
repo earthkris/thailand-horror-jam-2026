@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: Silk Bomb
   m_EditorClassIdentifier: Assembly-CSharp::CombatAction
   displayName: Silk Bomb
-  description: 
+  description: Webs up everything round where it lands. They're restrained for 2
+    turns.
   typeIcon: {fileID: 4507998296860207705, guid: 8759f277fe018ee479fc51e7fa20ff19, type: 3}
   bonusAction: 0
   target: 0
@@ -27,6 +28,7 @@ MonoBehaviour:
   extraDiceCount: 0
   extraDiceSides: 6
   damageType: bludgeoning
+  fx: 0
   projectilePrefab: {fileID: 6649975068442272977, guid: f5e4e67d61e5f0b468a8da899a145437, type: 3}
   impactPrefab: {fileID: 863077275037907084, guid: ac4ed2bfaafe75a48853cff4fc5ed1d8, type: 3}
   castEffect: {fileID: 0}
@@ -37,9 +39,9 @@ MonoBehaviour:
   blessDie: 0
   bonusAC: 0
   wholeParty: 0
-  inflicts: 2
-  statusTurns: 1
-  statusChance: 70
+  inflicts: 6
+  statusTurns: 2
+  statusChance: 100
   statusDiceCount: 1
   statusDiceSides: 4
   advantage: 0

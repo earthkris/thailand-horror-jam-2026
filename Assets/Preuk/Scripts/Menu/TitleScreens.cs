@@ -106,78 +106,108 @@ public static class TitleUI
     }
 }
 
-// The title screen. Put it on an empty object in the StartScreen scene; it builds itself.
+// The start screen: the first frame of the intro video (the sky before the story starts), with
+// NEW GAME, CONTINUE and QUIT along the black bar under it. NEW GAME cuts straight into that video.
+// CONTINUE picks up the autosave (SaveGame); it's greyed out when there's none.
+// Put it on an empty object in the StartScreen scene; it builds itself.
 public class StartScreen : MonoBehaviour
 {
-    public string title = "EVERYTHING HAS A PRICE";
-    public string subtitle = "Thailand Horror Jam 2026";
-    [Tooltip("The game scene that BEGIN loads.")]
+    [Tooltip("The game scene NEW GAME loads.")]
     public string gameScene = "Main_Expanded";
-    [Tooltip("eye-move-sheet frames, drifting in the background.")]
-    public Sprite[] eyeFrames;
+    [Tooltip("The first frame of StreamingAssets/Cutscene.mp4 (Sprites/Title/TitleFrame).")]
+    public Sprite background;
+    [Tooltip("Height of the buttons above the bottom of the screen (the video's black bar is about 210).")]
+    public float buttonHeight = 105f;
+    public float buttonGap = 420f;
 
-    static readonly float[] Volumes = { 0f, 0.25f, 0.5f, 0.75f, 1f };
-    TextMeshProUGUI soundLabel;
     bool starting;
+    bool confirmNew;          // a save exists: NEW GAME asks once before throwing it away
+    TextMeshProUGUI newLabel;
+    bool hasSave;
 
     void Start()
     {
         GameState.Current = GameMode.Menu;
-        GameState.InDungeon = true;   // the low dungeon hum plays under the title
+        GameState.InDungeon = false;
         Canvas c = TitleUI.Canvas("Title Screen", transform);
-        StartCoroutine(TitleUI.Eyes(c.transform, eyeFrames, 9));
+        c.transform.Find("Background").GetComponent<Image>().color = Color.black;
 
-        TitleUI.Text(c.transform, title, 92, Palette.Bone, new Vector2(0f, 230f), new Vector2(1600f, 140f), 10f);
-        TitleUI.Text(c.transform, subtitle, 28, Palette.CandleGold, new Vector2(0f, 140f), new Vector2(1200f, 50f), 12f);
-        TitleUI.Text(c.transform, "<i>Nothing ever comes for free.</i>", 30, new Color(0.75f, 0.68f, 0.6f), new Vector2(0f, 75f), new Vector2(1200f, 50f));
+        if (background != null)
+        {
+            Image frame = UIBuilder.NewImage("Video Frame", c.transform);
+            frame.sprite = background;
+            frame.preserveAspect = true;   // the frame's own black bars stay; any spare screen is black too
+            UIBuilder.Stretch(frame.rectTransform);
+        }
 
-        TitleUI.Button(c.transform, "BEGIN", new Vector2(0f, -60f), Begin);
-        Button sound = TitleUI.Button(c.transform, "", new Vector2(0f, -140f), CycleSound);
-        soundLabel = sound.GetComponentInChildren<TextMeshProUGUI>();
-        UpdateSoundLabel();
-        if (Application.platform != RuntimePlatform.WebGLPlayer)
-            TitleUI.Button(c.transform, "QUIT", new Vector2(0f, -220f), Application.Quit);
+        hasSave = SaveGame.Exists;
+        bool web = Application.platform == RuntimePlatform.WebGLPlayer;   // a web page can't quit
+        int count = web ? 2 : 3;
+        float y = -540f + buttonHeight;
+        float x0 = -(count - 1) * buttonGap * 0.5f;
 
-        TitleUI.Text(c.transform, "WASD / click to move    E / click to talk    ESC menu", 22, new Color(0.6f, 0.55f, 0.5f), new Vector2(0f, -440f), new Vector2(1400f, 40f), 4f);
-        ScreenFade.FadeIn(1.5f, 0.2f);
+        Button newGame = TitleUI.Button(c.transform, "NEW GAME", new Vector2(x0, y), NewGame);
+        newLabel = newGame.GetComponentInChildren<TextMeshProUGUI>();
+        Button cont = TitleUI.Button(c.transform, "CONTINUE", new Vector2(x0 + buttonGap, y), Continue);
+        if (!hasSave)
+        {
+            cont.interactable = false;
+            TextMeshProUGUI label = cont.GetComponentInChildren<TextMeshProUGUI>();
+            label.alpha = 0.3f;
+        }
+        if (!web) TitleUI.Button(c.transform, "QUIT", new Vector2(x0 + buttonGap * 2f, y), Application.Quit);
+
+        ScreenFade.FadeIn(1.2f, 0.1f);
     }
 
     void Update()
     {
         var kb = Keyboard.current;
-        if (kb != null && (kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame)) Begin();
+        if (kb == null || starting) return;
+        if (kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame)
+        {
+            if (hasSave) Continue(); else NewGame();
+        }
     }
 
-    void CycleSound()
-    {
-        int i = System.Array.FindIndex(Volumes, v => Mathf.Approximately(v, Sfx.Volume));
-        float next = Volumes[(i + 1) % Volumes.Length];
-        Sfx.Volume = next;
-        Sfx.AmbienceVolume = next;
-        UpdateSoundLabel();
-    }
-
-    void UpdateSoundLabel()
-    {
-        if (soundLabel != null) soundLabel.text = $"SOUND  {Mathf.RoundToInt(Sfx.Volume * 100f)}%";
-    }
-
-    void Begin()
+    void NewGame()
     {
         if (starting) return;
+        if (hasSave && !confirmNew)
+        {
+            confirmNew = true;   // second click starts over
+            if (newLabel != null) { newLabel.text = "START OVER?"; newLabel.color = Palette.Blood; }
+            GameToast.Show("Your saved run will be lost", "Click again to start a new game.");
+            return;
+        }
         starting = true;
-        StartCoroutine(BeginRoutine());
+        StartCoroutine(Go(() =>
+        {
+            SaveGame.Delete();
+            LoopManager.SetLoopsUsed(0);
+            GameState.InDungeon = false;
+            GameState.Current = GameMode.Exploring;
+            RunStats.Rescued.Clear();
+            SceneManager.LoadScene(gameScene);
+        }));
     }
 
-    IEnumerator BeginRoutine()
+    void Continue()
+    {
+        if (starting || !hasSave) return;
+        starting = true;
+        StartCoroutine(Go(() =>
+        {
+            if (!SaveGame.Continue()) { starting = false; ScreenFade.FadeIn(0.5f, 0f); }
+        }));
+    }
+
+    IEnumerator Go(System.Action load)
     {
         Sfx.Play("god_bell", 0.6f, 1.2f, 0f);
-        ScreenFade.FadeOut(1.2f);
-        yield return new WaitForSecondsRealtime(1.4f);
-        GameState.InDungeon = false;
-        GameState.Current = GameMode.Exploring;
-        RunStats.Rescued.Clear();
-        SceneManager.LoadScene(gameScene);
+        ScreenFade.FadeOut(1f);
+        yield return new WaitForSecondsRealtime(1.1f);
+        load();
         ScreenFade.FadeIn(0.8f, 0.1f);   // the fade lives through the load; the game takes over from black
     }
 }
@@ -227,9 +257,7 @@ public class EndScreen : MonoBehaviour
 
     void BackToTitle()
     {
-        LoopManager.ResetLoops();
-        RunStats.Rescued.Clear();
-        GameState.InDungeon = false;
-        SceneManager.LoadScene(titleScene);
+        SaveGame.Delete();
+        LoopManager.GoToTitle();
     }
 }

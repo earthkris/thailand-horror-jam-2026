@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Holy Water
   m_EditorClassIdentifier: Assembly-CSharp::CombatAction
   displayName: Holy Water
-  description: 
+  description: Burns what lives in the dark and frightens it for 2 turns.
   typeIcon: {fileID: 4507998296860207705, guid: 8759f277fe018ee479fc51e7fa20ff19, type: 3}
   bonusAction: 0
   target: 0
@@ -27,6 +27,7 @@ MonoBehaviour:
   extraDiceCount: 0
   extraDiceSides: 6
   damageType: radiant
+  fx: 25
   projectilePrefab: {fileID: 6301460475028473566, guid: 7e53710e4a5bdfa4db63184ef71d1b34, type: 3}
   impactPrefab: {fileID: 5987730469374909056, guid: bc357e83f0c135243b1d2091b8eb41a8, type: 3}
   castEffect: {fileID: 0}
@@ -37,9 +38,9 @@ MonoBehaviour:
   blessDie: 0
   bonusAC: 0
   wholeParty: 0
-  inflicts: 2
-  statusTurns: 1
-  statusChance: 25
+  inflicts: 5
+  statusTurns: 2
+  statusChance: 100
   statusDiceCount: 1
   statusDiceSides: 4
   advantage: 0

@@ -150,6 +150,25 @@ public class RescuableAlly : Interactable
         Destroy(gameObject);
     }
 
+    // A saved game: they were cut free before, so they're simply in the party (no silk, no talk)
+    public void FreeNow()
+    {
+        if (ally == null || freeing) return;
+        freeing = true;
+        if (visual != null) visual.gameObject.SetActive(false);
+        Vector3 spot = transform.position;
+        spot.y = ally.transform.position.y;
+        ally.transform.position = TileMath.Snap(spot, player != null ? player.tileSize : 1f);
+        ally.SetActive(true);
+        if (ally.TryGetComponent(out Follower follower))
+        {
+            follower.leader = player != null ? player : FindAnyObjectByType<PlayerMovement>();
+            follower.FollowBehind(LastInLine(follower));
+        }
+        if (!RunStats.Rescued.Contains(allyName)) RunStats.Rescued.Add(allyName);
+        Destroy(gameObject);
+    }
+
     // The follower nobody walks behind yet
     static Follower LastInLine(Follower newcomer)
     {

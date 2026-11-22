@@ -13,8 +13,10 @@ MonoBehaviour:
   m_Name: Thunder Crash
   m_EditorClassIdentifier: Assembly-CSharp::CombatAction
   displayName: Thunder Crash
-  description: 'roarrr roarrr '
+  description: Lightning comes down through the sword and paralyses the target for
+    2 turns.
   typeIcon: {fileID: 4507998296860207705, guid: 8759f277fe018ee479fc51e7fa20ff19, type: 3}
+  bonusAction: 0
   target: 0
   range: 1
   needsLineOfSight: 1
@@ -26,9 +28,11 @@ MonoBehaviour:
   extraDiceCount: 0
   extraDiceSides: 6
   damageType: lightning
+  fx: 5
   projectilePrefab: {fileID: 0}
   impactPrefab: {fileID: 0}
   castEffect: {fileID: 0}
+  sound: 
   swingDownFrames: []
   swingUpFrames: []
   swingSideFrames: []

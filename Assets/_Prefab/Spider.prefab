@@ -63,6 +63,7 @@ MonoBehaviour:
   speedFeet: 30
   actions: []
   castPoint: {fileID: 0}
+  cannotDie: 0
 --- !u!114 &4198032346036167755
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -132,9 +133,35 @@ MonoBehaviour:
   style: 2
   attackRange: 5
   preferredDistance: 4
+  openWithRanged: 0
+  preferRangedChance: 0
+  downedPriority: 5
+  healerPriority: 1.5
+  randomness: 1.5
+  opportunityAttackDetour: 6
   projectilePrefab: {fileID: 6649975068442272977, guid: f5e4e67d61e5f0b468a8da899a145437, type: 3}
   impactPrefab: {fileID: 863077275037907084, guid: ac4ed2bfaafe75a48853cff4fc5ed1d8, type: 3}
   projectileSpeed: 10
+  inflicts: 0
+  statusTurns: 2
+  statusChance: 35
+  statusDiceCount: 1
+  statusDiceSides: 4
+  drainPercent: 0
+  specialName: 
+  specialEvery: 3
+  specialDiceCount: 2
+  specialDiceSides: 6
+  specialBonus: 2
+  specialInflicts: 0
+  specialStatusTurns: 1
+  specialStatusChance: 100
+  specialStatusDiceCount: 1
+  specialStatusDiceSides: 6
+  specialSplash: 0
+  meleeFx: 27
+  rangedFx: 0
+  specialFx: 0
   meleeVerb: bites
   rangedVerb: spits web at
   stepSpeed: 4

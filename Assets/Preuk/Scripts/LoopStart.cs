@@ -19,10 +19,13 @@ public class LoopStart : MonoBehaviour
 
     public static bool StartedFromLoop => LoopManager.LoopsUsed > 0;
 
+    // CONTINUE from a save made while exploring: AutoSave puts the party back where it stood
+    static bool ContinuingMidLoop => SaveGame.Continuing && SaveGame.Pending.hasPosition;
+
     // Awake runs before any Start, so the intro video never begins
     void Awake()
     {
-        if (!StartedFromLoop) return;
+        if (!StartedFromLoop && !SaveGame.Continuing) return;
         foreach (GameObject g in skipAfterLoop)
             if (g != null) g.SetActive(false);
         GameState.Current = GameMode.Cutscene;
@@ -31,6 +34,14 @@ public class LoopStart : MonoBehaviour
 
     IEnumerator Start()
     {
+        if (ContinuingMidLoop)
+        {
+            yield return null;
+            yield return null;   // AutoSave moves the party first
+            ScreenFade.FadeIn(fadeInTime, 0.1f);
+            GameState.Current = GameMode.Exploring;
+            yield break;
+        }
         if (!StartedFromLoop) yield break;
         yield return null;   // let everyone else's Start run first (Lucius places himself, the camera finds Kairos)
 

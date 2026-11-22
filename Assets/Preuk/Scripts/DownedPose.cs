@@ -1,6 +1,6 @@
 using UnityEngine;
 
-// Party members who are downed (or dead) lie on their side: the body sprite tips over,
+// Party members who are downed (or dead), and anyone knocked prone, lie on their side: the body sprite tips over,
 // and their floating prop (Kairos's sword, Lucius's book) is put away. They stand back up when revived.
 // CombatUnit adds this to party members by itself; nothing to set up.
 public class DownedPose : MonoBehaviour
@@ -42,7 +42,8 @@ public class DownedPose : MonoBehaviour
     void LateUpdate()
     {
         if (unit == null || body == null || sr == null) return;
-        bool down = !unit.IsAlive;
+        // Monsters only lie down when knocked prone (a dead one is hidden; HitEffects plays its collapse)
+        bool down = (unit.team == Team.Party && !unit.IsAlive) || (unit.IsAlive && unit.Has(StatusType.Prone));
         float before = t;
         t = Mathf.MoveTowards(t, down ? 1f : 0f, Time.deltaTime / Mathf.Max(fallTime, 0.01f));
         if (t == before && t == 0f) { Measure(); return; }   // standing, nothing to do
