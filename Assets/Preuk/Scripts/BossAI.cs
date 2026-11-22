@@ -583,9 +583,22 @@ public class BossAI : CombatBrain
     {
         foreach (CombatUnit v in victims)
         {
+            // D&D: paralysed fails DEX saves outright; restrained rolls them with disadvantage; bane takes 1d4 off
+            if (v.Has(StatusType.Paralyse))
+            {
+                saved.Add(false);
+                Debug.Log($"{v.unitName} is paralysed and fails the DEX save vs {move}");
+                continue;
+            }
             int roll = 0;
             yield return DiceTray.RollD20($"{v.unitName}: DEX save vs {move}  (DC {SaveDC})", x => roll = x);
-            int total = roll + v.dexModifier + v.BlessBonus;
+            if (v.Has(StatusType.Restrained))
+            {
+                int second = 0;
+                yield return DiceTray.RollD20($"Disadvantage: {v.unitName} is restrained  —  second roll", x => second = x);
+                roll = Mathf.Min(roll, second);
+            }
+            int total = roll + v.dexModifier + v.BlessBonus - StatusRules.BaneRoll(v);
             bool ok = AttackRoll.Beats(roll, total, SaveDC);
             saved.Add(ok);
             Debug.Log($"{v.unitName} DEX save vs {move}: d20 ({roll}) + {v.dexModifier} = {total} vs DC {SaveDC} — {(ok ? "half damage" : "full damage")}");

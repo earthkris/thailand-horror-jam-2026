@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Shield of Faith
   m_EditorClassIdentifier: Assembly-CSharp::CombatAction
   displayName: Shield of Faith
-  description: +2 armor class
+  description: 'A ward of light round one ally: +2 AC until the fight ends.'
   typeIcon: {fileID: 4203996732852112780, guid: 03ff3c98d63172e4c94b0b5064f8613d, type: 3}
   bonusAction: 1
   target: 1
@@ -27,9 +27,11 @@ MonoBehaviour:
   extraDiceCount: 0
   extraDiceSides: 6
   damageType: 
+  fx: 12
   projectilePrefab: {fileID: 0}
   impactPrefab: {fileID: 1018217874299416271, guid: f21cea955444c93428064d032aa90bfa, type: 3}
   castEffect: {fileID: 1018217874299416271, guid: f21cea955444c93428064d032aa90bfa, type: 3}
+  sound: 
   swingDownFrames: []
   swingUpFrames: []
   swingSideFrames: []

@@ -179,6 +179,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -1478,6 +1479,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -1715,16 +1717,17 @@ MonoBehaviour:
   table: {fileID: 11400000, guid: 2339881c9aff15e4cbc52da93e2c5c21, type: 2}
   what: coffin
   ambushChance: 0.25
-  ambushPrefab: {fileID: 1628139225934128270, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
+  ambushPrefab: {fileID: 5671786131939209568, guid: 46a0a7f3089b3a84ba2a9b8e68d1d9d3, type: 3}
+  ambushIsUs: 0
   ambushStats:
-    name: Coffin Crawler
-    hp: 8
+    name: Plague Rat
+    hp: 9
     armorClass: 11
     attackBonus: 4
-    diceSides: 6
-    damageBonus: 1
-    tint: {r: 0.7, g: 0.75, b: 0.6, a: 1}
-    spriteScale: 0.75
+    diceSides: 4
+    damageBonus: 2
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    spriteScale: 1
   lid: {fileID: 0}
   lidAngle: -100
 --- !u!65 &23744483
@@ -1905,6 +1908,68 @@ Transform:
   - {fileID: 672600799}
   m_Father: {fileID: 88674193}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &27281000
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 807494385}
+    m_Modifications:
+    - target: {fileID: 1342176031081897200, guid: 55bc276bf28b58341b9a66239a151b36, type: 3}
+      propertyPath: m_Name
+      value: Wailing Ghost
+      objectReference: {fileID: 0}
+    - target: {fileID: 6339483737055019907, guid: 55bc276bf28b58341b9a66239a151b36, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 11
+      objectReference: {fileID: 0}
+    - target: {fileID: 6339483737055019907, guid: 55bc276bf28b58341b9a66239a151b36, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6339483737055019907, guid: 55bc276bf28b58341b9a66239a151b36, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 75
+      objectReference: {fileID: 0}
+    - target: {fileID: 6339483737055019907, guid: 55bc276bf28b58341b9a66239a151b36, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6339483737055019907, guid: 55bc276bf28b58341b9a66239a151b36, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6339483737055019907, guid: 55bc276bf28b58341b9a66239a151b36, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6339483737055019907, guid: 55bc276bf28b58341b9a66239a151b36, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6339483737055019907, guid: 55bc276bf28b58341b9a66239a151b36, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6339483737055019907, guid: 55bc276bf28b58341b9a66239a151b36, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6339483737055019907, guid: 55bc276bf28b58341b9a66239a151b36, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 55bc276bf28b58341b9a66239a151b36, type: 3}
+--- !u!4 &27281001 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 6339483737055019907, guid: 55bc276bf28b58341b9a66239a151b36, type: 3}
+  m_PrefabInstance: {fileID: 27281000}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &27454878
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3914,6 +3979,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -6190,6 +6256,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -7202,7 +7269,7 @@ Transform:
   - {fileID: 694686082}
   - {fileID: 1064712928}
   - {fileID: 1362877272}
-  - {fileID: 133604555}
+  - {fileID: 2042637869}
   m_Father: {fileID: 699260261}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &102013681 stripped
@@ -7877,172 +7944,6 @@ Transform:
 Transform:
   m_CorrespondingSourceObject: {fileID: 18909760996641151, guid: c863f656782d099438e2f1ba789301c8, type: 3}
   m_PrefabInstance: {fileID: 440000699}
-  m_PrefabAsset: {fileID: 0}
---- !u!1001 &115159166
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 807494385}
-    m_Modifications:
-    - target: {fileID: 42509992144632550, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: 'upFrames.Array.data[0]'
-      value: 
-      objectReference: {fileID: 7145198348311737387, guid: c8bbd2f8d8e84bd399c8ade7a21b32f0, type: 3}
-    - target: {fileID: 42509992144632550, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: 'upFrames.Array.data[1]'
-      value: 
-      objectReference: {fileID: -3708508325519384304, guid: c8bbd2f8d8e84bd399c8ade7a21b32f0, type: 3}
-    - target: {fileID: 42509992144632550, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: 'upFrames.Array.data[2]'
-      value: 
-      objectReference: {fileID: 3106341853739790030, guid: c8bbd2f8d8e84bd399c8ade7a21b32f0, type: 3}
-    - target: {fileID: 42509992144632550, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: 'upFrames.Array.data[3]'
-      value: 
-      objectReference: {fileID: 94058731202090889, guid: c8bbd2f8d8e84bd399c8ade7a21b32f0, type: 3}
-    - target: {fileID: 42509992144632550, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: 'upFrames.Array.data[4]'
-      value: 
-      objectReference: {fileID: 1222221480408444849, guid: c8bbd2f8d8e84bd399c8ade7a21b32f0, type: 3}
-    - target: {fileID: 42509992144632550, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: 'downFrames.Array.data[0]'
-      value: 
-      objectReference: {fileID: 4231536235209952137, guid: 99c3249d42564b1988f3ff9ff56acb87, type: 3}
-    - target: {fileID: 42509992144632550, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: 'downFrames.Array.data[1]'
-      value: 
-      objectReference: {fileID: -7764855259903269999, guid: 99c3249d42564b1988f3ff9ff56acb87, type: 3}
-    - target: {fileID: 42509992144632550, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: 'downFrames.Array.data[2]'
-      value: 
-      objectReference: {fileID: 8584102994338807221, guid: 99c3249d42564b1988f3ff9ff56acb87, type: 3}
-    - target: {fileID: 42509992144632550, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: 'downFrames.Array.data[3]'
-      value: 
-      objectReference: {fileID: -6889542310942746743, guid: 99c3249d42564b1988f3ff9ff56acb87, type: 3}
-    - target: {fileID: 42509992144632550, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: 'downFrames.Array.data[4]'
-      value: 
-      objectReference: {fileID: -1055138184906389805, guid: 99c3249d42564b1988f3ff9ff56acb87, type: 3}
-    - target: {fileID: 42509992144632550, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: 'sideFrames.Array.data[0]'
-      value: 
-      objectReference: {fileID: -2461971576596781131, guid: 64a5e2a8245c4d7dbe60ceb605fb3eee, type: 3}
-    - target: {fileID: 42509992144632550, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: 'sideFrames.Array.data[1]'
-      value: 
-      objectReference: {fileID: 2415049884531420716, guid: 64a5e2a8245c4d7dbe60ceb605fb3eee, type: 3}
-    - target: {fileID: 42509992144632550, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: 'sideFrames.Array.data[2]'
-      value: 
-      objectReference: {fileID: 3061560668030944279, guid: 64a5e2a8245c4d7dbe60ceb605fb3eee, type: 3}
-    - target: {fileID: 42509992144632550, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: 'sideFrames.Array.data[3]'
-      value: 
-      objectReference: {fileID: -722932103081651134, guid: 64a5e2a8245c4d7dbe60ceb605fb3eee, type: 3}
-    - target: {fileID: 42509992144632550, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: 'sideFrames.Array.data[4]'
-      value: 
-      objectReference: {fileID: 9101065410577165855, guid: 64a5e2a8245c4d7dbe60ceb605fb3eee, type: 3}
-    - target: {fileID: 1628139225934128270, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_Name
-      value: Venom Spider (3)
-      objectReference: {fileID: 0}
-    - target: {fileID: 5531129746062378286, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: inflicts
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 5531129746062378286, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: rangedVerb
-      value: spits acid at
-      objectReference: {fileID: 0}
-    - target: {fileID: 5531129746062378286, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: attackRange
-      value: 4
-      objectReference: {fileID: 0}
-    - target: {fileID: 5531129746062378286, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: statusChance
-      value: 40
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 11
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 75
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7112429994158550825, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: maxHP
-      value: 12
-      objectReference: {fileID: 0}
-    - target: {fileID: 7112429994158550825, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: unitName
-      value: Venom Spider
-      objectReference: {fileID: 0}
-    - target: {fileID: 7112429994158550825, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: armorClass
-      value: 13
-      objectReference: {fileID: 0}
-    - target: {fileID: 7112429994158550825, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: attackBonus
-      value: 4
-      objectReference: {fileID: 0}
-    - target: {fileID: 7906134716659594562, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_Sprite
-      value: 
-      objectReference: {fileID: 4231536235209952137, guid: 99c3249d42564b1988f3ff9ff56acb87, type: 3}
-    - target: {fileID: 7906134716659594562, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_Color.b
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 7906134716659594562, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_Color.r
-      value: 1
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
---- !u!4 &115159167 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-  m_PrefabInstance: {fileID: 115159166}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &117911909
 PrefabInstance:
@@ -8944,6 +8845,7 @@ MonoBehaviour:
   what: pot
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -9357,116 +9259,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: ffbddc4ef9676cc419e81e06aaa836d8, type: 3}
---- !u!1001 &133604554
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 101649369}
-    m_Modifications:
-    - target: {fileID: 1628139225934128270, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_Name
-      value: Spiderling (2)
-      objectReference: {fileID: 0}
-    - target: {fileID: 5531129746062378286, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: style
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5531129746062378286, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: meleeVerb
-      value: nips
-      objectReference: {fileID: 0}
-    - target: {fileID: 5531129746062378286, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: attackRange
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 5876641636605153724, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalScale.x
-      value: 0.7
-      objectReference: {fileID: 0}
-    - target: {fileID: 5876641636605153724, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalScale.y
-      value: 0.7
-      objectReference: {fileID: 0}
-    - target: {fileID: 5876641636605153724, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalScale.z
-      value: 0.7
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 29
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 74
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7112429994158550825, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: maxHP
-      value: 6
-      objectReference: {fileID: 0}
-    - target: {fileID: 7112429994158550825, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: unitName
-      value: Spiderling
-      objectReference: {fileID: 0}
-    - target: {fileID: 7112429994158550825, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: speedFeet
-      value: 35
-      objectReference: {fileID: 0}
-    - target: {fileID: 7112429994158550825, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: armorClass
-      value: 11
-      objectReference: {fileID: 0}
-    - target: {fileID: 7112429994158550825, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: damageBonus
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 7112429994158550825, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: damageDiceSides
-      value: 4
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
---- !u!4 &133604555 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-  m_PrefabInstance: {fileID: 133604554}
-  m_PrefabAsset: {fileID: 0}
 --- !u!4 &136678057 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 3356751432537613521, guid: ffbddc4ef9676cc419e81e06aaa836d8, type: 3}
@@ -10103,6 +9895,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -10365,16 +10158,17 @@ MonoBehaviour:
   table: {fileID: 11400000, guid: 2339881c9aff15e4cbc52da93e2c5c21, type: 2}
   what: coffin
   ambushChance: 0.25
-  ambushPrefab: {fileID: 1628139225934128270, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
+  ambushPrefab: {fileID: 5671786131939209568, guid: 46a0a7f3089b3a84ba2a9b8e68d1d9d3, type: 3}
+  ambushIsUs: 0
   ambushStats:
-    name: Coffin Crawler
-    hp: 8
+    name: Plague Rat
+    hp: 9
     armorClass: 11
     attackBonus: 4
-    diceSides: 6
-    damageBonus: 1
-    tint: {r: 0.7, g: 0.75, b: 0.6, a: 1}
-    spriteScale: 0.75
+    diceSides: 4
+    damageBonus: 2
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    spriteScale: 1
   lid: {fileID: 0}
   lidAngle: -100
 --- !u!65 &149799159
@@ -11220,6 +11014,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -13225,6 +13020,7 @@ MonoBehaviour:
   what: pot
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -16237,6 +16033,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -18359,7 +18156,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5531129746062378286, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
       propertyPath: inflicts
-      value: 2
+      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 5531129746062378286, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
       propertyPath: rangedVerb
@@ -18383,15 +18180,19 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5531129746062378286, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
       propertyPath: statusChance
-      value: 25
+      value: 30
       objectReference: {fileID: 0}
     - target: {fileID: 5531129746062378286, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
       propertyPath: specialInflicts
-      value: 2
+      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 5531129746062378286, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
       propertyPath: specialDiceCount
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5531129746062378286, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
+      propertyPath: specialStatusTurns
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
       propertyPath: m_LocalPosition.x
@@ -19561,6 +19362,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -26116,72 +25918,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 2.0000007, y: 2.9990404, z: 0.40000007}
   m_Center: {x: 0.0000004768373, y: 1.5004798, z: -0.0000009536743}
---- !u!1001 &387719225
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 1479842463}
-    m_Modifications:
-    - target: {fileID: 1628139225934128270, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_Name
-      value: Spider (4)
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 8
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 40
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7112429994158550825, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: attackBonus
-      value: 4
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
---- !u!4 &387719226 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-  m_PrefabInstance: {fileID: 387719225}
-  m_PrefabAsset: {fileID: 0}
 --- !u!4 &389281778 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8903058273634951509, guid: f1fc5bb90ac285e4486771552d63bcb8, type: 3}
@@ -26361,6 +26097,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -26582,6 +26319,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -28185,17 +27923,18 @@ MonoBehaviour:
   promptHeight: 1.6
   table: {fileID: 11400000, guid: 2ac23d4f2e5737a4bbf4b7f7d49ae6ca, type: 2}
   what: chest
-  ambushChance: 0
-  ambushPrefab: {fileID: 0}
+  ambushChance: 0.3
+  ambushPrefab: {fileID: 8775486596688566420, guid: f2d2fdd4051dda743b7201ee396ee1bc, type: 3}
+  ambushIsUs: 1
   ambushStats:
-    name: Coffin Crawler
-    hp: 8
-    armorClass: 11
-    attackBonus: 4
-    diceSides: 6
-    damageBonus: 1
-    tint: {r: 0.7, g: 0.75, b: 0.6, a: 1}
-    spriteScale: 0.75
+    name: Mimic
+    hp: 30
+    armorClass: 12
+    attackBonus: 5
+    diceSides: 8
+    damageBonus: 3
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    spriteScale: 1
   lid: {fileID: 0}
   lidAngle: -100
 --- !u!1001 &418695741
@@ -29028,16 +28767,17 @@ MonoBehaviour:
   table: {fileID: 11400000, guid: 2339881c9aff15e4cbc52da93e2c5c21, type: 2}
   what: coffin
   ambushChance: 0.25
-  ambushPrefab: {fileID: 1628139225934128270, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
+  ambushPrefab: {fileID: 5671786131939209568, guid: 46a0a7f3089b3a84ba2a9b8e68d1d9d3, type: 3}
+  ambushIsUs: 0
   ambushStats:
-    name: Coffin Crawler
-    hp: 8
+    name: Plague Rat
+    hp: 9
     armorClass: 11
     attackBonus: 4
-    diceSides: 6
-    damageBonus: 1
-    tint: {r: 0.7, g: 0.75, b: 0.6, a: 1}
-    spriteScale: 0.75
+    diceSides: 4
+    damageBonus: 2
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    spriteScale: 1
   lid: {fileID: 0}
   lidAngle: -100
 --- !u!65 &427429720
@@ -32624,6 +32364,7 @@ MonoBehaviour:
   what: egg sac
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -33118,6 +32859,7 @@ MonoBehaviour:
   what: pot
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -33890,16 +33632,17 @@ MonoBehaviour:
   table: {fileID: 11400000, guid: 2339881c9aff15e4cbc52da93e2c5c21, type: 2}
   what: coffin
   ambushChance: 0.25
-  ambushPrefab: {fileID: 1628139225934128270, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
+  ambushPrefab: {fileID: 5671786131939209568, guid: 46a0a7f3089b3a84ba2a9b8e68d1d9d3, type: 3}
+  ambushIsUs: 0
   ambushStats:
-    name: Coffin Crawler
-    hp: 8
+    name: Plague Rat
+    hp: 9
     armorClass: 11
     attackBonus: 4
-    diceSides: 6
-    damageBonus: 1
-    tint: {r: 0.7, g: 0.75, b: 0.6, a: 1}
-    spriteScale: 0.75
+    diceSides: 4
+    damageBonus: 2
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    spriteScale: 1
   lid: {fileID: 0}
   lidAngle: -100
 --- !u!65 &476634943
@@ -34261,6 +34004,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -35832,6 +35576,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -36347,6 +36092,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -38267,6 +38013,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -39431,6 +39178,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -40569,6 +40317,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -42412,72 +42161,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: f4e2862812bcd0c46bfc685fdbd77398, type: 3}
---- !u!1001 &590124713
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 1479842463}
-    m_Modifications:
-    - target: {fileID: 1628139225934128270, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_Name
-      value: Spider (3)
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 21
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 32
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7112429994158550825, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: attackBonus
-      value: 4
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
---- !u!4 &590124714 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-  m_PrefabInstance: {fileID: 590124713}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &591070906
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -42783,6 +42466,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -44503,6 +44187,7 @@ MonoBehaviour:
   what: urn
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -45104,6 +44789,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -48107,6 +47793,7 @@ MonoBehaviour:
   what: urn
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -48462,6 +48149,10 @@ PrefabInstance:
       value: pounds
       objectReference: {fileID: 0}
     - target: {fileID: 3303273657389272157, guid: 25240edd5a0dd4542a55c6add5e72591, type: 3}
+      propertyPath: specialFx
+      value: 32
+      objectReference: {fileID: 0}
+    - target: {fileID: 3303273657389272157, guid: 25240edd5a0dd4542a55c6add5e72591, type: 3}
       propertyPath: specialName
       value: Skull Crusher
       objectReference: {fileID: 0}
@@ -48712,6 +48403,7 @@ MonoBehaviour:
   what: urn
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -49199,16 +48891,17 @@ MonoBehaviour:
   table: {fileID: 11400000, guid: 2339881c9aff15e4cbc52da93e2c5c21, type: 2}
   what: coffin
   ambushChance: 0.25
-  ambushPrefab: {fileID: 1628139225934128270, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
+  ambushPrefab: {fileID: 5671786131939209568, guid: 46a0a7f3089b3a84ba2a9b8e68d1d9d3, type: 3}
+  ambushIsUs: 0
   ambushStats:
-    name: Coffin Crawler
-    hp: 8
+    name: Plague Rat
+    hp: 9
     armorClass: 11
     attackBonus: 4
-    diceSides: 6
-    damageBonus: 1
-    tint: {r: 0.7, g: 0.75, b: 0.6, a: 1}
-    spriteScale: 0.75
+    diceSides: 4
+    damageBonus: 2
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    spriteScale: 1
   lid: {fileID: 0}
   lidAngle: -100
 --- !u!65 &682823504
@@ -51048,16 +50741,17 @@ MonoBehaviour:
   table: {fileID: 11400000, guid: 2339881c9aff15e4cbc52da93e2c5c21, type: 2}
   what: coffin
   ambushChance: 0.25
-  ambushPrefab: {fileID: 1628139225934128270, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
+  ambushPrefab: {fileID: 5671786131939209568, guid: 46a0a7f3089b3a84ba2a9b8e68d1d9d3, type: 3}
+  ambushIsUs: 0
   ambushStats:
-    name: Coffin Crawler
-    hp: 8
+    name: Plague Rat
+    hp: 9
     armorClass: 11
     attackBonus: 4
-    diceSides: 6
-    damageBonus: 1
-    tint: {r: 0.7, g: 0.75, b: 0.6, a: 1}
-    spriteScale: 0.75
+    diceSides: 4
+    damageBonus: 2
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    spriteScale: 1
   lid: {fileID: 0}
   lidAngle: -100
 --- !u!65 &695554055
@@ -51675,6 +51369,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -51770,6 +51465,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -52714,17 +52410,18 @@ MonoBehaviour:
   promptHeight: 1.6
   table: {fileID: 11400000, guid: 2ac23d4f2e5737a4bbf4b7f7d49ae6ca, type: 2}
   what: chest
-  ambushChance: 0
-  ambushPrefab: {fileID: 0}
+  ambushChance: 0.5
+  ambushPrefab: {fileID: 8775486596688566420, guid: f2d2fdd4051dda743b7201ee396ee1bc, type: 3}
+  ambushIsUs: 1
   ambushStats:
-    name: Coffin Crawler
-    hp: 8
-    armorClass: 11
-    attackBonus: 4
-    diceSides: 6
-    damageBonus: 1
-    tint: {r: 0.7, g: 0.75, b: 0.6, a: 1}
-    spriteScale: 0.75
+    name: Mimic
+    hp: 30
+    armorClass: 12
+    attackBonus: 5
+    diceSides: 8
+    damageBonus: 3
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    spriteScale: 1
   lid: {fileID: 0}
   lidAngle: -100
 --- !u!1001 &713424636
@@ -55308,6 +55005,7 @@ MonoBehaviour:
   what: urn
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -55681,6 +55379,7 @@ MonoBehaviour:
   what: urn
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -56166,6 +55865,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -56903,6 +56603,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -56914,6 +56615,68 @@ MonoBehaviour:
     spriteScale: 0.75
   lid: {fileID: 0}
   lidAngle: -100
+--- !u!1001 &769634538
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 1479842463}
+    m_Modifications:
+    - target: {fileID: 859123528460463635, guid: 46a0a7f3089b3a84ba2a9b8e68d1d9d3, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 859123528460463635, guid: 46a0a7f3089b3a84ba2a9b8e68d1d9d3, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 859123528460463635, guid: 46a0a7f3089b3a84ba2a9b8e68d1d9d3, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 40
+      objectReference: {fileID: 0}
+    - target: {fileID: 859123528460463635, guid: 46a0a7f3089b3a84ba2a9b8e68d1d9d3, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 859123528460463635, guid: 46a0a7f3089b3a84ba2a9b8e68d1d9d3, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 859123528460463635, guid: 46a0a7f3089b3a84ba2a9b8e68d1d9d3, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 859123528460463635, guid: 46a0a7f3089b3a84ba2a9b8e68d1d9d3, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 859123528460463635, guid: 46a0a7f3089b3a84ba2a9b8e68d1d9d3, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 859123528460463635, guid: 46a0a7f3089b3a84ba2a9b8e68d1d9d3, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 859123528460463635, guid: 46a0a7f3089b3a84ba2a9b8e68d1d9d3, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5671786131939209568, guid: 46a0a7f3089b3a84ba2a9b8e68d1d9d3, type: 3}
+      propertyPath: m_Name
+      value: Plague Rat (2)
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 46a0a7f3089b3a84ba2a9b8e68d1d9d3, type: 3}
+--- !u!4 &769634539 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 859123528460463635, guid: 46a0a7f3089b3a84ba2a9b8e68d1d9d3, type: 3}
+  m_PrefabInstance: {fileID: 769634538}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &769947696 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 18909760996641151, guid: c863f656782d099438e2f1ba789301c8, type: 3}
@@ -57390,8 +57153,16 @@ PrefabInstance:
       value: Venom Spider
       objectReference: {fileID: 0}
     - target: {fileID: 5531129746062378286, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
+      propertyPath: meleeFx
+      value: 29
+      objectReference: {fileID: 0}
+    - target: {fileID: 5531129746062378286, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
       propertyPath: inflicts
-      value: 1
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 5531129746062378286, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
+      propertyPath: rangedFx
+      value: 33
       objectReference: {fileID: 0}
     - target: {fileID: 5531129746062378286, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
       propertyPath: rangedVerb
@@ -58151,6 +57922,68 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 2.0000005, y: 2.9990404, z: 0.40000007}
   m_Center: {x: 0.00000023841864, y: 1.5004798, z: 0}
+--- !u!1001 &785326143
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 1479842463}
+    m_Modifications:
+    - target: {fileID: 859123528460463635, guid: 46a0a7f3089b3a84ba2a9b8e68d1d9d3, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 21
+      objectReference: {fileID: 0}
+    - target: {fileID: 859123528460463635, guid: 46a0a7f3089b3a84ba2a9b8e68d1d9d3, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 859123528460463635, guid: 46a0a7f3089b3a84ba2a9b8e68d1d9d3, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 32
+      objectReference: {fileID: 0}
+    - target: {fileID: 859123528460463635, guid: 46a0a7f3089b3a84ba2a9b8e68d1d9d3, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 859123528460463635, guid: 46a0a7f3089b3a84ba2a9b8e68d1d9d3, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 859123528460463635, guid: 46a0a7f3089b3a84ba2a9b8e68d1d9d3, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 859123528460463635, guid: 46a0a7f3089b3a84ba2a9b8e68d1d9d3, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 859123528460463635, guid: 46a0a7f3089b3a84ba2a9b8e68d1d9d3, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 859123528460463635, guid: 46a0a7f3089b3a84ba2a9b8e68d1d9d3, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 859123528460463635, guid: 46a0a7f3089b3a84ba2a9b8e68d1d9d3, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5671786131939209568, guid: 46a0a7f3089b3a84ba2a9b8e68d1d9d3, type: 3}
+      propertyPath: m_Name
+      value: Plague Rat
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 46a0a7f3089b3a84ba2a9b8e68d1d9d3, type: 3}
+--- !u!4 &785326144 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 859123528460463635, guid: 46a0a7f3089b3a84ba2a9b8e68d1d9d3, type: 3}
+  m_PrefabInstance: {fileID: 785326143}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &789347413 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 3356751432537613521, guid: ffbddc4ef9676cc419e81e06aaa836d8, type: 3}
@@ -58299,6 +58132,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -59525,7 +59359,7 @@ Transform:
   - {fileID: 458127937}
   - {fileID: 1665128517}
   - {fileID: 664873704}
-  - {fileID: 115159167}
+  - {fileID: 27281001}
   m_Father: {fileID: 699260261}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &809570018
@@ -59712,6 +59546,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -60746,6 +60581,7 @@ MonoBehaviour:
   what: barrel
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -61460,6 +61296,7 @@ MonoBehaviour:
   what: urn
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -62157,16 +61994,17 @@ MonoBehaviour:
   table: {fileID: 11400000, guid: 2339881c9aff15e4cbc52da93e2c5c21, type: 2}
   what: coffin
   ambushChance: 0.25
-  ambushPrefab: {fileID: 1628139225934128270, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
+  ambushPrefab: {fileID: 5671786131939209568, guid: 46a0a7f3089b3a84ba2a9b8e68d1d9d3, type: 3}
+  ambushIsUs: 0
   ambushStats:
-    name: Coffin Crawler
-    hp: 8
+    name: Plague Rat
+    hp: 9
     armorClass: 11
     attackBonus: 4
-    diceSides: 6
-    damageBonus: 1
-    tint: {r: 0.7, g: 0.75, b: 0.6, a: 1}
-    spriteScale: 0.75
+    diceSides: 4
+    damageBonus: 2
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    spriteScale: 1
   lid: {fileID: 841113211}
   lidAngle: -100
 --- !u!65 &841113214
@@ -62482,6 +62320,7 @@ MonoBehaviour:
   what: pot
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -63005,7 +62844,7 @@ Transform:
   - {fileID: 1691090096}
   - {fileID: 266436754}
   - {fileID: 774615824}
-  - {fileID: 1095201204}
+  - {fileID: 940236922}
   m_Father: {fileID: 699260261}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &850077778
@@ -64448,6 +64287,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -65668,6 +65508,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -67758,6 +67599,7 @@ MonoBehaviour:
   what: urn
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -69121,6 +68963,68 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 4, y: 0.1, z: 4}
   m_Center: {x: 2, y: -0.05, z: -2}
+--- !u!1001 &940236921
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 849906273}
+    m_Modifications:
+    - target: {fileID: 1205889815203340624, guid: 8a583a6274266fd4398b00da8825ed65, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -8
+      objectReference: {fileID: 0}
+    - target: {fileID: 1205889815203340624, guid: 8a583a6274266fd4398b00da8825ed65, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1205889815203340624, guid: 8a583a6274266fd4398b00da8825ed65, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 58
+      objectReference: {fileID: 0}
+    - target: {fileID: 1205889815203340624, guid: 8a583a6274266fd4398b00da8825ed65, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1205889815203340624, guid: 8a583a6274266fd4398b00da8825ed65, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1205889815203340624, guid: 8a583a6274266fd4398b00da8825ed65, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1205889815203340624, guid: 8a583a6274266fd4398b00da8825ed65, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1205889815203340624, guid: 8a583a6274266fd4398b00da8825ed65, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1205889815203340624, guid: 8a583a6274266fd4398b00da8825ed65, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1205889815203340624, guid: 8a583a6274266fd4398b00da8825ed65, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6189684516561174051, guid: 8a583a6274266fd4398b00da8825ed65, type: 3}
+      propertyPath: m_Name
+      value: Cave Bat (2)
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 8a583a6274266fd4398b00da8825ed65, type: 3}
+--- !u!4 &940236922 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 1205889815203340624, guid: 8a583a6274266fd4398b00da8825ed65, type: 3}
+  m_PrefabInstance: {fileID: 940236921}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &940900227
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -70912,6 +70816,7 @@ MonoBehaviour:
   what: egg sac
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -71072,6 +70977,7 @@ MonoBehaviour:
   what: egg sac
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -73105,6 +73011,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -73406,6 +73313,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -75901,6 +75809,7 @@ MonoBehaviour:
   what: egg sac
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -76472,6 +76381,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -77247,6 +77157,7 @@ MonoBehaviour:
   what: egg sac
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -77625,6 +77536,7 @@ MonoBehaviour:
   what: urn
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -78269,12 +78181,24 @@ PrefabInstance:
       value: Brood Mother
       objectReference: {fileID: 0}
     - target: {fileID: 5531129746062378286, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
+      propertyPath: meleeFx
+      value: 29
+      objectReference: {fileID: 0}
+    - target: {fileID: 5531129746062378286, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
       propertyPath: inflicts
-      value: 1
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 5531129746062378286, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
+      propertyPath: rangedFx
+      value: 33
       objectReference: {fileID: 0}
     - target: {fileID: 5531129746062378286, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
       propertyPath: meleeVerb
       value: rends
+      objectReference: {fileID: 0}
+    - target: {fileID: 5531129746062378286, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
+      propertyPath: specialFx
+      value: 33
       objectReference: {fileID: 0}
     - target: {fileID: 5531129746062378286, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
       propertyPath: rangedVerb
@@ -78290,7 +78214,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5531129746062378286, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
       propertyPath: statusChance
-      value: 30
+      value: 35
       objectReference: {fileID: 0}
     - target: {fileID: 5531129746062378286, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
       propertyPath: specialSplash
@@ -78525,16 +78449,17 @@ MonoBehaviour:
   table: {fileID: 11400000, guid: 2339881c9aff15e4cbc52da93e2c5c21, type: 2}
   what: coffin
   ambushChance: 0.25
-  ambushPrefab: {fileID: 1628139225934128270, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
+  ambushPrefab: {fileID: 5671786131939209568, guid: 46a0a7f3089b3a84ba2a9b8e68d1d9d3, type: 3}
+  ambushIsUs: 0
   ambushStats:
-    name: Coffin Crawler
-    hp: 8
+    name: Plague Rat
+    hp: 9
     armorClass: 11
     attackBonus: 4
-    diceSides: 6
-    damageBonus: 1
-    tint: {r: 0.7, g: 0.75, b: 0.6, a: 1}
-    spriteScale: 0.75
+    diceSides: 4
+    damageBonus: 2
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    spriteScale: 1
   lid: {fileID: 0}
   lidAngle: -100
 --- !u!65 &1065064200
@@ -80121,172 +80046,6 @@ Transform:
   - {fileID: 684763802}
   m_Father: {fileID: 1378256094}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1001 &1095201203
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 849906273}
-    m_Modifications:
-    - target: {fileID: 42509992144632550, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: 'upFrames.Array.data[0]'
-      value: 
-      objectReference: {fileID: 7145198348311737387, guid: c8bbd2f8d8e84bd399c8ade7a21b32f0, type: 3}
-    - target: {fileID: 42509992144632550, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: 'upFrames.Array.data[1]'
-      value: 
-      objectReference: {fileID: -3708508325519384304, guid: c8bbd2f8d8e84bd399c8ade7a21b32f0, type: 3}
-    - target: {fileID: 42509992144632550, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: 'upFrames.Array.data[2]'
-      value: 
-      objectReference: {fileID: 3106341853739790030, guid: c8bbd2f8d8e84bd399c8ade7a21b32f0, type: 3}
-    - target: {fileID: 42509992144632550, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: 'upFrames.Array.data[3]'
-      value: 
-      objectReference: {fileID: 94058731202090889, guid: c8bbd2f8d8e84bd399c8ade7a21b32f0, type: 3}
-    - target: {fileID: 42509992144632550, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: 'upFrames.Array.data[4]'
-      value: 
-      objectReference: {fileID: 1222221480408444849, guid: c8bbd2f8d8e84bd399c8ade7a21b32f0, type: 3}
-    - target: {fileID: 42509992144632550, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: 'downFrames.Array.data[0]'
-      value: 
-      objectReference: {fileID: 4231536235209952137, guid: 99c3249d42564b1988f3ff9ff56acb87, type: 3}
-    - target: {fileID: 42509992144632550, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: 'downFrames.Array.data[1]'
-      value: 
-      objectReference: {fileID: -7764855259903269999, guid: 99c3249d42564b1988f3ff9ff56acb87, type: 3}
-    - target: {fileID: 42509992144632550, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: 'downFrames.Array.data[2]'
-      value: 
-      objectReference: {fileID: 8584102994338807221, guid: 99c3249d42564b1988f3ff9ff56acb87, type: 3}
-    - target: {fileID: 42509992144632550, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: 'downFrames.Array.data[3]'
-      value: 
-      objectReference: {fileID: -6889542310942746743, guid: 99c3249d42564b1988f3ff9ff56acb87, type: 3}
-    - target: {fileID: 42509992144632550, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: 'downFrames.Array.data[4]'
-      value: 
-      objectReference: {fileID: -1055138184906389805, guid: 99c3249d42564b1988f3ff9ff56acb87, type: 3}
-    - target: {fileID: 42509992144632550, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: 'sideFrames.Array.data[0]'
-      value: 
-      objectReference: {fileID: -2461971576596781131, guid: 64a5e2a8245c4d7dbe60ceb605fb3eee, type: 3}
-    - target: {fileID: 42509992144632550, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: 'sideFrames.Array.data[1]'
-      value: 
-      objectReference: {fileID: 2415049884531420716, guid: 64a5e2a8245c4d7dbe60ceb605fb3eee, type: 3}
-    - target: {fileID: 42509992144632550, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: 'sideFrames.Array.data[2]'
-      value: 
-      objectReference: {fileID: 3061560668030944279, guid: 64a5e2a8245c4d7dbe60ceb605fb3eee, type: 3}
-    - target: {fileID: 42509992144632550, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: 'sideFrames.Array.data[3]'
-      value: 
-      objectReference: {fileID: -722932103081651134, guid: 64a5e2a8245c4d7dbe60ceb605fb3eee, type: 3}
-    - target: {fileID: 42509992144632550, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: 'sideFrames.Array.data[4]'
-      value: 
-      objectReference: {fileID: 9101065410577165855, guid: 64a5e2a8245c4d7dbe60ceb605fb3eee, type: 3}
-    - target: {fileID: 1628139225934128270, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_Name
-      value: Venom Spider (2)
-      objectReference: {fileID: 0}
-    - target: {fileID: 5531129746062378286, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: inflicts
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 5531129746062378286, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: rangedVerb
-      value: spits acid at
-      objectReference: {fileID: 0}
-    - target: {fileID: 5531129746062378286, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: attackRange
-      value: 4
-      objectReference: {fileID: 0}
-    - target: {fileID: 5531129746062378286, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: statusChance
-      value: 40
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: -8
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 58
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7112429994158550825, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: maxHP
-      value: 12
-      objectReference: {fileID: 0}
-    - target: {fileID: 7112429994158550825, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: unitName
-      value: Venom Spider
-      objectReference: {fileID: 0}
-    - target: {fileID: 7112429994158550825, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: armorClass
-      value: 13
-      objectReference: {fileID: 0}
-    - target: {fileID: 7112429994158550825, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: attackBonus
-      value: 4
-      objectReference: {fileID: 0}
-    - target: {fileID: 7906134716659594562, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_Sprite
-      value: 
-      objectReference: {fileID: 4231536235209952137, guid: 99c3249d42564b1988f3ff9ff56acb87, type: 3}
-    - target: {fileID: 7906134716659594562, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_Color.b
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 7906134716659594562, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_Color.r
-      value: 1
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
---- !u!4 &1095201204 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-  m_PrefabInstance: {fileID: 1095201203}
-  m_PrefabAsset: {fileID: 0}
 --- !u!4 &1097404140 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1606690879903466750, guid: 97cf5ac64d9a6884ba02bb0e8b9038de, type: 3}
@@ -81348,6 +81107,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -83441,6 +83201,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -84396,6 +84157,7 @@ MonoBehaviour:
   what: chest
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -85343,6 +85105,7 @@ MonoBehaviour:
   what: urn
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -86310,6 +86073,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -86979,17 +86743,18 @@ MonoBehaviour:
   promptHeight: 1.6
   table: {fileID: 11400000, guid: 2ac23d4f2e5737a4bbf4b7f7d49ae6ca, type: 2}
   what: chest
-  ambushChance: 0
-  ambushPrefab: {fileID: 0}
+  ambushChance: 0.35
+  ambushPrefab: {fileID: 8775486596688566420, guid: f2d2fdd4051dda743b7201ee396ee1bc, type: 3}
+  ambushIsUs: 1
   ambushStats:
-    name: Coffin Crawler
-    hp: 8
-    armorClass: 11
-    attackBonus: 4
-    diceSides: 6
-    damageBonus: 1
-    tint: {r: 0.7, g: 0.75, b: 0.6, a: 1}
-    spriteScale: 0.75
+    name: Mimic
+    hp: 30
+    armorClass: 12
+    attackBonus: 5
+    diceSides: 8
+    damageBonus: 3
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    spriteScale: 1
   lid: {fileID: 0}
   lidAngle: -100
 --- !u!1 &1195936052
@@ -93410,16 +93175,17 @@ MonoBehaviour:
   table: {fileID: 11400000, guid: 2339881c9aff15e4cbc52da93e2c5c21, type: 2}
   what: coffin
   ambushChance: 0.25
-  ambushPrefab: {fileID: 1628139225934128270, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
+  ambushPrefab: {fileID: 5671786131939209568, guid: 46a0a7f3089b3a84ba2a9b8e68d1d9d3, type: 3}
+  ambushIsUs: 0
   ambushStats:
-    name: Coffin Crawler
-    hp: 8
+    name: Plague Rat
+    hp: 9
     armorClass: 11
     attackBonus: 4
-    diceSides: 6
-    damageBonus: 1
-    tint: {r: 0.7, g: 0.75, b: 0.6, a: 1}
-    spriteScale: 0.75
+    diceSides: 4
+    damageBonus: 2
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    spriteScale: 1
   lid: {fileID: 1309841963}
   lidAngle: -100
 --- !u!65 &1309841966
@@ -93566,6 +93332,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -93947,6 +93714,7 @@ MonoBehaviour:
   what: urn
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -94763,6 +94531,7 @@ MonoBehaviour:
   what: barrel
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -95290,6 +95059,7 @@ MonoBehaviour:
   what: urn
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -95704,6 +95474,7 @@ MonoBehaviour:
   what: chest
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -96627,6 +96398,7 @@ MonoBehaviour:
   what: chest
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -97826,6 +97598,7 @@ MonoBehaviour:
   what: chest
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -98124,6 +97897,7 @@ MonoBehaviour:
   what: egg sac
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -98419,6 +98193,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -99166,6 +98941,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -100630,6 +100406,7 @@ MonoBehaviour:
   what: urn
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -103062,16 +102839,17 @@ MonoBehaviour:
   table: {fileID: 11400000, guid: 2339881c9aff15e4cbc52da93e2c5c21, type: 2}
   what: coffin
   ambushChance: 0.25
-  ambushPrefab: {fileID: 1628139225934128270, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
+  ambushPrefab: {fileID: 5671786131939209568, guid: 46a0a7f3089b3a84ba2a9b8e68d1d9d3, type: 3}
+  ambushIsUs: 0
   ambushStats:
-    name: Coffin Crawler
-    hp: 8
+    name: Plague Rat
+    hp: 9
     armorClass: 11
     attackBonus: 4
-    diceSides: 6
-    damageBonus: 1
-    tint: {r: 0.7, g: 0.75, b: 0.6, a: 1}
-    spriteScale: 0.75
+    diceSides: 4
+    damageBonus: 2
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    spriteScale: 1
   lid: {fileID: 0}
   lidAngle: -100
 --- !u!65 &1433743632
@@ -103121,6 +102899,68 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 4, y: 0.1, z: 4}
   m_Center: {x: 2, y: -0.05, z: -2}
+--- !u!1001 &1435915578
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 1479842463}
+    m_Modifications:
+    - target: {fileID: 1205889815203340624, guid: 8a583a6274266fd4398b00da8825ed65, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 18
+      objectReference: {fileID: 0}
+    - target: {fileID: 1205889815203340624, guid: 8a583a6274266fd4398b00da8825ed65, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1205889815203340624, guid: 8a583a6274266fd4398b00da8825ed65, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 44
+      objectReference: {fileID: 0}
+    - target: {fileID: 1205889815203340624, guid: 8a583a6274266fd4398b00da8825ed65, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1205889815203340624, guid: 8a583a6274266fd4398b00da8825ed65, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1205889815203340624, guid: 8a583a6274266fd4398b00da8825ed65, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1205889815203340624, guid: 8a583a6274266fd4398b00da8825ed65, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1205889815203340624, guid: 8a583a6274266fd4398b00da8825ed65, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1205889815203340624, guid: 8a583a6274266fd4398b00da8825ed65, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1205889815203340624, guid: 8a583a6274266fd4398b00da8825ed65, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6189684516561174051, guid: 8a583a6274266fd4398b00da8825ed65, type: 3}
+      propertyPath: m_Name
+      value: Cave Bat
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 8a583a6274266fd4398b00da8825ed65, type: 3}
+--- !u!4 &1435915579 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 1205889815203340624, guid: 8a583a6274266fd4398b00da8825ed65, type: 3}
+  m_PrefabInstance: {fileID: 1435915578}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1436032866
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -104849,6 +104689,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -106288,13 +106129,13 @@ Transform:
   - {fileID: 825454391}
   - {fileID: 1986864781}
   - {fileID: 1280487847}
-  - {fileID: 590124714}
+  - {fileID: 785326144}
   - {fileID: 1478247228}
   - {fileID: 1631614055}
   - {fileID: 1707092673}
-  - {fileID: 387719226}
+  - {fileID: 769634539}
   - {fileID: 1918374180}
-  - {fileID: 1740960153}
+  - {fileID: 1435915579}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &1480783991 stripped
@@ -111494,6 +111335,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -112399,6 +112241,7 @@ MonoBehaviour:
   what: urn
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -113452,16 +113295,17 @@ MonoBehaviour:
   table: {fileID: 11400000, guid: 2339881c9aff15e4cbc52da93e2c5c21, type: 2}
   what: coffin
   ambushChance: 0.25
-  ambushPrefab: {fileID: 1628139225934128270, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
+  ambushPrefab: {fileID: 5671786131939209568, guid: 46a0a7f3089b3a84ba2a9b8e68d1d9d3, type: 3}
+  ambushIsUs: 0
   ambushStats:
-    name: Coffin Crawler
-    hp: 8
+    name: Plague Rat
+    hp: 9
     armorClass: 11
     attackBonus: 4
-    diceSides: 6
-    damageBonus: 1
-    tint: {r: 0.7, g: 0.75, b: 0.6, a: 1}
-    spriteScale: 0.75
+    diceSides: 4
+    damageBonus: 2
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    spriteScale: 1
   lid: {fileID: 1569868687}
   lidAngle: -100
 --- !u!65 &1569868690
@@ -115284,6 +115128,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -115891,6 +115736,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -116345,6 +116191,7 @@ MonoBehaviour:
   what: barrel
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -119165,6 +119012,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -121234,6 +121082,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -121316,6 +121165,10 @@ PrefabInstance:
     - target: {fileID: 3303273657389272157, guid: 25240edd5a0dd4542a55c6add5e72591, type: 3}
       propertyPath: meleeVerb
       value: pounds
+      objectReference: {fileID: 0}
+    - target: {fileID: 3303273657389272157, guid: 25240edd5a0dd4542a55c6add5e72591, type: 3}
+      propertyPath: specialFx
+      value: 32
       objectReference: {fileID: 0}
     - target: {fileID: 3303273657389272157, guid: 25240edd5a0dd4542a55c6add5e72591, type: 3}
       propertyPath: specialName
@@ -121886,6 +121739,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -122104,6 +121958,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -123188,7 +123043,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5531129746062378286, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
       propertyPath: inflicts
-      value: 2
+      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 5531129746062378286, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
       propertyPath: rangedVerb
@@ -123212,15 +123067,19 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5531129746062378286, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
       propertyPath: statusChance
-      value: 25
+      value: 30
       objectReference: {fileID: 0}
     - target: {fileID: 5531129746062378286, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
       propertyPath: specialInflicts
-      value: 2
+      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 5531129746062378286, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
       propertyPath: specialDiceCount
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5531129746062378286, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
+      propertyPath: specialStatusTurns
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
       propertyPath: m_LocalPosition.x
@@ -124041,6 +123900,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -125898,6 +125758,7 @@ MonoBehaviour:
   what: pot
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -126068,16 +125929,17 @@ MonoBehaviour:
   table: {fileID: 11400000, guid: 2339881c9aff15e4cbc52da93e2c5c21, type: 2}
   what: coffin
   ambushChance: 0.25
-  ambushPrefab: {fileID: 1628139225934128270, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
+  ambushPrefab: {fileID: 5671786131939209568, guid: 46a0a7f3089b3a84ba2a9b8e68d1d9d3, type: 3}
+  ambushIsUs: 0
   ambushStats:
-    name: Coffin Crawler
-    hp: 8
+    name: Plague Rat
+    hp: 9
     armorClass: 11
     attackBonus: 4
-    diceSides: 6
-    damageBonus: 1
-    tint: {r: 0.7, g: 0.75, b: 0.6, a: 1}
-    spriteScale: 0.75
+    diceSides: 4
+    damageBonus: 2
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    spriteScale: 1
   lid: {fileID: 0}
   lidAngle: -100
 --- !u!65 &1727834291
@@ -127041,72 +126903,6 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 1398787966}
   m_SourcePrefab: {fileID: 100100000, guid: c863f656782d099438e2f1ba789301c8, type: 3}
---- !u!1001 &1740960152
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 1479842463}
-    m_Modifications:
-    - target: {fileID: 1628139225934128270, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_Name
-      value: Spider (5)
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 18
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 44
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7112429994158550825, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-      propertyPath: attackBonus
-      value: 4
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
---- !u!4 &1740960153 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 6035470959321234429, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
-  m_PrefabInstance: {fileID: 1740960152}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1741513782
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -127789,6 +127585,7 @@ MonoBehaviour:
   what: barrel
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -128065,6 +127862,7 @@ MonoBehaviour:
   what: barrel
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -129610,6 +129408,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -131209,6 +131008,7 @@ MonoBehaviour:
   what: barrel
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -133767,6 +133567,7 @@ MonoBehaviour:
   what: pot
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -134078,6 +133879,7 @@ MonoBehaviour:
   what: chest
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -134725,6 +134527,7 @@ MonoBehaviour:
   what: pot
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -135659,6 +135462,7 @@ MonoBehaviour:
   what: chest
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -136354,6 +136158,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -136606,6 +136411,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -138351,6 +138157,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -138568,6 +138375,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -140530,6 +140338,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -144496,6 +144305,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -145235,6 +145045,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -150093,6 +149904,7 @@ MonoBehaviour:
   what: urn
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -150182,6 +149994,68 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 239a43bcf56631d4a9ba93f97306f800, type: 3}
+--- !u!1001 &2042637868
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 101649369}
+    m_Modifications:
+    - target: {fileID: 2774150882771741473, guid: 4d0d638676a91b748bd75f536cb4e83b, type: 3}
+      propertyPath: m_Name
+      value: Brood Cultist
+      objectReference: {fileID: 0}
+    - target: {fileID: 7144328196528010322, guid: 4d0d638676a91b748bd75f536cb4e83b, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 29
+      objectReference: {fileID: 0}
+    - target: {fileID: 7144328196528010322, guid: 4d0d638676a91b748bd75f536cb4e83b, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7144328196528010322, guid: 4d0d638676a91b748bd75f536cb4e83b, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 74
+      objectReference: {fileID: 0}
+    - target: {fileID: 7144328196528010322, guid: 4d0d638676a91b748bd75f536cb4e83b, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7144328196528010322, guid: 4d0d638676a91b748bd75f536cb4e83b, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7144328196528010322, guid: 4d0d638676a91b748bd75f536cb4e83b, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7144328196528010322, guid: 4d0d638676a91b748bd75f536cb4e83b, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7144328196528010322, guid: 4d0d638676a91b748bd75f536cb4e83b, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7144328196528010322, guid: 4d0d638676a91b748bd75f536cb4e83b, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7144328196528010322, guid: 4d0d638676a91b748bd75f536cb4e83b, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 4d0d638676a91b748bd75f536cb4e83b, type: 3}
+--- !u!4 &2042637869 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 7144328196528010322, guid: 4d0d638676a91b748bd75f536cb4e83b, type: 3}
+  m_PrefabInstance: {fileID: 2042637868}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &2044499637
 GameObject:
   m_ObjectHideFlags: 0
@@ -150615,6 +150489,7 @@ MonoBehaviour:
   what: barrel
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -150970,16 +150845,17 @@ MonoBehaviour:
   table: {fileID: 11400000, guid: 2339881c9aff15e4cbc52da93e2c5c21, type: 2}
   what: coffin
   ambushChance: 0.25
-  ambushPrefab: {fileID: 1628139225934128270, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
+  ambushPrefab: {fileID: 5671786131939209568, guid: 46a0a7f3089b3a84ba2a9b8e68d1d9d3, type: 3}
+  ambushIsUs: 0
   ambushStats:
-    name: Coffin Crawler
-    hp: 8
+    name: Plague Rat
+    hp: 9
     armorClass: 11
     attackBonus: 4
-    diceSides: 6
-    damageBonus: 1
-    tint: {r: 0.7, g: 0.75, b: 0.6, a: 1}
-    spriteScale: 0.75
+    diceSides: 4
+    damageBonus: 2
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    spriteScale: 1
   lid: {fileID: 2049796110}
   lidAngle: -100
 --- !u!65 &2049796113
@@ -152825,6 +152701,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -153285,16 +153162,17 @@ MonoBehaviour:
   table: {fileID: 11400000, guid: 2339881c9aff15e4cbc52da93e2c5c21, type: 2}
   what: coffin
   ambushChance: 0.25
-  ambushPrefab: {fileID: 1628139225934128270, guid: 7b5dcde097cecbc45aef49674603462e, type: 3}
+  ambushPrefab: {fileID: 5671786131939209568, guid: 46a0a7f3089b3a84ba2a9b8e68d1d9d3, type: 3}
+  ambushIsUs: 0
   ambushStats:
-    name: Coffin Crawler
-    hp: 8
+    name: Plague Rat
+    hp: 9
     armorClass: 11
     attackBonus: 4
-    diceSides: 6
-    damageBonus: 1
-    tint: {r: 0.7, g: 0.75, b: 0.6, a: 1}
-    spriteScale: 0.75
+    diceSides: 4
+    damageBonus: 2
+    tint: {r: 1, g: 1, b: 1, a: 1}
+    spriteScale: 1
   lid: {fileID: 2079635764}
   lidAngle: -100
 --- !u!65 &2079635767
@@ -154019,6 +153897,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -155522,6 +155401,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8
@@ -157973,6 +157853,7 @@ MonoBehaviour:
   what: crate
   ambushChance: 0
   ambushPrefab: {fileID: 0}
+  ambushIsUs: 0
   ambushStats:
     name: Coffin Crawler
     hp: 8

@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: Holy Nova
   m_EditorClassIdentifier: Assembly-CSharp::CombatAction
   displayName: Holy Nova
-  description: Light bursts out of Lucius's book and scorches every monster around
-    him.
+  description: Light bursts out of the book and hits every monster within 2 tiles.
+    Each one has a 50% chance to be blinded for a turn.
   typeIcon: {fileID: 4507998296860207705, guid: 8759f277fe018ee479fc51e7fa20ff19, type: 3}
   bonusAction: 0
   target: 0
@@ -28,6 +28,7 @@ MonoBehaviour:
   extraDiceCount: 0
   extraDiceSides: 6
   damageType: radiant
+  fx: 13
   projectilePrefab: {fileID: 0}
   impactPrefab: {fileID: 5987730469374909056, guid: bc357e83f0c135243b1d2091b8eb41a8, type: 3}
   castEffect: {fileID: 1018217874299416271, guid: f21cea955444c93428064d032aa90bfa, type: 3}
@@ -38,8 +39,8 @@ MonoBehaviour:
   blessDie: 0
   bonusAC: 0
   wholeParty: 0
-  inflicts: 1
-  statusTurns: 2
+  inflicts: 8
+  statusTurns: 1
   statusChance: 50
   statusDiceCount: 1
   statusDiceSides: 4

@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: Antidote Salve
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   displayName: Antidote Salve
-  description: 'Rub it on: ends burning and paralysis, and heals a little.'
+  description: Rub it on. Ends poison, burning, fear, webs and every other bad status,
+    and heals a little.
   target: 1
   range: 1
   effect: 3

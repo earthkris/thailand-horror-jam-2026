@@ -327,6 +327,7 @@ public class TurnManager : MonoBehaviour
     {
         if (!InBattle) return;
         if (targeting != null) targeting.Cancel();
+        if (Current != null) Current.CountDownStatuses(turnEnd: true);   // poisoned, frightened, restrained...
         Advance();
         StartTurn();
     }

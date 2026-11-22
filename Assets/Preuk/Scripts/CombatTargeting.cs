@@ -156,8 +156,13 @@ public class CombatTargeting : MonoBehaviour
             yield break;
         }
 
-        // Casting flourish (sparkles round the priest...), a moment before the dice
-        if (action != null && action.castEffect != null)
+        // Casting flourish, a moment before the dice: the move's own (MoveFx), or the old prefab
+        if (action != null && action.fx != MoveFxStyle.None)
+        {
+            float wait = MoveFx.Cast(action.fx, user, target);
+            if (wait > 0f) yield return new WaitForSeconds(wait);
+        }
+        else if (action != null && action.castEffect != null)
         {
             // Attached to the cast point (the book), so the sparkles float along with it
             Transform at = user.castPoint != null ? user.castPoint : user.transform;
@@ -185,9 +190,13 @@ public class CombatTargeting : MonoBehaviour
         bool ranged = action.range > 1;
         bool crowded = ranged && EnemyNextTo(user);
         bool hampered = hidden || crowded;
-        RollMode mode = action.advantage == hampered ? RollMode.Normal   // advantage and disadvantage cancel out
-                      : hampered ? RollMode.Disadvantage : RollMode.Advantage;
-        string why = hidden ? "can't see the target" : "enemy right next to you";
+        bool favoured = action.advantage;
+        var reasons = new List<string>();
+        if (hidden) reasons.Add("can't see the target");
+        if (crowded) reasons.Add("enemy right next to you");
+        StatusRules.Edge(user, target, !ranged, ref favoured, ref hampered, reasons);   // poisoned, restrained, prone...
+        RollMode mode = StatusRules.Mode(favoured, hampered);   // advantage and disadvantage cancel out
+        string why = string.Join(", ", reasons);
         string tName = TargetName(target);
         int need = AttackRoll.Needed(target.ArmorClass, action.attackBonus);
 
@@ -198,21 +207,31 @@ public class CombatTargeting : MonoBehaviour
                 + (mode == RollMode.Disadvantage ? "   (disadvantage)" : mode == RollMode.Advantage ? "   (advantage)" : "")
                 + (user.IsBlessed ? "   (blessed)" : ""),
             mode,
-            mode == RollMode.Disadvantage ? $"Disadvantage: {why}  —  second roll" : "Advantage  —  second roll");
+            mode == RollMode.Disadvantage ? $"Disadvantage: {why}  —  second roll" : reasons.Count > 0 ? $"Advantage: {why}  —  second roll" : "Advantage  —  second roll");
         string rollText = roll.Text;
 
         // 2. Hit or miss? (worked out first, so a missed spell can fly wide)
         // Bless: add the blessing die (a d4) and bonus to the roll
         int blessRoll = user.RollBless();
         if (blessRoll > 0) rollText += $" + bless ({blessRoll})";
-        int total = roll.Value + action.attackBonus + blessRoll;
+        int bane = StatusRules.BaneRoll(user);
+        if (bane > 0) rollText += $" - bane ({bane})";
+        int total = roll.Value + action.attackBonus + blessRoll - bane;
         bool hit = roll.Hits(total, target.ArmorClass);
 
         if (action.glowSword) StartCoroutine(SwordGlow(user, action.glowColor, 2.4f));
 
         // 3. Show the swing / shot
         if (ranged) yield return Shoot(target, hit);
-        else yield return CombatAnimation.Swing(user, target, action);
+        else
+        {
+            yield return CombatAnimation.Swing(user, target, action);
+            if (action.fx != MoveFxStyle.None)
+            {
+                float wait = MoveFx.Impact(action.fx, user, target, MoveFx.Body(target), hit);
+                if (wait > 0f) yield return new WaitForSeconds(wait);
+            }
+        }
 
         string head = $"{user.unitName} uses {action.displayName} on {tName}: {rollText} + {action.attackBonus} = {total} vs AC {target.ArmorClass}";
 
@@ -246,6 +265,7 @@ public class CombatTargeting : MonoBehaviour
             {
                 if (!roll.Hits(total, other.ArmorClass)) continue;
                 int d = Mathf.Max(damage * action.areaDamagePercent / 100, 1);
+                if (action.fx != MoveFxStyle.None) MoveFx.Splash(action.fx, user, other);
                 other.TakeDamage(d);
                 other.TryAddStatus(action.inflicts, action.statusTurns, action.statusChance, action.statusDiceCount, action.statusDiceSides);
                 extra += $"   +{TargetName(other)} {d}";
@@ -259,7 +279,8 @@ public class CombatTargeting : MonoBehaviour
         int amount = Mathf.Max(DiceSimulator.Roll(count, sides) + bonus, 0);
         int before = target.CurrentHP;
         target.Heal(amount);
-        if (action != null && action.impactPrefab != null) SpawnEffect(action.impactPrefab, target.transform);
+        if (action != null && action.fx != MoveFxStyle.None) MoveFx.Impact(action.fx, user, target, MoveFx.Body(target), true);
+        else if (action != null && action.impactPrefab != null) SpawnEffect(action.impactPrefab, target.transform);
         int healed = target.CurrentHP - before;
         // Lay on Hands: healing a friend heals you a bit too
         string selfText = "";
@@ -268,7 +289,8 @@ public class CombatTargeting : MonoBehaviour
             int selfAmount = Mathf.RoundToInt(amount * action.selfHealFraction);
             int b2 = user.CurrentHP;
             user.Heal(selfAmount);
-            if (action.impactPrefab != null) SpawnEffect(action.impactPrefab, user.transform);
+            if (action.fx != MoveFxStyle.None) MoveFx.Impact(action.fx, user, user, MoveFx.Body(user), true);
+            else if (action.impactPrefab != null) SpawnEffect(action.impactPrefab, user.transform);
             selfText = $"   +{user.CurrentHP - b2} HP  {user.unitName}";
         }
         Debug.Log($"{user.unitName} uses {what} on {target.unitName}: {count}d{sides}+{bonus} = {amount} -> healed {healed} ({target.CurrentHP}/{target.maxHP} HP)");
@@ -290,7 +312,8 @@ public class CombatTargeting : MonoBehaviour
         {
             u.AddBuff(action.blessDie, action.bonusAC, action.blessBonus);
             if (action.regenTurns > 0) u.AddStatus(StatusType.Regen, action.regenTurns, action.regenDiceCount, action.regenDiceSides);
-            if (action.impactPrefab != null) SpawnEffect(action.impactPrefab, u.transform);
+            if (action.fx != MoveFxStyle.None) MoveFx.Impact(action.fx, user, u, MoveFx.Body(u), true);
+            else if (action.impactPrefab != null) SpawnEffect(action.impactPrefab, u.transform);
         }
 
         string names = string.Join(" & ", who.ConvertAll(u => u.unitName));
@@ -303,6 +326,7 @@ public class CombatTargeting : MonoBehaviour
     IEnumerator Help(CombatUnit target)
     {
         target.Revive(1);
+        if (action.fx != MoveFxStyle.None) MoveFx.Impact(action.fx, user, target, MoveFx.Body(target), true);
         Debug.Log($"{user.unitName} helps {target.unitName} back up (1 HP)");
         turns.NotifyChanged();
         yield return DiceTray.ShowMessage(action.displayName, $"{target.unitName} is back on their feet  (1 HP)", true);
@@ -427,6 +451,15 @@ public class CombatTargeting : MonoBehaviour
         Vector3 b = CombatAnimation.ShotEnd(a, target.transform.position + lift, hit, user.tileSize);
 
         GameObject prefab = action.projectilePrefab != null ? action.projectilePrefab : rangedProjectile;
+        if (action.fx != MoveFxStyle.None)
+        {
+            // The move's own look: its way there (lightning, a rain of arrows, or the projectile), then its impact
+            if (MoveFx.OwnsTravel(action.fx)) yield return MoveFx.Travel(action.fx, user, target, b, hit, prefab, projectileSpeed * user.tileSize);
+            else yield return CombatAnimation.Fly(prefab, a, b, projectileSpeed * user.tileSize);
+            float wait = MoveFx.Impact(action.fx, user, target, b, hit);
+            if (wait > 0f) yield return new WaitForSeconds(wait);
+            yield break;
+        }
         yield return CombatAnimation.Fly(prefab, a, b, projectileSpeed * user.tileSize);
 
         // Impact (explosion). Wait for most of it before the HIT / MISS banner.

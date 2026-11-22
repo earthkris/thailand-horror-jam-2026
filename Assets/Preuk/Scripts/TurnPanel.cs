@@ -262,7 +262,7 @@ public class TurnPanel : MonoBehaviour
                 icon = a.typeIcon,
                 label = a.displayName,
                 detail = $"{a.AmountText}   {range}{uses}",
-                description = a.description,
+                description = a.FullDescription,
                 enabled = left != 0 && (a.effect != ActionEffect.Help || AnyAllyDowned()),
                 onPick = () => { menu.Close(); turns.ChooseAction(picked); }
             });

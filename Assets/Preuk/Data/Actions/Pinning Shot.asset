@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: Pinning Shot
   m_EditorClassIdentifier: Assembly-CSharp::CombatAction
   displayName: Pinning Shot
-  description: An arrow through the leg. The target may lose its next turn.
+  description: An arrow through the leg that pins the target to the floor through
+    its next turn.
   typeIcon: {fileID: 4507998296860207705, guid: 8759f277fe018ee479fc51e7fa20ff19, type: 3}
   bonusAction: 0
   target: 0
@@ -27,6 +28,7 @@ MonoBehaviour:
   extraDiceCount: 0
   extraDiceSides: 6
   damageType: piercing
+  fx: 16
   projectilePrefab: {fileID: 1638535024415612332, guid: 81fa63bf283325e4dbcafe4b2cf0560f, type: 3}
   impactPrefab: {fileID: 0}
   castEffect: {fileID: 0}
@@ -37,9 +39,9 @@ MonoBehaviour:
   blessDie: 0
   bonusAC: 0
   wholeParty: 0
-  inflicts: 2
+  inflicts: 6
   statusTurns: 1
-  statusChance: 60
+  statusChance: 100
   statusDiceCount: 1
   statusDiceSides: 4
   advantage: 0

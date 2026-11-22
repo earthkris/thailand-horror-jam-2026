@@ -15,6 +15,8 @@ public class LootContainer : Interactable
     [Header("Ambush (optional)")]
     [Range(0f, 1f)] public float ambushChance = 0f;
     public GameObject ambushPrefab;
+    [Tooltip("The monster is this prop (a Mimic): the prop vanishes and the monster stands where it was.")]
+    public bool ambushIsUs = false;
     public MonsterSpawner.Stats ambushStats = new MonsterSpawner.Stats
     {
         name = "Coffin Crawler", hp = 8, armorClass = 11, attackBonus = 4, diceSides = 6, damageBonus = 1,
@@ -83,12 +85,29 @@ public class LootContainer : Interactable
     // Something was waiting inside
     bool Ambush()
     {
-        if (!TryFreeTileNextToUs(out Vector3 spot)) return false;
+        Vector3 spot;
+        if (ambushIsUs)
+        {
+            if (player == null) return false;
+            Vector3 me = TileMath.Snap(transform.position, player.tileSize);
+            spot = new Vector3(me.x, player.transform.position.y, me.z);
+        }
+        else if (!TryFreeTileNextToUs(out spot)) return false;
         CombatUnit m = MonsterSpawner.Spawn(ambushPrefab, ambushStats, spot);
         if (m == null) return false;
         Sfx.Play("roar", 0.8f, 1.5f);
-        StartCoroutine(MonsterSpawner.RiseFromFloor(m.transform));
-        GameToast.Show($"Something crawls out of the {what}!", "");
+        if (ambushIsUs)
+        {
+            // The chest was the monster all along: it's gone, the mimic stands in its place
+            foreach (Renderer r in GetComponentsInChildren<Renderer>()) r.enabled = false;
+            foreach (Collider c in GetComponentsInChildren<Collider>()) c.enabled = false;
+            GameToast.Show($"The {what} has teeth!", "A Mimic.");
+        }
+        else
+        {
+            StartCoroutine(MonsterSpawner.RiseFromFloor(m.transform));
+            GameToast.Show($"Something crawls out of the {what}!", "");
+        }
         if (player != null && m.TryGetComponent(out EnemyEncounter e)) e.StartCombatWith(player.GetComponent<CombatUnit>());
         return true;
     }

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Whirlwind
   m_EditorClassIdentifier: Assembly-CSharp::CombatAction
   displayName: Whirlwind
-  description: Magnus spins with the axe out. Hits every monster next to him.
+  description: Magnus spins with the axe out and hits every monster next to him.
   typeIcon: {fileID: 4507998296860207705, guid: 8759f277fe018ee479fc51e7fa20ff19, type: 3}
   bonusAction: 0
   target: 0
@@ -27,6 +27,7 @@ MonoBehaviour:
   extraDiceCount: 0
   extraDiceSides: 6
   damageType: slashing
+  fx: 21
   projectilePrefab: {fileID: 0}
   impactPrefab: {fileID: 0}
   castEffect: {fileID: 0}

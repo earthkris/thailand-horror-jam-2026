@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: Silk Bomb
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   displayName: Silk Bomb
-  description: A spider's egg sac, full of sticky silk. Webs up everything around
-    where it lands.
+  description: A spider's egg sac full of sticky silk. Restrains everything round
+    where it lands for 2 turns.
   target: 1
   range: 1
   effect: 4

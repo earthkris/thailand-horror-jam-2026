@@ -34,7 +34,7 @@ public static class OpportunityAttack
     // Can 'foe' react, and does the step take 'mover' out of its reach?
     static bool WouldSwing(CombatUnit foe, CombatUnit mover, Vector2Int from, Vector2Int to, TurnManager turns)
     {
-        if (foe == null || !foe.IsAlive || foe.Has(StatusType.Paralyse) || !turns.HasReaction(foe)) return false;
+        if (foe == null || !foe.IsAlive || foe.Has(StatusType.Paralyse) || foe.Has(StatusType.Restrained) || !turns.HasReaction(foe)) return false;
         if (!FightsUpClose(foe)) return false;
         return Reach(foe, from, mover.size) <= 1 && Reach(foe, to, mover.size) > 1;
     }
@@ -54,10 +54,14 @@ public static class OpportunityAttack
         int need = AttackRoll.Needed(mover.ArmorClass, bonus);
         bool goodForParty = mover.team == Team.Enemy;
 
+        bool favoured = false, hampered = false;
+        StatusRules.Edge(attacker, mover, true, ref favoured, ref hampered, null);
+        RollMode mode = StatusRules.Mode(favoured, hampered);
         var roll = new AttackRoll();
-        yield return roll.Throw($"{FogOfWar.NameOf(attacker)}: OPPORTUNITY ATTACK on {mover.unitName}  —  need {need}+");
+        yield return roll.Throw($"{FogOfWar.NameOf(attacker)}: OPPORTUNITY ATTACK on {mover.unitName}  —  need {need}+", mode,
+                                mode == RollMode.Advantage ? "Advantage  —  second roll" : "Disadvantage  —  second roll");
         int bless = attacker.RollBless();
-        int total = roll.Value + bonus + bless;
+        int total = roll.Value + bonus + bless - StatusRules.BaneRoll(attacker);
 
         yield return CombatAnimation.Lunge(attacker, mover);
         string head = $"{attacker.unitName} opportunity attack on {mover.unitName}: {roll.Text} + {bonus}" + (bless > 0 ? $" + bless ({bless})" : "") + $" = {total} vs AC {mover.ArmorClass}";

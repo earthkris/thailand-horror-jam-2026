@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: Holy Water
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   displayName: Holy Water
-  description: A blessed vial. Burns what lives in the dark; may stun it.
+  description: A blessed vial. Burns what lives in the dark and frightens it for
+    2 turns.
   target: 1
   range: 1
   effect: 4

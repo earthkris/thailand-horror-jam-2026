@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: Judgement
   m_EditorClassIdentifier: Assembly-CSharp::CombatAction
   displayName: Judgement
-  description: Kairos drives his blade down with everything he has left. Strikes
-    with advantage.
+  description: Kairos drives his blade down with everything he has. Rolls with advantage,
+    and half the time the light blinds the target for a turn.
   typeIcon: {fileID: 4507998296860207705, guid: 8759f277fe018ee479fc51e7fa20ff19, type: 3}
   bonusAction: 0
   target: 0
@@ -28,6 +28,7 @@ MonoBehaviour:
   extraDiceCount: 0
   extraDiceSides: 6
   damageType: slashing + radiant
+  fx: 6
   projectilePrefab: {fileID: 0}
   impactPrefab: {fileID: 0}
   castEffect: {fileID: 0}
@@ -47,9 +48,9 @@ MonoBehaviour:
   blessDie: 0
   bonusAC: 0
   wholeParty: 0
-  inflicts: 0
+  inflicts: 8
   statusTurns: 1
-  statusChance: 100
+  statusChance: 50
   statusDiceCount: 1
   statusDiceSides: 4
   advantage: 1

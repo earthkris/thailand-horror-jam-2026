@@ -147,6 +147,7 @@ MonoBehaviour:
   statusChance: 35
   statusDiceCount: 1
   statusDiceSides: 4
+  drainPercent: 0
   specialName: 
   specialEvery: 3
   specialDiceCount: 2
@@ -158,6 +159,9 @@ MonoBehaviour:
   specialStatusDiceCount: 1
   specialStatusDiceSides: 6
   specialSplash: 0
+  meleeFx: 27
+  rangedFx: 0
+  specialFx: 0
   meleeVerb: bites
   rangedVerb: spits web at
   stepSpeed: 4

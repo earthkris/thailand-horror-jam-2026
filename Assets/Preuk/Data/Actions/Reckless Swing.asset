@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: Reckless Swing
   m_EditorClassIdentifier: Assembly-CSharp::CombatAction
   displayName: Reckless Swing
-  description: All strength, no guard. Rolls with advantage.
+  description: All strength, no guard. Rolls with advantage, and 40% of the time
+    knocks the target prone.
   typeIcon: {fileID: 4507998296860207705, guid: 8759f277fe018ee479fc51e7fa20ff19, type: 3}
   bonusAction: 0
   target: 0
@@ -27,6 +28,7 @@ MonoBehaviour:
   extraDiceCount: 0
   extraDiceSides: 6
   damageType: slashing
+  fx: 20
   projectilePrefab: {fileID: 0}
   impactPrefab: {fileID: 0}
   castEffect: {fileID: 0}
@@ -37,9 +39,9 @@ MonoBehaviour:
   blessDie: 0
   bonusAC: 0
   wholeParty: 0
-  inflicts: 0
+  inflicts: 7
   statusTurns: 1
-  statusChance: 100
+  statusChance: 40
   statusDiceCount: 1
   statusDiceSides: 4
   advantage: 1

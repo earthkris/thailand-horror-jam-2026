@@ -115,7 +115,8 @@ public class CombatUnit : MonoBehaviour
         DeathSaveFailures = 0;
     }
 
-    public int MoveTiles => speedFeet / 5;
+    // Restrained / paralysed: 0. Frightened / prone: half.
+    public int MoveTiles => StatusRules.Speed(this, speedFeet / 5);
 
     // ---------- Buffs (Bless, Shield of Faith...). They last until the fight ends. ----------
     public int BlessDie { get; private set; }        // 4 = +1d4 on attack rolls, 0 = not blessed
@@ -159,6 +160,7 @@ public class CombatUnit : MonoBehaviour
     public void AddStatus(StatusType s, int turns, int diceCount = 1, int diceSides = 4)
     {
         if (s == StatusType.None || turns <= 0 || !IsAlive) return;
+        if (s == StatusType.Prone && size > 1) return;   // too big to knock over
         statusTurns[s] = Mathf.Max(TurnsLeft(s), turns);   // doesn't stack: the longer one wins
         if (s == StatusType.Burn) { burnDiceCount = Mathf.Max(diceCount, 1); burnDiceSides = Mathf.Max(diceSides, 1); }
         if (s == StatusType.Regen) { regenDiceCount = Mathf.Max(diceCount, 1); regenDiceSides = Mathf.Max(diceSides, 1); }
@@ -179,24 +181,37 @@ public class CombatUnit : MonoBehaviour
     // Regeneration heal for one turn, e.g. 2d4
     public int RollRegen() => Mathf.Max(DiceSimulator.Roll(regenDiceCount, regenDiceSides), 1);
 
-    // Start of this unit's turn (after burn and paralyse did their thing): every status loses a turn
-    public void CountDownStatuses()
+    // Start of this unit's turn (after burn and paralyse did their thing): burn, paralyse, regen and prone lose a turn.
+    // End of its turn (turnEnd): the conditions that hamper what it does (poisoned, frightened...) lose a turn.
+    public void CountDownStatuses(bool turnEnd = false)
     {
         if (statusTurns.Count == 0) return;
+        bool changed = false;
         foreach (StatusType s in new List<StatusType>(statusTurns.Keys))
+        {
+            if (StatusRules.CountsAtTurnEnd(s) != turnEnd) continue;
+            changed = true;
             if (--statusTurns[s] <= 0) statusTurns.Remove(s);
-        OnAnyStatusChanged?.Invoke(this);
+        }
+        if (changed) OnAnyStatusChanged?.Invoke(this);
     }
 
-    // Burning or paralysed (Regen is a good status, so it doesn't count)
-    public bool HasHarmfulStatus => Has(StatusType.Burn) || Has(StatusType.Paralyse);
+    // Anything but Regen
+    public bool HasHarmfulStatus
+    {
+        get
+        {
+            foreach (StatusType s in statusTurns.Keys) if (StatusRules.Harmful(s)) return true;
+            return false;
+        }
+    }
 
-    // Ends burning and paralysis, keeps Regen (an antidote)
+    // Ends every bad status, keeps Regen (an antidote)
     public void CureHarmfulStatuses()
     {
         if (!HasHarmfulStatus) return;
-        statusTurns.Remove(StatusType.Burn);
-        statusTurns.Remove(StatusType.Paralyse);
+        foreach (StatusType s in new List<StatusType>(statusTurns.Keys))
+            if (StatusRules.Harmful(s)) statusTurns.Remove(s);
         OnAnyStatusChanged?.Invoke(this);
     }
 
@@ -213,9 +228,7 @@ public class CombatUnit : MonoBehaviour
         get
         {
             string s = "";
-            if (Has(StatusType.Burn)) s += $"     Burning {TurnsLeft(StatusType.Burn)}";
-            if (Has(StatusType.Paralyse)) s += $"     Paralysed {TurnsLeft(StatusType.Paralyse)}";
-            if (Has(StatusType.Regen)) s += $"     Regen {TurnsLeft(StatusType.Regen)}";
+            foreach (var pair in statusTurns) s += $"     {StatusInfo.Label(pair.Key)} {pair.Value}";
             return s;
         }
     }
@@ -233,7 +246,7 @@ public class CombatUnit : MonoBehaviour
     {
         CurrentHP = maxHP;
         SnapToGrid();
-        if (team == Team.Party && !TryGetComponent<DownedPose>(out _)) gameObject.AddComponent<DownedPose>();   // lie down when downed
+        if ((team == Team.Party || size == 1) && !TryGetComponent<DownedPose>(out _)) gameObject.AddComponent<DownedPose>();   // lie down when downed or knocked prone
     }
 
     // ---------- Footprint (which tiles we cover) ----------
