@@ -128138,6 +128138,22 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.y
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6028940418468991135, guid: 8d19c6f8daf97114c891770b2b334dee, type: 3}
+      propertyPath: m_Pivot.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6028940418468991135, guid: 8d19c6f8daf97114c891770b2b334dee, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6028940418468991135, guid: 8d19c6f8daf97114c891770b2b334dee, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 1140
+      objectReference: {fileID: 0}
+    - target: {fileID: 6028940418468991135, guid: 8d19c6f8daf97114c891770b2b334dee, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 80
+      objectReference: {fileID: 0}
     - target: {fileID: 7531945476924459019, guid: 8d19c6f8daf97114c891770b2b334dee, type: 3}
       propertyPath: m_Name
       value: Battle UI

@@ -90,6 +90,9 @@ public class TutorialCombat : MonoBehaviour
     RectTransform pointUI;      // the arrow points at this UI element...
     Transform pointWorld;       // ...or at this thing in the world
     string shownText;
+    RectTransform initiativeList, menuCorner;   // the hint box sits in the gap between these two
+    RectTransform battlePanel;  // an arrow under a character's feet stays above this
+    float boxMaxWidth;          // boxWidth, or less when the UI is big and the gap is narrow
 
     IEnumerator Start()
     {
@@ -102,6 +105,11 @@ public class TutorialCombat : MonoBehaviour
         }
         targeting = turns.GetComponent<CombatTargeting>();
         if (font == null && panel != null && panel.turnTitle != null) font = panel.turnTitle.font;
+        initiativeList = Ui(panel != null ? panel.initiativePanel : null);
+        battlePanel = Ui(panel != null ? panel.actionPanel : null);
+        PauseMenu menu = FindAnyObjectByType<PauseMenu>(FindObjectsInactive.Include);
+        menuCorner = Ui(menu != null ? menu.cornerButton : null);
+        boxMaxWidth = boxWidth;
         BuildUI();
         Hide();
 
@@ -313,7 +321,8 @@ public class TutorialCombat : MonoBehaviour
             tileH = Mathf.Max(r.height - b.y - b.w, 1f) * framePixelScale;
         }
 
-        int cols = Mathf.Max(1, Mathf.RoundToInt((boxWidth - edgeW) / tileW));
+        int cols = Mathf.Max(1, Mathf.RoundToInt((boxMaxWidth - edgeW) / tileW));
+        while (cols > 1 && edgeW + cols * tileW > boxMaxWidth) cols--;   // a narrow gap: never wider than it
         float w = edgeW + cols * tileW;
         box.sizeDelta = new Vector2(w, box.sizeDelta.y);
 
@@ -343,43 +352,102 @@ public class TutorialCombat : MonoBehaviour
         if (!box.gameObject.activeSelf) return;
 
         bool hasTarget = TryGetTarget(out Rect r, out bool isWorld);
+        PlaceBox(hasTarget && isWorld ? r : (Rect?)null);
         if (arrow.gameObject.activeSelf != hasTarget) arrow.gameObject.SetActive(hasTarget);
         if (!hasTarget) return;
 
-        // The arrow points at the target from the side facing the middle of the screen, and bobs
         float s = canvas.scaleFactor;
         float gap = (10f + Mathf.Sin(Time.unscaledTime * 6f) * 8f) * s;
-        Vector2 c = r.center;
+        float arrowLong = 13f * arrowPixelScale * s;   // the arrow sprites are 12x13 pixels
+        // The tip of the up and down arrows is the left one of their two middle pixel columns (the shadow
+        // is on the right): half a pixel right puts the tip on the middle of the target
+        float x = r.center.x + 0.5f * arrowPixelScale * s;
 
-        if (!isWorld && c.x < Screen.width * 0.3f)
+        if (!isWorld)
         {
-            SetArrow(arrowLeft);    // right of it, pointing left
-            arrow.position = new Vector2(r.xMax + gap + arrow.sizeDelta.x * 0.5f * s, c.y);
+            // Battle buttons (lower half): from above, pointing down. The initiative list (upper half): from below.
+            // Never from the side: beside a button is the next button, beside the initiative list is the hint box.
+            bool down = r.center.y < Screen.height * 0.5f;
+            SetArrow(down ? arrowDown : arrowUp);
+            arrow.position = new Vector2(x, down ? r.yMax + gap + arrowLong * 0.5f : r.yMin - gap - arrowLong * 0.5f);
+            return;
         }
-        else if (isWorld || c.y < Screen.height * 0.5f)
+
+        // A character: above its head, else under its feet, else beside it.
+        // Never over the hint box's text or the battle buttons.
+        float ceiling = BoxBottom() - 6f * s;
+        float floor = battlePanel != null && battlePanel.gameObject.activeInHierarchy ? ScreenRect(battlePanel).yMax + 6f * s : 0f;
+        if (r.yMax + gap + arrowLong <= ceiling)
         {
-            SetArrow(arrowDown);    // above it, pointing down
-            arrow.position = new Vector2(c.x, r.yMax + gap + arrow.sizeDelta.y * 0.5f * s);
+            SetArrow(arrowDown);
+            arrow.position = new Vector2(x, r.yMax + gap + arrowLong * 0.5f);
+        }
+        else if (r.yMin - gap - arrowLong >= floor)
+        {
+            SetArrow(arrowUp);
+            arrow.position = new Vector2(x, r.yMin - gap - arrowLong * 0.5f);
+        }
+        else if (r.center.x > Screen.width * 0.5f)
+        {
+            SetArrow(arrowRight);   // on its left, pointing right (more room that side)
+            arrow.position = new Vector2(r.xMin - gap - arrowLong * 0.5f, r.center.y);
         }
         else
         {
-            SetArrow(arrowUp);      // below it, pointing up
-            arrow.position = new Vector2(c.x, r.yMin - gap - arrow.sizeDelta.y * 0.5f * s);
+            SetArrow(arrowLeft);    // on its right, pointing left
+            arrow.position = new Vector2(r.xMax + gap + arrowLong * 0.5f, r.center.y);
         }
+    }
 
-        // Above a character would run into the hint box (a tall monster near the top of the screen):
-        // point up at it from under its feet instead, never over the box's text
-        if (isWorld)
+    // The hint box's lower edge on screen (pixels from the bottom)
+    float BoxBottom()
+    {
+        var corners = new Vector3[4];
+        box.GetWorldCorners(corners);
+        return corners[0].y;
+    }
+
+    // Keep the hint box clear of the rest of the UI at any UI Size: in the gap between the initiative list
+    // (top left) and the MENU button (top right), no wider than that gap. When it points at a monster,
+    // it shrinks (down to 70%) rather than cover it.
+    void PlaceBox(Rect? worldTarget)
+    {
+        float s = canvas.scaleFactor;
+        float margin = 16f * s;
+        float left = 0f, right = Screen.width;
+        if (initiativeList != null && initiativeList.gameObject.activeInHierarchy) left = ScreenRect(initiativeList).xMax;
+        if (menuCorner != null && menuCorner.gameObject.activeInHierarchy) right = ScreenRect(menuCorner).xMin;
+        if (right - left < 300f * s) { left = 0f; right = Screen.width; }   // no real gap: use the whole width
+
+        float maxWidth = Mathf.Min(boxWidth, (right - left - 2f * margin) / s);
+        if (Mathf.Abs(maxWidth - boxMaxWidth) > 1f)
         {
-            var corners = new Vector3[4];
-            box.GetWorldCorners(corners);
-            float limit = corners[0].y - (arrow.sizeDelta.y * 0.5f + 6f) * s;
-            if (arrow.position.y > limit)
-            {
-                SetArrow(arrowUp);
-                arrow.position = new Vector2(c.x, r.yMin - gap - arrow.sizeDelta.y * 0.5f * s);
-            }
+            boxMaxWidth = maxWidth;
+            FitBox();
         }
+        box.anchoredPosition = new Vector2(((left + right) * 0.5f - Screen.width * 0.5f) / s, box.anchoredPosition.y);
+
+        // Room above the monster's head (the box hangs from the top of the screen)
+        float scale = 1f;
+        if (worldTarget.HasValue)
+        {
+            float top = Screen.height + box.anchoredPosition.y * s;       // the box's top edge
+            float room = top - (worldTarget.Value.yMax + 8f * s);
+            float height = box.rect.height * s;
+            if (height > room) scale = Mathf.Clamp(room / height, 0.7f, 1f);
+        }
+        box.localScale = new Vector3(scale, scale, 1f);
+    }
+
+    static Rect ScreenRect(RectTransform rt)
+    {
+        Canvas c = rt.GetComponentInParent<Canvas>();
+        Camera cam = c != null && c.renderMode != RenderMode.ScreenSpaceOverlay ? c.worldCamera : null;
+        var corners = new Vector3[4];
+        rt.GetWorldCorners(corners);
+        Vector2 min = RectTransformUtility.WorldToScreenPoint(cam, corners[0]);
+        Vector2 max = RectTransformUtility.WorldToScreenPoint(cam, corners[2]);
+        return Rect.MinMaxRect(min.x, min.y, max.x, max.y);
     }
 
     // Where the target is on screen (pixels). A world target is the top of its sprite.
@@ -390,13 +458,7 @@ public class TutorialCombat : MonoBehaviour
 
         if (pointUI != null && pointUI.gameObject.activeInHierarchy)
         {
-            Canvas c = pointUI.GetComponentInParent<Canvas>();
-            Camera cam = c != null && c.renderMode != RenderMode.ScreenSpaceOverlay ? c.worldCamera : null;
-            var corners = new Vector3[4];
-            pointUI.GetWorldCorners(corners);
-            Vector2 min = RectTransformUtility.WorldToScreenPoint(cam, corners[0]);
-            Vector2 max = RectTransformUtility.WorldToScreenPoint(cam, corners[2]);
-            r = Rect.MinMaxRect(min.x, min.y, max.x, max.y);
+            r = ScreenRect(pointUI);
             return true;
         }
 
@@ -411,7 +473,10 @@ public class TutorialCombat : MonoBehaviour
             Vector3 top = cam.WorldToScreenPoint(new Vector3(b.center.x, b.max.y, b.center.z));
             Vector3 feet = cam.WorldToScreenPoint(new Vector3(b.center.x, b.min.y, b.center.z));
             if (top.z < 0f) return false;   // behind the camera
-            r = Rect.MinMaxRect(top.x, feet.y, top.x, top.y);   // a line from the feet to the top of the head
+            float halfWidth = Mathf.Abs(cam.WorldToScreenPoint(new Vector3(b.max.x, b.center.y, b.center.z)).x
+                                      - cam.WorldToScreenPoint(new Vector3(b.min.x, b.center.y, b.center.z)).x) * 0.5f;
+            // From the feet to the top of the head, as wide as the body, centred under the head
+            r = Rect.MinMaxRect(top.x - halfWidth, feet.y, top.x + halfWidth, top.y);
             isWorld = true;
             return true;
         }
