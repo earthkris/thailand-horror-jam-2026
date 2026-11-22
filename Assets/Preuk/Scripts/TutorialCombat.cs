@@ -367,13 +367,18 @@ public class TutorialCombat : MonoBehaviour
             arrow.position = new Vector2(c.x, r.yMin - gap - arrow.sizeDelta.y * 0.5f * s);
         }
 
-        // A tall monster's head can reach the hint box: keep the arrow below the box, never over its text
+        // Above a character would run into the hint box (a tall monster near the top of the screen):
+        // point up at it from under its feet instead, never over the box's text
         if (isWorld)
         {
             var corners = new Vector3[4];
             box.GetWorldCorners(corners);
             float limit = corners[0].y - (arrow.sizeDelta.y * 0.5f + 6f) * s;
-            if (arrow.position.y > limit) arrow.position = new Vector2(arrow.position.x, limit);
+            if (arrow.position.y > limit)
+            {
+                SetArrow(arrowUp);
+                arrow.position = new Vector2(c.x, r.yMin - gap - arrow.sizeDelta.y * 0.5f * s);
+            }
         }
     }
 
@@ -397,12 +402,16 @@ public class TutorialCombat : MonoBehaviour
 
         if (pointWorld != null && Camera.main != null)
         {
-            Bounds b = new Bounds(pointWorld.position, Vector3.zero);
-            foreach (SpriteRenderer sr in pointWorld.GetComponentsInChildren<SpriteRenderer>())
-                if (sr.enabled) b.Encapsulate(sr.bounds);
-            Vector3 top = Camera.main.WorldToScreenPoint(new Vector3(b.center.x, b.max.y, b.center.z));
+            // Their body only: shadows lie across the floor and the sword or book floats beside them,
+            // and those would pull the arrow off to one side
+            SpriteAnimator anim = pointWorld.GetComponentInChildren<SpriteAnimator>();
+            SpriteRenderer body = anim != null ? anim.GetComponent<SpriteRenderer>() : pointWorld.GetComponentInChildren<SpriteRenderer>();
+            Bounds b = body != null && body.sprite != null ? body.bounds : new Bounds(pointWorld.position, Vector3.zero);
+            Camera cam = Camera.main;
+            Vector3 top = cam.WorldToScreenPoint(new Vector3(b.center.x, b.max.y, b.center.z));
+            Vector3 feet = cam.WorldToScreenPoint(new Vector3(b.center.x, b.min.y, b.center.z));
             if (top.z < 0f) return false;   // behind the camera
-            r = new Rect(top.x, top.y, 0f, 0f);
+            r = Rect.MinMaxRect(top.x, feet.y, top.x, top.y);   // a line from the feet to the top of the head
             isWorld = true;
             return true;
         }

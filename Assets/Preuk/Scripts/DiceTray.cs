@@ -227,7 +227,7 @@ public class DiceTray : MonoBehaviour
     // The real dice stops being physical for combat rolls; the look-alike is made the first time it's needed
     void PrepareDice(int count)
     {
-        if (dice.TryGetComponent(out Rigidbody rb))
+        if (dice.TryGetComponent(out Rigidbody rb) && !rb.isKinematic)   // already done on an earlier roll: a kinematic body can't take a velocity
         {
             rb.linearVelocity = Vector3.zero;
             rb.angularVelocity = Vector3.zero;

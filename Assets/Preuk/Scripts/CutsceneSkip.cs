@@ -28,7 +28,17 @@ public class CutsceneSkip : MonoBehaviour
     [Tooltip("Seconds the game fades in from black after the video.")]
     public float fadeInTime = 1.2f;
 
-    // Every cutscene (VidPlayer) gets a skip button by itself: nothing to set up in the scene
+    // Every cutscene (VidPlayer) gets a skip button by itself: nothing to set up in the scene.
+    // On every scene load, not just the first: the game scene now comes after the start screen.
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void HookSceneLoads()
+    {
+        UnityEngine.SceneManagement.SceneManager.sceneLoaded -= OnSceneLoaded;
+        UnityEngine.SceneManagement.SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    static void OnSceneLoaded(UnityEngine.SceneManagement.Scene scene, UnityEngine.SceneManagement.LoadSceneMode mode) => AttachToCutscenes();
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void AttachToCutscenes()
     {
