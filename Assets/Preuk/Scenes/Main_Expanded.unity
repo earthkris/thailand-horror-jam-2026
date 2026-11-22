@@ -83239,7 +83239,7 @@ MonoBehaviour:
   tray: {fileID: 1141377841}
   hideWhenIdle: 1
   showResultFor: 1.2
-  diceBrightness: 0.2
+  diceBrightness: 0.08
   throwTime: 0.9
   holdResult: 0.45
   bounceHeight: 1.2
