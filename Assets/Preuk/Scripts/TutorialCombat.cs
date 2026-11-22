@@ -92,6 +92,7 @@ public class TutorialCombat : MonoBehaviour
     string shownText;
     RectTransform initiativeList, menuCorner;   // the hint box sits in the gap between these two
     RectTransform battlePanel;  // an arrow under a character's feet stays above this
+    bool arrowFromBelow;        // this hint's arrow points up at its UI target from underneath
     float boxMaxWidth;          // boxWidth, or less when the UI is big and the gap is narrow
 
     IEnumerator Start()
@@ -162,7 +163,8 @@ public class TutorialCombat : MonoBehaviour
 
         // 2. How a fight works
         yield return Explain(initiativeHint, Ui(panel != null ? panel.initiativePanel : null), null);
-        yield return Explain(statsHint, Ui(panel != null ? panel.turnTitle : null), null);
+        // At the heart and shield line, from below: the turn title sits right above it
+        yield return Explain(statsHint, Ui(panel != null ? panel.turnInfo : null), null, fromBelow: true);
         yield return Explain(turnHint, Ui(panel != null ? panel.actionPanel : null), null);
 
         // 3. Round one: each of the three turns, hinted as it happens
@@ -227,9 +229,9 @@ public class TutorialCombat : MonoBehaviour
     }
 
     // A hint that waits for the player to click on (the game waits too)
-    IEnumerator Explain(string text, RectTransform ui, Transform world)
+    IEnumerator Explain(string text, RectTransform ui, Transform world, bool fromBelow = false)
     {
-        Show(text, ui, world, true);
+        Show(text, ui, world, true, fromBelow);
         yield return WaitForContinue();
         Hide();
     }
@@ -288,8 +290,9 @@ public class TutorialCombat : MonoBehaviour
 
     // ================= Hint box and arrow =================
 
-    void Show(string text, RectTransform ui, Transform world, bool waitForContinue = false)
+    void Show(string text, RectTransform ui, Transform world, bool waitForContinue = false, bool fromBelow = false)
     {
+        arrowFromBelow = fromBelow;
         text = text.Replace("{enemy}", tutorialEnemy.unitName);
         bool refit = false;
         if (text != shownText)
@@ -367,7 +370,7 @@ public class TutorialCombat : MonoBehaviour
         {
             // Battle buttons (lower half): from above, pointing down. The initiative list (upper half): from below.
             // Never from the side: beside a button is the next button, beside the initiative list is the hint box.
-            bool down = r.center.y < Screen.height * 0.5f;
+            bool down = r.center.y < Screen.height * 0.5f && !arrowFromBelow;
             SetArrow(down ? arrowDown : arrowUp);
             arrow.position = new Vector2(x, down ? r.yMax + gap + arrowLong * 0.5f : r.yMin - gap - arrowLong * 0.5f);
             return;
@@ -439,14 +442,15 @@ public class TutorialCombat : MonoBehaviour
         box.localScale = new Vector3(scale, scale, 1f);
     }
 
-    static Rect ScreenRect(RectTransform rt)
+    static Rect ScreenRect(RectTransform rt) => ScreenRect(rt, rt.rect);
+
+    // A rectangle in the element's own space, in screen pixels
+    static Rect ScreenRect(RectTransform rt, Rect local)
     {
         Canvas c = rt.GetComponentInParent<Canvas>();
         Camera cam = c != null && c.renderMode != RenderMode.ScreenSpaceOverlay ? c.worldCamera : null;
-        var corners = new Vector3[4];
-        rt.GetWorldCorners(corners);
-        Vector2 min = RectTransformUtility.WorldToScreenPoint(cam, corners[0]);
-        Vector2 max = RectTransformUtility.WorldToScreenPoint(cam, corners[2]);
+        Vector2 min = RectTransformUtility.WorldToScreenPoint(cam, rt.TransformPoint(local.min));
+        Vector2 max = RectTransformUtility.WorldToScreenPoint(cam, rt.TransformPoint(local.max));
         return Rect.MinMaxRect(min.x, min.y, max.x, max.y);
     }
 
@@ -458,7 +462,13 @@ public class TutorialCombat : MonoBehaviour
 
         if (pointUI != null && pointUI.gameObject.activeInHierarchy)
         {
-            r = ScreenRect(pointUI);
+            // Text: the words themselves, not its box (a left-aligned title can sit in a box three times its width)
+            if (pointUI.TryGetComponent(out TMP_Text text) && text.textBounds.size.x > 0f)
+            {
+                Bounds b = text.textBounds;
+                r = ScreenRect(pointUI, Rect.MinMaxRect(b.min.x, b.min.y, b.max.x, b.max.y));
+            }
+            else r = ScreenRect(pointUI);
             return true;
         }
 
